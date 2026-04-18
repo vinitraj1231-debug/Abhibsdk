@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: telegram-bot-service
+    env: python
+    plan: free
+
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python main.py"
+
+    envVars:
+      - key: API_ID
+        value: "23790796"
+
+      - key: API_HASH
+        value: "626eb31c9057007df4c2851b3074f27f"
+
+      - key: MAIN_BOT_TOKEN
+        value: "8718938454:"
+
+      - key: MAIN_ADMIN
+        value: "8373641692"
+
+      - key: DB_CHANNEL
+        value: "-1003982754680"
+
+      - key: PORT
+        value: "8080"
+
+      - key: SESSION_STRING
+        value: "BQFrBMwAbPf0LHGBjtPeCC_QZO1IWxG6EXgd_9Yv"
