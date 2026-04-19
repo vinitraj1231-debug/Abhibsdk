@@ -1,7 +1,8 @@
 """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 ULTRA ADVANCED FILESTORE BOT v5.0 — PRODUCTION GRADE
+🚀 ULTRA ADVANCED FILESTORE BOT v5.1 — SHORTENER VERIFIED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ SHORTENER VERIFICATION  — Token system, premium bypass, Hinglish error msg
 ✅ SMART 2-PHASE REBUILD
    Phase 1: Download latest backup JSONs from channel (instant)
    Phase 2: Scan #FS_META for files uploaded after backup (incremental)
@@ -378,18 +379,64 @@ def file_icon(name: str) -> str:
     }.get(ext, "📁")
 
 async def get_short_link(bot_info, link: str) -> str:
-    if not (bot_info and bot_info.get("is_shortener_enabled")
-            and bot_info.get("shortener_api") and bot_info.get("shortener_url")):
+    """
+    Shorten a link using the bot's configured shortener API.
+    Returns original link if shortener is not configured or fails.
+    Supports both ?status=success (shareus, etc.) and other formats.
+    """
+    if not shortener_enabled_for_bot(bot_info):
         return link
-    url = f"https://{bot_info['shortener_url']}/api?api={bot_info['shortener_api']}&url={link}"
+    api_url = f"https://{bot_info['shortener_url']}/api?api={bot_info['shortener_api']}&url={link}"
     try:
-        async with _HTTP.get(url, timeout=aiohttp.ClientTimeout(total=5)) as r:
-            data = await r.json()
-            if data.get("status") == "success":
-                return data.get("shortenedUrl", link)
+        async with _HTTP.get(api_url, timeout=aiohttp.ClientTimeout(total=8)) as r:
+            # Some APIs return plain text (the shortened URL itself)
+            ct = r.headers.get("content-type", "")
+            if "json" in ct:
+                data = await r.json()
+                # Different API response formats
+                short = (data.get("shortenedUrl") or data.get("short_url")
+                         or data.get("result") or data.get("url"))
+                if data.get("status") in ("success", "ok", 200) and short:
+                    return short
+            else:
+                # Plain text response = the shortened URL
+                text = (await r.text()).strip()
+                if text.startswith("http"):
+                    return text
     except Exception as e:
-        logger.warning(f"Shortener: {e}")
+        logger.warning(f"Shortener failed ({bot_info.get('shortener_url')}): {e}")
     return link
+
+async def verify_shortener_domain(bot_info: dict, referrer: str) -> bool:
+    """
+    Check if the HTTP Referer/referrer header contains the shortener domain.
+    Used to loosely verify that user came through the shortener.
+    Note: Telegram does not pass referrer in ?start= deep links.
+    We use TOKEN system instead — this is kept for reference only.
+    """
+    if not bot_info or not bot_info.get("shortener_url"):
+        return False
+    domain = bot_info["shortener_url"].replace("https://", "").replace("http://", "").split("/")[0]
+    return domain.lower() in referrer.lower()
+
+async def _make_shortener_link(client, bi: dict, uid: int, bot_id: int, resource_id: str, rtype: str) -> str:
+    """
+    Generate a token, build a bot deep link with it, then shorten it.
+    If shortening fails, return the plain bot link (still has token = file delivered on next visit).
+    rtype = 'file' or 'batch'
+    """
+    token = generate_token(uid, bot_id, resource_id)
+    store_token(token, uid, bot_id, resource_id, rtype)
+
+    prefix = "f" if rtype == "file" else "b"
+    # Bot link format: ?start=f_FILEID_t_TOKEN  or  ?start=b_BATCHID_t_TOKEN
+    bot_link = f"https://t.me/{client.me.username}?start={prefix}_{resource_id}_t_{token}"
+
+    # Shorten the bot link (so user has to visit shortener)
+    short = await get_short_link(bi, bot_link)
+
+    logger.info(f"Shortener link created for uid={uid} resource={resource_id} token={token[:8]}...")
+    return short
 
 def main_bot_username() -> str:
     for d in ACTIVE_CLIENTS.values():
@@ -1002,6 +1049,69 @@ TEMP_WELCOME:  dict  = {}
 USER_FLOOD:    dict  = {}
 _HTTP: aiohttp.ClientSession = None
 
+# ── SHORTENER TOKEN SYSTEM ────────────────────────────────────────────────
+# {token: {uid, bot_id, fuid/bid, type, expires_at, used}}
+# Token is generated when user first requests a file and shortener is active.
+# User must visit the shortened link (which redirects here with token param).
+# After visiting → token validated → file delivered.
+# Token expires after SHORTENER_TOKEN_EXPIRY seconds.
+
+SHORTENER_TOKEN_EXPIRY = 900   # 15 minutes
+SHORTENER_TOKENS: dict = {}    # in-memory
+
+def generate_token(uid: int, bot_id: int, resource_id: str) -> str:
+    """Generate a secure one-time token for shortener verification."""
+    raw = f"{uid}:{bot_id}:{resource_id}:{time.time()}:{random.randint(0,999999)}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:20]
+
+def store_token(token: str, uid: int, bot_id: int, resource_id: str, rtype: str = "file"):
+    """Store a pending token. rtype = 'file' or 'batch'."""
+    SHORTENER_TOKENS[token] = {
+        "uid": uid, "bot_id": bot_id,
+        "resource_id": resource_id, "type": rtype,
+        "expires_at": time.time() + SHORTENER_TOKEN_EXPIRY,
+        "used": False
+    }
+
+def validate_token(token: str, uid: int, bot_id: int) -> dict | None:
+    """
+    Validate a token:
+    - Must exist, not expired, not used
+    - Must match uid and bot_id
+    Returns token data or None.
+    """
+    td = SHORTENER_TOKENS.get(token)
+    if not td: return None
+    if td["used"]: return None
+    if time.time() > td["expires_at"]: 
+        del SHORTENER_TOKENS[token]
+        return None
+    if td["uid"] != uid or td["bot_id"] != bot_id: return None
+    return td
+
+def consume_token(token: str):
+    """Mark token as used (one-time)."""
+    if token in SHORTENER_TOKENS:
+        SHORTENER_TOKENS[token]["used"] = True
+
+def clean_expired_tokens():
+    """Remove expired/used tokens (called from background task)."""
+    now = time.time()
+    expired = [k for k, v in SHORTENER_TOKENS.items()
+               if v["used"] or now > v["expires_at"]]
+    for k in expired:
+        del SHORTENER_TOKENS[k]
+    return len(expired)
+
+def shortener_enabled_for_bot(bot_info: dict) -> bool:
+    """Check if shortener is properly configured and enabled."""
+    return bool(
+        bot_info and
+        bot_info.get("is_shortener_enabled") and
+        bot_info.get("shortener_api") and
+        bot_info.get("shortener_url")
+    )
+
 async def get_http():
     global _HTTP
     if _HTTP is None or _HTTP.closed:
@@ -1292,17 +1402,33 @@ def register_handlers(app: Client):
         auto_del   = bi.get("auto_delete_time", 600) if bi else 600
         is_premium = user_data.get("is_premium", False)
 
-        if deep.startswith("f_"):
-            fuid  = deep[2:]
+        # ── Deep link: file with token (coming from shortener) ────
+        # Format: f_FILEID_t_TOKEN
+        if deep.startswith("f_") and "_t_" in deep:
+            parts = deep[2:].split("_t_", 1)
+            fuid  = parts[0]
+            token = parts[1] if len(parts) > 1 else ""
             files = load_db(FILES_DB)
             fdata = files.get(fuid)
             if not fdata:
                 return await message.reply(
-                    "❌ **File not found!**\n\n_Admin: Use `/rebuild` to restore from DB Channel._",
+                    "❌ **File not found!**\n\n_Admin: Use `/rebuild` to restore._",
                     reply_markup=InlineKeyboardMarkup(
                         [[InlineKeyboardButton("🔄 Rebuild DB", callback_data="confirm_rebuild")]]
                     ) if is_admin(uid) else None
                 )
+            td = validate_token(token, uid, bot_id)
+            if not td or td.get("resource_id") != fuid:
+                short_link = await _make_shortener_link(client, bi, uid, bot_id, fuid, "file")
+                return await message.reply(
+                    "⏱ **Link Expired or Already Used!**\n\n"
+                    "This verification link is no longer valid.\n\n"
+                    "Click below for a fresh link:",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔗 Get Fresh Link", url=short_link)]
+                    ])
+                )
+            consume_token(token)
             files[fuid]["access_count"] = files[fuid].get("access_count", 0) + 1
             save_db(FILES_DB, files)
             try:
@@ -1316,13 +1442,140 @@ def register_handlers(app: Client):
                 await message.reply("🌟 **Premium:** No auto-delete for you!")
             return
 
+        # ── Deep link: file without token (first access) ──────────
+        elif deep.startswith("f_"):
+            fuid  = deep[2:]
+            files = load_db(FILES_DB)
+            fdata = files.get(fuid)
+            if not fdata:
+                return await message.reply(
+                    "❌ **File not found!**\n\n_Admin: Use `/rebuild` to restore._",
+                    reply_markup=InlineKeyboardMarkup(
+                        [[InlineKeyboardButton("🔄 Rebuild DB", callback_data="confirm_rebuild")]]
+                    ) if is_admin(uid) else None
+                )
+            use_shortener = shortener_enabled_for_bot(bi)
+
+            # Premium users → bypass shortener always
+            if is_premium:
+                files[fuid]["access_count"] = files[fuid].get("access_count", 0) + 1
+                save_db(FILES_DB, files)
+                try:
+                    sent = await deliver_file(client, message.chat.id, fdata)
+                except Exception as e:
+                    return await message.reply(f"❌ File unavailable!\n`{e}`")
+                if sent:
+                    await message.reply("🌟 **Premium:** Direct delivery, no ads, no redirect!")
+                return
+
+            # Shortener configured → send ad link first
+            if use_shortener:
+                short_link = await _make_shortener_link(client, bi, uid, bot_id, fuid, "file")
+                fname = fdata.get("file_name", "File")
+                icon  = file_icon(fname)
+                return await message.reply(
+                    f"🔗 **Verification Required**\n\n"
+                    f"{icon} **{fname}**\n"
+                    f"📊 {fmt_size(fdata.get('file_size', 0))}\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ **Ladle, pehle sahi se shortener se jakar\n"
+                    f"ads dekhakar aao, tab file milegi!** 😄\n\n"
+                    f"👇 Neeche click karo → ad dekho → file pao 👇\n\n"
+                    f"🕐 Link 15 minute mein expire hoga.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⚡ Yahan Click Karo → File Pao", url=short_link)],
+                        [InlineKeyboardButton("💎 Premium Lo (No Ads!)", callback_data="premium_menu")]
+                    ])
+                )
+
+            # No shortener → direct delivery
+            files[fuid]["access_count"] = files[fuid].get("access_count", 0) + 1
+            save_db(FILES_DB, files)
+            try:
+                sent = await deliver_file(client, message.chat.id, fdata)
+            except Exception as e:
+                return await message.reply(f"❌ File unavailable!\n`{e}`")
+            if sent and not is_premium:
+                asyncio.create_task(_auto_delete(sent, auto_del))
+                await message.reply(f"⏳ File deletes in `{auto_del // 60}` min(s). Save it! 💾")
+            return
+
+        # ── Deep link: batch with token ────────────────────────────
+        elif deep.startswith("b_") and "_t_" in deep:
+            parts   = deep[2:].split("_t_", 1)
+            bid_key = parts[0]
+            token   = parts[1] if len(parts) > 1 else ""
+            batches = load_db(BATCH_DB)
+            bdata   = batches.get(bid_key)
+            if not bdata: return await message.reply("❌ Batch not found.")
+            td = validate_token(token, uid, bot_id)
+            if not td or td.get("resource_id") != bid_key:
+                short_link = await _make_shortener_link(client, bi, uid, bot_id, bid_key, "batch")
+                return await message.reply(
+                    "⏱ **Link Expired!** Click below for a fresh link:",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Get Fresh Link", url=short_link)]])
+                )
+            consume_token(token)
+            files   = load_db(FILES_DB)
+            total   = len(bdata["files"])
+            sm      = await message.reply(f"📦 Sending batch ({total} files)...")
+            sent_c  = 0
+            for fuid in bdata["files"]:
+                fd = files.get(fuid)
+                if not fd: continue
+                try:
+                    await deliver_file(client, message.chat.id, fd)
+                    sent_c += 1
+                except Exception:
+                    pass
+                await asyncio.sleep(0.5)
+            await sm.delete()
+            await message.reply(f"✅ Delivered **{sent_c}/{total}** files!")
+            return
+
+        # ── Deep link: batch without token (first access) ─────────
         elif deep.startswith("b_"):
             bid_key = deep[2:]
             batches = load_db(BATCH_DB)
             bdata   = batches.get(bid_key)
             if not bdata: return await message.reply("❌ Batch not found.")
+            use_shortener = shortener_enabled_for_bot(bi)
+            total = len(bdata["files"])
+
+            if is_premium:
+                files   = load_db(FILES_DB)
+                sm      = await message.reply(f"📦 Premium Direct: Sending {total} files...")
+                sent_c  = 0
+                for fuid in bdata["files"]:
+                    fd = files.get(fuid)
+                    if not fd: continue
+                    try:
+                        await deliver_file(client, message.chat.id, fd)
+                        sent_c += 1
+                    except Exception:
+                        pass
+                    await asyncio.sleep(0.5)
+                await sm.delete()
+                await message.reply(f"✅ Delivered **{sent_c}/{total}** files! 🌟 Premium")
+                return
+
+            if use_shortener:
+                short_link = await _make_shortener_link(client, bi, uid, bot_id, bid_key, "batch")
+                return await message.reply(
+                    f"🔗 **Verification Required**\n\n"
+                    f"📦 **{total} files** in this batch\n\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ **Ladle, pehle sahi se shortener se jakar\n"
+                    f"ads dekhakar aao, tab sab files milenge!** 😄\n\n"
+                    f"👇 Neeche click karo → ad dekho → files pao 👇\n\n"
+                    f"🕐 Link 15 minute mein expire hoga.",
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("⚡ Yahan Click Karo → Files Pao", url=short_link)],
+                        [InlineKeyboardButton("💎 Premium Lo (No Ads!)", callback_data="premium_menu")]
+                    ])
+                )
+
             files   = load_db(FILES_DB)
-            total   = len(bdata["files"])
             sm      = await message.reply(f"📦 Sending batch ({total} files)...")
             sent_c  = 0
             for fuid in bdata["files"]:
@@ -1866,12 +2119,18 @@ def register_handlers(app: Client):
             TEMP_BATCH[uid].append(fuid)
             await message.reply(f"✅ **Added!**\n{file_icon(file_name)} `{file_name}`\n📦 Total: `{len(TEMP_BATCH[uid])}`",quote=True)
         else:
-            link=f"https://t.me/{client.me.username}?start=f_{fuid}"
-            short=await get_short_link(bi,link)
+            # Always generate a plain bot link for the uploader
+            # (the uploader is trusted — they can share this link with others)
+            # The RECIPIENT who clicks the shared link will go through shortener if enabled.
+            direct_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+
+            # For the uploader's own copy — give them the direct link (no shortener needed for creator)
+            share_link  = direct_link   # what gets shared
             await message.reply(
-                f"✅ **File Saved!**\n\n{file_icon(file_name)} `{file_name}`\n📊 {fmt_size(file_size)}\n🆔 `{fuid}`\n\n🔗 `{short}`",
+                f"✅ **File Saved!**\n\n{file_icon(file_name)} `{file_name}`\n📊 {fmt_size(file_size)}\n🆔 `{fuid}`\n\n🔗 **Share Link:**\n`{share_link}`\n\n"
+                + (f"_ℹ️ Recipients will need to go through shortener to get file._" if shortener_enabled_for_bot(bi) else ""),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📤 Share",url=f"https://t.me/share/url?url={short}"),
+                    [InlineKeyboardButton("📤 Share",url=f"https://t.me/share/url?url={share_link}"),
                      InlineKeyboardButton("✏️ Edit",callback_data=f"edit_file_{fuid}")]
                 ])
             )
@@ -2174,8 +2433,23 @@ def register_handlers(app: Client):
         elif data=="shortener_admin":
             bi=get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!",show_alert=True)
-            st="✅ ON" if bi.get("is_shortener_enabled") else "❌ OFF"
-            await cb.message.edit(f"🔗 **Shortener** {st}\nURL: `{bi.get('shortener_url') or 'Not set'}`\n`/shortener` to manage.",reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back",callback_data="admin_panel")]]))
+            st     = "✅ ON" if bi.get("is_shortener_enabled") else "❌ OFF"
+            active = sum(1 for v in SHORTENER_TOKENS.values() if not v["used"] and time.time() < v["expires_at"])
+            await cb.message.edit(
+                f"🔗 **Shortener Settings**\n\n"
+                f"Status: {st}\n"
+                f"URL: `{bi.get('shortener_url') or 'Not set'}`\n"
+                f"API: `{bi.get('shortener_api') or 'Not set'}`\n\n"
+                f"**How it works:**\n"
+                f"• Non-premium users must visit shortener link\n"
+                f"• They see ads → then get a token → file delivered\n"
+                f"• Premium users get file directly, no ads\n\n"
+                f"🔑 Active tokens: `{active}`\n\n"
+                f"`/shortener` to configure.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Back",callback_data="admin_panel")]
+                ])
+            )
             await cb.answer()
 
         elif data=="supreme_panel":
@@ -2282,6 +2556,8 @@ async def background_tasks():
             USER_FLOOD.clear()
             n = clean_expired_cache()
             if n: logger.info(f"🗑 Cleaned {n} cache entries")
+            t = clean_expired_tokens()
+            if t: logger.info(f"🔑 Cleaned {t} expired tokens")
             # Backup every cycle (every 10 min)
             await do_backup()
             # Clean stale pending requests every 6 cycles (1 hour)
