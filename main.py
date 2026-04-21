@@ -1644,6 +1644,7 @@ def register_handlers(app: Client):
             chid = bi.get("connected_channel") if bi else None
             if not chid:
                 return await message.reply("❌ No channel connected to this bot!")
+ upgrade-v6-elite-edition-14136566677089152599
 
             mode = bi.get("join_method", "direct")
             req_approval = (mode == "approval")
@@ -1655,6 +1656,19 @@ def register_handlers(app: Client):
                     creates_join_request=req_approval
                 )
 
+
+            
+            mode = bi.get("join_method", "direct")
+            req_approval = (mode == "approval")
+            
+            try:
+                invite = await client.create_chat_invite_link(
+                    chid, 
+                    expire_date=datetime.now() + timedelta(minutes=5),
+                    creates_join_request=req_approval
+                )
+                
+ main
                 await message.reply(
                     f"🔗 **Your Temporary Join Link**\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -2187,7 +2201,11 @@ def register_handlers(app: Client):
         await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
 
     # ── Misc commands ─────────────────────────────────────────────
+ upgrade-v6-elite-edition-14136566677089152599
 
+
+    
+ main
 
     @app.on_message(filters.command("mybots") & filters.private, group=1)
     async def mybots_cmd(client, message):
@@ -2275,7 +2293,11 @@ def register_handlers(app: Client):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
         modes = ["direct", "requested", "approval"]
+ upgrade-v6-elite-edition-14136566677089152599
         if len(message.command)<2:
+
+        if len(message.command)<2: 
+ main
             return await message.reply(f"⚙️ Join Mode: `{bi.get("join_method","direct")}`\nAvailable: `direct`, `requested`, `approval`\nUsage: `/setmode [mode]`")
         mode = message.command[1].lower()
         if mode not in modes: return await message.reply(f"❌ Invalid mode! Use: {", ".join(modes)}")
@@ -2394,7 +2416,20 @@ def register_handlers(app: Client):
             ud=get_user(uid,bot_id); is_p=ud.get("is_premium",False) if ud else False
             bi=get_bot_info(bot_id); price = bi.get("premium_price", "500") if bi else "500"
             await message.reply(
+ upgrade-v6-elite-edition-14136566677089152599
                 f"👑 **ULTRA PREMIUM EXPERIENCE** 👑\n"
+
+                    f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
+                    f"━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Status: {'💎 **ACTIVE**' if (get_user(uid,bot_id) or {}).get('is_premium') else '🆓 **FREE**'}\n\n"
+                    f"✨ **Exclusive Elite Perks:\n"
+                    f" ├ 🚀 **Permanent Storage:** No auto-delete!\n"
+                    f" ├ 🎭 **Elite Access:** Premium Dual Posts!\n"
+                    f" ├ ⚡ **Direct Link:** No Ads / Shorteners!\n"
+                    f" └ 📦 **Unlimited batching capabilities!**\n\n"
+                    f"💰 **Current Price:** `{(get_bot_info(bot_id) or {}).get('premium_price','500')}`\n"
+                    f"Contact Admin to upgrade now!"
+ main
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"Status: {'✅ **ACTIVE**' if is_p else '❌ **INACTIVE**'}\n\n"
                 f"💎 **Exclusive Benefits:\n"
@@ -2497,11 +2532,19 @@ def register_handlers(app: Client):
     async def advanced_handler(client, message):
         uid=message.from_user.id; bot_id=client.me.id
         if is_user_banned(uid,bot_id): return
+ upgrade-v6-elite-edition-14136566677089152599
 
         # Only handle if in batch/dual session or if it is a file
         in_session = uid in TEMP_BATCH or uid in TEMP_DUAL
         is_media = bool(message.document or message.video or message.audio or message.photo or message.sticker or message.animation or message.voice or message.video_note)
 
+
+        
+        # Only handle if in batch/dual session or if it is a file
+        in_session = uid in TEMP_BATCH or uid in TEMP_DUAL
+        is_media = bool(message.document or message.video or message.audio or message.photo or message.sticker or message.animation or message.voice or message.video_note)
+        
+ main
         if not (in_session or is_media):
             return
 
@@ -2512,6 +2555,11 @@ def register_handlers(app: Client):
         # Skip if FSM is waiting for photo
         if uid in TEMP_EDIT and TEMP_EDIT[uid].get("mode")=="thumbnail" and message.photo: return
         if uid in TEMP_WELCOME and TEMP_WELCOME[uid].get("step")=="image" and message.photo: return
+
+        try:
+            db_msg=await message.forward(DB_CHANNEL)
+        except Exception as e:
+            return await message.reply(f"❌ DB Channel error!\n`{e}`")
 
         try:
             db_msg=await message.forward(DB_CHANNEL)
