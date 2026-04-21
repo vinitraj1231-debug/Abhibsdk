@@ -19,7 +19,8 @@
 ✅ CAPTION EDITOR          — FSM, -clear support
 ✅ WELCOME EDITOR          — /setwelcome interactive 2-step
 ✅ JOIN REQUEST ACCESS     — pending = bot access
-   ├─ Clone your own instances\n   ├─ Advanced Premium Controls\n   ├─ Channel Connectivity & Expiring Links\n   └─ Support all content types in batches\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+✅ CLONE + REFERRAL + PREMIUM + ANALYTICS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import os, sys, json, asyncio, hashlib, logging, random, shutil, time
@@ -104,7 +105,6 @@ BOT_COMMANDS = [
     BotCommand("editfile",    "✏️ Edit file"),
     BotCommand("delfile",     "🗑 Delete file"),
     BotCommand("setwelcome",  "👋 Set welcome message"),
-    # ── DUAL POST ──────────────────────────────────────────
     BotCommand("dualpost",    "🎭 Create dual-tier post"),
     BotCommand("dpremium",    "💎 Switch to premium tier"),
     BotCommand("dpdone",      "✅ Finish dual post"),
@@ -213,7 +213,8 @@ def has_pending_request(channel_id: int, user_id: int) -> bool:
 
 # ─── USER FUNCTIONS ─────────────────────────────────────────────
 
-def add_user(user_id, bot_id, username=None, name=None):
+# FIX: Added ref_by parameter to match call site
+def add_user(user_id, bot_id, username=None, name=None, ref_by=None):
     users = load_db(USERS_DB)
     key   = f"{bot_id}_{user_id}"
     is_new = key not in users
@@ -224,7 +225,8 @@ def add_user(user_id, bot_id, username=None, name=None):
             "join_date": str(datetime.now()),
             "is_banned": False, "files_uploaded": 0,
             "batches_created": 0, "bots_cloned": 0,
-            "is_premium": False
+            "is_premium": False,
+            "referred_by": ref_by
         }
         save_db(USERS_DB, users)
     return users[key], is_new
@@ -285,7 +287,7 @@ def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_
         "auto_delete_time": 600, "auto_approve": False,
         "premium_price": "500",
         "connected_channel": None,
-        "join_method": "direct", # direct, requested, approval
+        "join_method": "direct",
         "force_subs": [],
         "shortener_api": None, "shortener_url": None,
         "is_shortener_enabled": False,
@@ -427,38 +429,15 @@ def shortener_enabled_for_bot(bot_info: dict) -> bool:
 # ═══════════════════════════════════════════════════════════════
 # 🎭 DUAL POST SYSTEM
 # ═══════════════════════════════════════════════════════════════
-#
-# Ek link → 2 alag experiences:
-#
-#  FREE  TIER  → Non-premium users
-#               → Shortener ads (agar configured ho)
-#               → Auto-delete files
-#               → Limited content
-#
-#  PRO   TIER  → Premium users
-#               → Direct delivery, no ads
-#               → No auto-delete
-#               → Full/exclusive content
-#
-# Creator workflow:
-#   /dualpost [title]    → free tier stage start
-#   (files bhejo)        → free tier mein add hote hain
-#   /dpremium            → pro tier stage switch
-#   (files bhejo)        → pro tier mein add hote hain
-#   /dpdone              → finalize + link generate
-#
-# Link format: ?start=dp_POSTID
-# Token flow:  ?start=dp_POSTID_t_TOKEN  (shortener ke baad)
-# ═══════════════════════════════════════════════════════════════
 
 class DualPostSession:
     """Active dual post creation state for one user."""
     def __init__(self, bot_id: int, created_by: int, title: str = None):
         self.bot_id      = bot_id
         self.created_by  = created_by
-        self.free_files  = []     # list of file unique_ids (free tier)
-        self.pro_files   = []     # list of file unique_ids (premium tier)
-        self.stage       = "free" # "free" | "pro"
+        self.free_files  = []
+        self.pro_files   = []
+        self.stage       = "free"
         self.title       = title
         self.description_free = "Free version — basic content."
         self.description_pro  = "Premium version — full exclusive content."
@@ -484,7 +463,6 @@ def save_dual_post(post_id: str, session: DualPostSession) -> dict:
         "pro_files":        session.pro_files,
         "description_free": session.description_free,
         "description_pro":  session.description_pro,
-        # Analytics
         "access_free":      0,
         "access_pro":       0,
         "access_total":     0,
@@ -514,7 +492,6 @@ def get_bot_dual_posts(bot_id: int) -> list:
             if p.get("bot_id") == bot_id]
 
 def bump_dual_access(post_id: str, tier: str):
-    """Increment view counters for a dual post."""
     posts = load_db(DUAL_POST_DB)
     if post_id not in posts: return
     p = posts[post_id]
@@ -528,14 +505,13 @@ def bump_dual_access(post_id: str, tier: str):
 # 🔑 SHORTENER TOKEN SYSTEM
 # ═══════════════════════════════════════════════════════════════
 
-SHORTENER_TOKENS: dict = {}  # {token: {...}}
+SHORTENER_TOKENS: dict = {}
 
 def generate_token(uid: int, bot_id: int, resource_id: str) -> str:
     raw = f"{uid}:{bot_id}:{resource_id}:{time.time()}:{random.randint(0, 999999)}"
     return hashlib.sha256(raw.encode()).hexdigest()[:20]
 
 def store_token(token: str, uid: int, bot_id: int, resource_id: str, rtype: str = "file"):
-    """rtype: 'file' | 'batch' | 'dual'"""
     SHORTENER_TOKENS[token] = {
         "uid": uid, "bot_id": bot_id,
         "resource_id": resource_id, "type": rtype,
@@ -567,10 +543,6 @@ def clean_expired_tokens() -> int:
 
 async def make_shortener_link(client, bi: dict, uid: int, bot_id: int,
                                resource_id: str, rtype: str) -> str:
-    """
-    Generate token → build bot deep link → shorten it.
-    rtype: 'file' | 'batch' | 'dual'
-    """
     token = generate_token(uid, bot_id, resource_id)
     store_token(token, uid, bot_id, resource_id, rtype)
 
@@ -629,7 +601,6 @@ async def deliver_file(client, chat_id: int, file_data: dict):
     file_id    = file_data["file_id"]
     db_msg_id  = file_data.get("db_msg_id")
 
-    # 1. Custom Thumbnail
     if thumb_fid and media_type in ("document", "video", "audio"):
         try:
             thumb_io = await client.download_media(thumb_fid, in_memory=True)
@@ -646,7 +617,6 @@ async def deliver_file(client, chat_id: int, file_data: dict):
         except Exception as e:
             logger.warning(f"Thumb delivery: {e}")
 
-    # 2. DB Channel copy
     if db_msg_id:
         try:
             return await client.copy_message(
@@ -656,7 +626,6 @@ async def deliver_file(client, chat_id: int, file_data: dict):
         except Exception as e:
             logger.warning(f"DB copy: {e}")
 
-    # 3. Cache copy
     cached = get_from_cache(file_id)
     if cached and cached["bot_id"] in ACTIVE_CLIENTS:
         try:
@@ -666,7 +635,6 @@ async def deliver_file(client, chat_id: int, file_data: dict):
         except Exception as e:
             logger.warning(f"Cache delivery: {e}")
 
-    # 4. send_cached_media fallback
     if file_id:
         return await client.send_cached_media(
             chat_id=chat_id, file_id=file_id,
@@ -676,7 +644,6 @@ async def deliver_file(client, chat_id: int, file_data: dict):
 
 async def deliver_batch_files(client, chat_id: int, file_ids: list,
                                bot_id: int, is_premium: bool) -> tuple:
-    """Deliver multiple files. Returns (sent_count, total)."""
     files  = load_db(FILES_DB)
     bi     = get_bot_info(bot_id)
     auto_del = bi.get("auto_delete_time", 600) if bi else 600
@@ -1035,7 +1002,7 @@ TEMP_BATCH:     dict = {}
 TEMP_BROADCAST: dict = {}
 TEMP_EDIT:      dict = {}
 TEMP_WELCOME:   dict = {}
-TEMP_DUAL:      dict = {}   # uid → DualPostSession
+TEMP_DUAL:      dict = {}
 USER_FLOOD:     dict = {}
 _HTTP: aiohttp.ClientSession = None
 
@@ -1103,24 +1070,24 @@ async def start_bot(token: str, parent_bot_id=None):
 # 🎨 KEYBOARDS
 # ═══════════════════════════════════════════════════════════════
 
-def kb_start(bot_id, user_id, bot_username):
+def kb_start(bot_id, user_id):
     bi = get_bot_info(bot_id)
     is_owner = bi and bi.get("owner_id") == user_id
     rows = []
     if user_id == MAIN_ADMIN:
-        rows.append([InlineKeyboardButton("👑 SUPREME CONTROL 👑", callback_data="supreme_panel")])
+        rows.append([InlineKeyboardButton("👑 SUPREME PANEL", callback_data="supreme_panel")])
     if is_admin(user_id) or is_owner:
-        rows.append([InlineKeyboardButton("⚡ ADMIN DASHBOARD ⚡", callback_data="admin_panel")])
+        rows.append([InlineKeyboardButton("⚡ ADMIN PANEL", callback_data="admin_panel")])
     rows += [
-        [InlineKeyboardButton("📦 CREATE BATCH", callback_data="start_batch"),
-         InlineKeyboardButton("🤖 CLONE BOT",    callback_data="clone_menu")],
-        [InlineKeyboardButton("🎭 DUAL POSTING", callback_data="dual_post_menu"),
-         InlineKeyboardButton("📊 MY STATISTICS", callback_data="user_dashboard")],
-        [InlineKeyboardButton("🎯 MY CLONES",    callback_data="my_bots_menu"),
-         InlineKeyboardButton("💎 PREMIUM",      callback_data="premium_menu")],
-        [InlineKeyboardButton("🔍 GLOBAL SEARCH", callback_data="cb_search"),
-         InlineKeyboardButton("📢 JOIN CHANNEL",  url=f"https://t.me/{bot_username}?start=join")],
-        [InlineKeyboardButton("ℹ️ HELP & INFO",   callback_data="help_menu")],
+        [InlineKeyboardButton("📦 BATCH",      callback_data="start_batch"),
+         InlineKeyboardButton("🤖 CLONE",      callback_data="clone_menu")],
+        [InlineKeyboardButton("🎭 DUAL POST",  callback_data="dual_post_menu"),
+         InlineKeyboardButton("📊 DASHBOARD",  callback_data="user_dashboard")],
+        [InlineKeyboardButton("🎁 REFERRAL",   callback_data="referral_menu"),
+         InlineKeyboardButton("🎯 MY BOTS",    callback_data="my_bots_menu")],
+        [InlineKeyboardButton("💎 PREMIUM",    callback_data="premium_menu"),
+         InlineKeyboardButton("🔍 SEARCH",     callback_data="cb_search")],
+        [InlineKeyboardButton("ℹ️ HELP",        callback_data="help_menu")],
     ]
     return InlineKeyboardMarkup(rows)
 
@@ -1160,7 +1127,6 @@ def kb_supreme():
     ])
 
 def kb_dual_post_creator(stage: str, free_count: int, pro_count: int):
-    """Keyboard shown while creating a dual post."""
     rows = []
     if stage == "free":
         rows.append([InlineKeyboardButton(
@@ -1199,7 +1165,6 @@ def kb_file_edit(uid: str):
 
 def register_handlers(app: Client):
 
-    # ── FLOOD CONTROL ────────────────────────────────────────────
     @app.on_message(filters.private, group=0)
     async def flood_ctrl(client, message):
         uid = message.from_user.id
@@ -1210,7 +1175,6 @@ def register_handlers(app: Client):
             await message.reply("⚠️ **Anti-Flood!** Please slow down.")
             message.stop_propagation()
 
-    # ── JOIN REQUEST ─────────────────────────────────────────────
     @app.on_chat_join_request()
     async def on_join_request(client, req):
         bi  = get_bot_info(client.me.id)
@@ -1225,7 +1189,6 @@ def register_handlers(app: Client):
         else:
             mark_join_request(ch, uid)
 
-    # ── /ping ─────────────────────────────────────────────────────
     @app.on_message(filters.command("ping") & filters.private, group=1)
     async def ping_cmd(client, message):
         t0   = time.time()
@@ -1244,14 +1207,12 @@ def register_handlers(app: Client):
             f"🔐 Active tokens: `{active_tokens}`"
         )
 
-    # ── /restart ─────────────────────────────────────────────────
     @app.on_message(filters.command("restart") & filters.private, group=1)
     async def restart_cmd(client, message):
         if message.from_user.id != MAIN_ADMIN: return
         await message.reply("♻️ Restarting...")
         os.execl(sys.executable, sys.executable, *sys.argv)
 
-    # ── /backup ───────────────────────────────────────────────────
     @app.on_message(filters.command("backup") & filters.private, group=1)
     async def backup_cmd(client, message):
         uid = message.from_user.id
@@ -1264,7 +1225,6 @@ def register_handlers(app: Client):
             f"📅 `{datetime.now():%Y-%m-%d %H:%M:%S}`"
         )
 
-    # ── /rebuild ─────────────────────────────────────────────────
     @app.on_message(filters.command("rebuild") & filters.private, group=1)
     async def rebuild_cmd(client, message):
         uid = message.from_user.id
@@ -1306,10 +1266,6 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("dualpost") & filters.private, group=1)
     async def dualpost_cmd(client, message):
-        """
-        Start creating a dual-tier post.
-        Usage: /dualpost [Title of the post]
-        """
         uid    = message.from_user.id
         bot_id = client.me.id
         bi     = get_bot_info(bot_id)
@@ -1360,7 +1316,6 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("dpremium") & filters.private, group=1)
     async def dpremium_cmd(client, message):
-        """Switch dual post session to premium-tier file collection."""
         uid = message.from_user.id
         if uid not in TEMP_DUAL:
             return await message.reply(
@@ -1393,7 +1348,6 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("dpdone") & filters.private, group=1)
     async def dpdone_cmd(client, message):
-        """Finalize dual post and generate the shareable link."""
         uid    = message.from_user.id
         bot_id = client.me.id
         bi     = get_bot_info(bot_id)
@@ -1411,7 +1365,6 @@ def register_handlers(app: Client):
         post_data = save_dual_post(post_id, sess)
         del TEMP_DUAL[uid]
 
-        # Save metadata for rebuild
         main_client = next(
             (d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client
         )
@@ -1582,7 +1535,6 @@ def register_handlers(app: Client):
                 f"📈 Premium conversion: `{prem_pct}%`"
             )
 
-        # Summary for all posts
         total_at = sum(p.get("access_total", 0) for p in posts)
         total_af = sum(p.get("access_free", 0) for p in posts)
         total_ap = sum(p.get("access_pro", 0) for p in posts)
@@ -1598,7 +1550,7 @@ def register_handlers(app: Client):
             f"Use `/dpstats POST_ID` for details."
         )
 
-    # ── /start (main handler with dual post deep links) ────────────
+    # ── /start ────────────────────────────────────────────────────
     @app.on_message(filters.command("start") & filters.private, group=1)
     async def start_handler(client, message):
         uid    = message.from_user.id
@@ -1638,7 +1590,7 @@ def register_handlers(app: Client):
         auto_del   = bi.get("auto_delete_time", 600) if bi else 600
         is_premium = user_data.get("is_premium", False)
 
-        # ── Deep link: Join Channel (expiring link) ──────────────
+        # ── Deep link: Join Channel (expiring link) ───────────────
         if deep == "join":
             chid = bi.get("connected_channel") if bi else None
             if not chid:
@@ -1653,7 +1605,6 @@ def register_handlers(app: Client):
                     expire_date=datetime.now() + timedelta(minutes=5),
                     creates_join_request=req_approval
                 )
-
                 await message.reply(
                     f"🔗 **Your Temporary Join Link**\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -1808,15 +1759,10 @@ def register_handlers(app: Client):
             await message.reply(f"✅ Delivered **{sc}/{tot}** files!")
             return
 
-        # ════════════════════════════════════════════════════════
-        # ── Deep link: DUAL POST ──────────────────────────────
-        # Format: dp_POSTID  OR  dp_POSTID_t_TOKEN (from shortener)
-        # ════════════════════════════════════════════════════════
-
+        # ── Deep link: DUAL POST ──────────────────────────────────
         elif deep.startswith("dp_"):
-            raw_deep = deep[3:]  # strip "dp_"
+            raw_deep = deep[3:]
 
-            # Check if token is embedded
             token_val  = None
             actual_pid = raw_deep
 
@@ -1837,7 +1783,7 @@ def register_handlers(app: Client):
             pro_files  = post.get("pro_files", [])
             use_short  = shortener_enabled_for_bot(bi)
 
-            # ── PREMIUM USER → Always gets PRO tier directly ────
+            # Premium user → always gets PRO tier directly
             if is_premium:
                 tier_files = pro_files if pro_files else free_files
                 tier_label = "💎 PREMIUM" if pro_files else "📂 FREE (no pro files set)"
@@ -1863,7 +1809,7 @@ def register_handlers(app: Client):
                 )
                 return
 
-            # ── FREE USER ────────────────────────────────────────
+            # Free user
             bump_dual_access(actual_pid, "free")
 
             if not free_files:
@@ -1876,11 +1822,9 @@ def register_handlers(app: Client):
                     ])
                 )
 
-            # Token already validated (coming back from shortener)
             if token_val:
                 td = validate_token(token_val, uid, bot_id)
                 if not td or td.get("resource_id") != actual_pid:
-                    # Token expired — generate fresh
                     if use_short:
                         short_link = await make_shortener_link(client, bi, uid, bot_id, actual_pid, "dual")
                         return await message.reply(
@@ -1890,9 +1834,7 @@ def register_handlers(app: Client):
                                 [InlineKeyboardButton("💎 Get Premium (Skip Ads)", callback_data="premium_menu")]
                             ])
                         )
-                    # No shortener — deliver directly
                 else:
-                    # Valid token — deliver free files
                     consume_token(token_val)
                     sm = await message.reply(
                         f"📂 **{title}**\n\n_{desc_free}_\n\n"
@@ -1913,9 +1855,7 @@ def register_handlers(app: Client):
                     asyncio.create_task(_auto_delete(notice, auto_del))
                     return
 
-            # No token yet — decide route
             if use_short:
-                # Generate token + shorten
                 short_link = await make_shortener_link(client, bi, uid, bot_id, actual_pid, "dual")
                 fc = len(free_files)
                 pc = len(pro_files)
@@ -1933,7 +1873,6 @@ def register_handlers(app: Client):
                     ])
                 )
             else:
-                # No shortener — deliver free files directly
                 sm = await message.reply(
                     f"📂 **{title}**\n\n_{desc_free}_\n\n"
                     f"📦 Sending `{len(free_files)}` file(s)..."
@@ -2186,8 +2125,6 @@ def register_handlers(app: Client):
         await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
 
     # ── Misc commands ─────────────────────────────────────────────
-
-
     @app.on_message(filters.command("mybots") & filters.private, group=1)
     async def mybots_cmd(client, message):
         uid  = message.from_user.id
@@ -2238,10 +2175,11 @@ def register_handlers(app: Client):
             u = get_user(target, bot_id)
             if not u: return await message.reply("❌ Not found.")
             await message.reply(
-                f"👤 **User Info**\n🆔 `{u["user_id"]}`\n"
-                f"🏷 {u.get("name","?")} | @{u.get("username") or "None"}\n"
-                f"🚫 Banned: {u.get("is_banned",False)} | 💎 Premium: {u.get("is_premium",False)}\n"
-                f"📤 Uploaded: `{u.get("files_uploaded",0)}`"
+                f"👤 **User Info**\n"
+                f"🆔 `{u['user_id']}`\n"
+                f"🏷 {u.get('name','?')} | @{u.get('username') or 'None'}\n"
+                f"🚫 Banned: {u.get('is_banned',False)} | 💎 Premium: {u.get('is_premium',False)}\n"
+                f"📤 Uploaded: `{u.get('files_uploaded',0)}`"
             )
 
     @app.on_message(filters.command("setprice") & filters.private, group=1)
@@ -2259,7 +2197,10 @@ def register_handlers(app: Client):
     async def setchannel_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
-        if len(message.command)<2: return await message.reply(f"📢 Channel: `{bi.get("connected_channel") or "None"}`\n`/setchannel ID` or off")
+        if len(message.command)<2:
+            return await message.reply(
+                f"📢 Channel: `{bi.get('connected_channel') or 'None'}`\n`/setchannel ID` or off"
+            )
         if message.command[1].lower()=="off":
             update_bot_info(bot_id,"connected_channel",None); return await message.reply("✅ Disabled!")
         try:
@@ -2275,9 +2216,14 @@ def register_handlers(app: Client):
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
         modes = ["direct", "requested", "approval"]
         if len(message.command)<2:
-            return await message.reply(f"⚙️ Join Mode: `{bi.get("join_method","direct")}`\nAvailable: `direct`, `requested`, `approval`\nUsage: `/setmode [mode]`")
+            return await message.reply(
+                f"⚙️ Join Mode: `{bi.get('join_method','direct')}`\n"
+                f"Available: `direct`, `requested`, `approval`\n"
+                f"Usage: `/setmode [mode]`"
+            )
         mode = message.command[1].lower()
-        if mode not in modes: return await message.reply(f"❌ Invalid mode! Use: {", ".join(modes)}")
+        if mode not in modes:
+            return await message.reply(f"❌ Invalid mode! Use: {', '.join(modes)}")
         update_bot_info(bot_id, "join_method", mode)
         await message.reply(f"✅ Join mode set to: `{mode}`")
 
@@ -2393,7 +2339,7 @@ def register_handlers(app: Client):
             ud=get_user(uid,bot_id); is_p=ud.get("is_premium",False) if ud else False
             bi=get_bot_info(bot_id); price = bi.get("premium_price", "500") if bi else "500"
             await message.reply(
-                f"👑 **ULTRA PREMIUM EXPERIENCE** 👑\n"
+                f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"Status: {'✅ **ACTIVE**' if is_p else '❌ **INACTIVE**'}\n\n"
                 f"💎 **Exclusive Benefits:**\n"
@@ -2405,10 +2351,6 @@ def register_handlers(app: Client):
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"To purchase, contact the admin or owner."
             )
-        elif cmd == "buy_premium":
-            bi = get_bot_info(bot_id)
-            admin_id = bi.get("owner_id", MAIN_ADMIN)
-            await message.reply(f"🎁 **Upgrade to Premium**\n\nTo buy premium, please contact the Admin: `{admin_id}`")
         elif cmd == "botinfo":
             bi=get_bot_info(bot_id)
             if not bi: return await message.reply("Not in DB.")
@@ -2501,12 +2443,22 @@ def register_handlers(app: Client):
         uid=message.from_user.id; bot_id=client.me.id
         if is_user_banned(uid,bot_id): return
 
+        # Only handle if in batch/dual session or if it is a file
         in_session = uid in TEMP_BATCH or uid in TEMP_DUAL
-        is_media = bool(message.document or message.video or message.audio or message.photo or message.sticker or message.animation or message.voice or message.video_note)
+        is_media = bool(
+            message.document or message.video or message.audio or
+            message.photo or message.sticker or message.animation or
+            message.voice or message.video_note
+        )
 
-        if not (in_session or is_media): return
-        if message.text and message.text.startswith("/"): return
+        if not (in_session or is_media):
+            return
 
+        # Skip commands
+        if message.text and message.text.startswith("/"):
+            return
+
+        # Skip if FSM is waiting for photo
         if uid in TEMP_EDIT and TEMP_EDIT[uid].get("mode")=="thumbnail" and message.photo: return
         if uid in TEMP_WELCOME and TEMP_WELCOME[uid].get("step")=="image" and message.photo: return
 
@@ -2563,7 +2515,7 @@ def register_handlers(app: Client):
                 )
             except Exception: pass
 
-        # ── DUAL POST SESSION — add file to current stage ────────
+        # ── DUAL POST SESSION ────────────────────────────────────
         if uid in TEMP_DUAL:
             sess  = TEMP_DUAL[uid]
             stage = sess.stage
@@ -2626,7 +2578,7 @@ def register_handlers(app: Client):
     _CMD_LIST = [
         "start","admin","supreme","clone","batch","done","cancel","setfs","mybots","stats",
         "help","broadcast","ban","unban","info","givepremium","removepremium","gban","ungban","botinfo",
-        "settimer","search","premium","buy_premium","setprice","shortener","setlog",
+        "settimer","search","premium","setprice","shortener","setlog",
         "setchannel","setmode",
         "rebuild","backup","restart","ping","listfiles","editfile","delfile",
         "setwelcome","setglobal","addadmin","deladmin",
@@ -2707,7 +2659,6 @@ def register_handlers(app: Client):
         uid = cb.from_user.id; data = cb.data; bot_id = client.me.id
         if is_user_banned(uid, bot_id): return await cb.answer("🚫 Banned!", show_alert=True)
 
-        # ── File management callbacks ─────────────────────────────
         if data.startswith("edit_file_"):
             fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
             if not fd: return await cb.answer("❌ Not found!", show_alert=True)
@@ -2802,7 +2753,6 @@ def register_handlers(app: Client):
             await cb.answer()
 
         # ── Dual post callbacks ───────────────────────────────────
-
         elif data == "dual_post_menu":
             bi = get_bot_info(bot_id)
             can_create = (uid == MAIN_ADMIN or is_admin(uid) or
@@ -3141,33 +3091,39 @@ def register_handlers(app: Client):
             )
             await cb.answer()
 
-        elif data in ("cb_search", "help_menu", "premium_menu"):
+        elif data in ("cb_search", "help_menu", "referral_menu", "premium_menu"):
+            bi_cb = get_bot_info(bot_id)
+            ud_cb = get_user(uid, bot_id)
             texts = {
-                "cb_search": "🔍 **ELITE SEARCH SYSTEM**\n\nUsage: `/search FILENAME`\nOr use inline mode: `@BotUsername query`",
+                "cb_search":     "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`",
+                "referral_menu": (
+                    f"🎁 **Referral System**\n\n"
+                    f"Share your referral link to invite friends!\n\n"
+                    f"🔗 `https://t.me/{client.me.username}?start=ref_{uid}`\n\n"
+                    f"Every person who joins via your link is tracked."
+                ),
                 "help_menu": (
-                    f"🚀 **FILESTORE ULTRA v6.0 — ELITE EDITION**\n\n"
-                    f"**Elite Commands:**\n"
-                    f" ├ Send any content → Get link\n"
-                    f" ├ /batch → Create collection\n"
-                    f" ├ /dualpost → Free vs Premium link\n"
-                    f" ├ /setchannel → Connect your channel\n"
-                    f" └ /buy_premium → Upgrade your status\n\n"
-                    f"**Premium Features:**\n"
-                    f" ├ No Auto-Delete / Zero Ads\n"
-                    f" └ Unlimited Elite Access\n\n"
-                    f"**Support:** Contact the Admin for upgrades."
+                    f"🚀 **FileStore v6.0 — Help**\n\n"
+                    f"**Files:** Send any file → get link\n"
+                    f"**Batch:** `/batch` → files → `/done`\n"
+                    f"**Edit:** `/editfile ID` → caption/thumbnail\n\n"
+                    f"🎭 **Dual Post:**\n"
+                    f"`/dualpost Title` → FREE files → `/dpremium`\n"
+                    f"→ PREMIUM files → `/dpdone` → link\n"
+                    f"`/myduals` → manage | `/dpstats` → analytics\n\n"
+                    f"**Premium:** `/premium` | **Clone:** `/clone TOKEN`"
                 ),
                 "premium_menu": (
                     f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"Status: {'💎 **ACTIVE**' if (get_user(uid,bot_id) or {}).get('is_premium') else '🆓 **FREE**'}\n\n"
-                    f"✨ **Exclusive Elite Perks:**\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"Status: {'💎 **ACTIVE**' if (ud_cb or {}).get('is_premium') else '🆓 **FREE**'}\n\n"
+                    f"✨ **Exclusive Perks:**\n"
                     f" ├ 🚀 **Permanent Storage:** No auto-delete!\n"
                     f" ├ 🎭 **Elite Access:** Premium Dual Posts!\n"
                     f" ├ ⚡ **Direct Link:** No Ads / Shorteners!\n"
                     f" └ 📦 **Unlimited batching capabilities!**\n\n"
-                    f"💰 **Current Price:** `{(get_bot_info(bot_id) or {}).get('premium_price','500')}`\n"
-                    f"Use /buy_premium to upgrade!"
+                    f"💰 **Current Price:** `{(bi_cb or {}).get('premium_price', '500')}`\n"
+                    f"Contact Admin to upgrade now!"
                 ),
             }
             await cb.message.edit(
@@ -3217,7 +3173,7 @@ def register_handlers(app: Client):
                          if u.get("bot_id") == bot_id and u.get("is_banned"))
             await cb.message.edit(
                 f"👥 **Users**\n\n🟢 Active: `{len(get_all_users(bot_id))}` | 🚫 Banned: `{banned}`\n\n"
-                f"`/ban ID` `/unban ID` `/info ID` `/setpremium ID`",
+                f"`/ban ID` `/unban ID` `/info ID` `/givepremium ID`",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]])
             )
             await cb.answer()
@@ -3503,7 +3459,7 @@ async def background_tasks():
 
 async def main():
     print("╔═══════════════════════════════════════════════════════════╗")
-    print("║  🚀 ULTRA FILESTORE BOT v6.0 — ELITE EDITION         ║")
+    print("║  🚀 ULTRA FILESTORE BOT v6.0 — ELITE EDITION             ║")
     print("╚═══════════════════════════════════════════════════════════╝")
 
     if DB_CHANNEL == -1000000000000:
