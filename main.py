@@ -19,8 +19,7 @@
 ✅ CAPTION EDITOR          — FSM, -clear support
 ✅ WELCOME EDITOR          — /setwelcome interactive 2-step
 ✅ JOIN REQUEST ACCESS     — pending = bot access
-✅ CLONE + REFERRAL + PREMIUM + ANALYTICS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+   ├─ Clone your own instances\n   ├─ Advanced Premium Controls\n   ├─ Channel Connectivity & Expiring Links\n   └─ Support all content types in batches\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
 import os, sys, json, asyncio, hashlib, logging, random, shutil, time
@@ -1104,24 +1103,24 @@ async def start_bot(token: str, parent_bot_id=None):
 # 🎨 KEYBOARDS
 # ═══════════════════════════════════════════════════════════════
 
-def kb_start(bot_id, user_id):
+def kb_start(bot_id, user_id, bot_username):
     bi = get_bot_info(bot_id)
     is_owner = bi and bi.get("owner_id") == user_id
     rows = []
     if user_id == MAIN_ADMIN:
-        rows.append([InlineKeyboardButton("👑 SUPREME PANEL", callback_data="supreme_panel")])
+        rows.append([InlineKeyboardButton("👑 SUPREME CONTROL 👑", callback_data="supreme_panel")])
     if is_admin(user_id) or is_owner:
-        rows.append([InlineKeyboardButton("⚡ ADMIN PANEL", callback_data="admin_panel")])
+        rows.append([InlineKeyboardButton("⚡ ADMIN DASHBOARD ⚡", callback_data="admin_panel")])
     rows += [
-        [InlineKeyboardButton("📦 BATCH",      callback_data="start_batch"),
-         InlineKeyboardButton("🤖 CLONE",      callback_data="clone_menu")],
-        [InlineKeyboardButton("🎭 DUAL POST",  callback_data="dual_post_menu"),
-         InlineKeyboardButton("📊 DASHBOARD",  callback_data="user_dashboard")],
-        [InlineKeyboardButton("🎁 REFERRAL",   callback_data="referral_menu"),
-         InlineKeyboardButton("🎯 MY BOTS",    callback_data="my_bots_menu")],
-        [InlineKeyboardButton("💎 PREMIUM",    callback_data="premium_menu"),
-         InlineKeyboardButton("🔍 SEARCH",     callback_data="cb_search")],
-        [InlineKeyboardButton("ℹ️ HELP",        callback_data="help_menu")],
+        [InlineKeyboardButton("📦 CREATE BATCH", callback_data="start_batch"),
+         InlineKeyboardButton("🤖 CLONE BOT",    callback_data="clone_menu")],
+        [InlineKeyboardButton("🎭 DUAL POSTING", callback_data="dual_post_menu"),
+         InlineKeyboardButton("📊 MY STATISTICS", callback_data="user_dashboard")],
+        [InlineKeyboardButton("🎯 MY CLONES",    callback_data="my_bots_menu"),
+         InlineKeyboardButton("💎 PREMIUM",      callback_data="premium_menu")],
+        [InlineKeyboardButton("🔍 GLOBAL SEARCH", callback_data="cb_search"),
+         InlineKeyboardButton("📢 JOIN CHANNEL",  url=f"https://t.me/{bot_username}?start=join")],
+        [InlineKeyboardButton("ℹ️ HELP & INFO",   callback_data="help_menu")],
     ]
     return InlineKeyboardMarkup(rows)
 
@@ -1644,7 +1643,6 @@ def register_handlers(app: Client):
             chid = bi.get("connected_channel") if bi else None
             if not chid:
                 return await message.reply("❌ No channel connected to this bot!")
- upgrade-v6-elite-edition-14136566677089152599
 
             mode = bi.get("join_method", "direct")
             req_approval = (mode == "approval")
@@ -1656,19 +1654,6 @@ def register_handlers(app: Client):
                     creates_join_request=req_approval
                 )
 
-
-            
-            mode = bi.get("join_method", "direct")
-            req_approval = (mode == "approval")
-            
-            try:
-                invite = await client.create_chat_invite_link(
-                    chid, 
-                    expire_date=datetime.now() + timedelta(minutes=5),
-                    creates_join_request=req_approval
-                )
-                
- main
                 await message.reply(
                     f"🔗 **Your Temporary Join Link**\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
@@ -2201,11 +2186,7 @@ def register_handlers(app: Client):
         await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
 
     # ── Misc commands ─────────────────────────────────────────────
- upgrade-v6-elite-edition-14136566677089152599
 
-
-    
- main
 
     @app.on_message(filters.command("mybots") & filters.private, group=1)
     async def mybots_cmd(client, message):
@@ -2293,11 +2274,7 @@ def register_handlers(app: Client):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
         modes = ["direct", "requested", "approval"]
- upgrade-v6-elite-edition-14136566677089152599
         if len(message.command)<2:
-
-        if len(message.command)<2: 
- main
             return await message.reply(f"⚙️ Join Mode: `{bi.get("join_method","direct")}`\nAvailable: `direct`, `requested`, `approval`\nUsage: `/setmode [mode]`")
         mode = message.command[1].lower()
         if mode not in modes: return await message.reply(f"❌ Invalid mode! Use: {", ".join(modes)}")
@@ -2416,23 +2393,10 @@ def register_handlers(app: Client):
             ud=get_user(uid,bot_id); is_p=ud.get("is_premium",False) if ud else False
             bi=get_bot_info(bot_id); price = bi.get("premium_price", "500") if bi else "500"
             await message.reply(
- upgrade-v6-elite-edition-14136566677089152599
                 f"👑 **ULTRA PREMIUM EXPERIENCE** 👑\n"
-
-                    f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"Status: {'💎 **ACTIVE**' if (get_user(uid,bot_id) or {}).get('is_premium') else '🆓 **FREE**'}\n\n"
-                    f"✨ **Exclusive Elite Perks:\n"
-                    f" ├ 🚀 **Permanent Storage:** No auto-delete!\n"
-                    f" ├ 🎭 **Elite Access:** Premium Dual Posts!\n"
-                    f" ├ ⚡ **Direct Link:** No Ads / Shorteners!\n"
-                    f" └ 📦 **Unlimited batching capabilities!**\n\n"
-                    f"💰 **Current Price:** `{(get_bot_info(bot_id) or {}).get('premium_price','500')}`\n"
-                    f"Contact Admin to upgrade now!"
- main
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"Status: {'✅ **ACTIVE**' if is_p else '❌ **INACTIVE**'}\n\n"
-                f"💎 **Exclusive Benefits:\n"
+                f"💎 **Exclusive Benefits:**\n"
                 f" ├ 🚀 **No Auto-Delete:** Files stay forever!\n"
                 f" ├ 🎭 **Dual Tier Access:** Get premium content!\n"
                 f" ├ ⚡ **No Ads:** Direct delivery, zero wait!\n"
@@ -2441,6 +2405,10 @@ def register_handlers(app: Client):
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"To purchase, contact the admin or owner."
             )
+        elif cmd == "buy_premium":
+            bi = get_bot_info(bot_id)
+            admin_id = bi.get("owner_id", MAIN_ADMIN)
+            await message.reply(f"🎁 **Upgrade to Premium**\n\nTo buy premium, please contact the Admin: `{admin_id}`")
         elif cmd == "botinfo":
             bi=get_bot_info(bot_id)
             if not bi: return await message.reply("Not in DB.")
@@ -2532,34 +2500,15 @@ def register_handlers(app: Client):
     async def advanced_handler(client, message):
         uid=message.from_user.id; bot_id=client.me.id
         if is_user_banned(uid,bot_id): return
- upgrade-v6-elite-edition-14136566677089152599
 
-        # Only handle if in batch/dual session or if it is a file
         in_session = uid in TEMP_BATCH or uid in TEMP_DUAL
         is_media = bool(message.document or message.video or message.audio or message.photo or message.sticker or message.animation or message.voice or message.video_note)
 
+        if not (in_session or is_media): return
+        if message.text and message.text.startswith("/"): return
 
-        
-        # Only handle if in batch/dual session or if it is a file
-        in_session = uid in TEMP_BATCH or uid in TEMP_DUAL
-        is_media = bool(message.document or message.video or message.audio or message.photo or message.sticker or message.animation or message.voice or message.video_note)
-        
- main
-        if not (in_session or is_media):
-            return
-
-        # Skip commands
-        if message.text and message.text.startswith("/"):
-            return
-
-        # Skip if FSM is waiting for photo
         if uid in TEMP_EDIT and TEMP_EDIT[uid].get("mode")=="thumbnail" and message.photo: return
         if uid in TEMP_WELCOME and TEMP_WELCOME[uid].get("step")=="image" and message.photo: return
-
-        try:
-            db_msg=await message.forward(DB_CHANNEL)
-        except Exception as e:
-            return await message.reply(f"❌ DB Channel error!\n`{e}`")
 
         try:
             db_msg=await message.forward(DB_CHANNEL)
@@ -2677,7 +2626,7 @@ def register_handlers(app: Client):
     _CMD_LIST = [
         "start","admin","supreme","clone","batch","done","cancel","setfs","mybots","stats",
         "help","broadcast","ban","unban","info","givepremium","removepremium","gban","ungban","botinfo",
-        "settimer","search","premium","setprice","shortener","setlog",
+        "settimer","search","premium","buy_premium","setprice","shortener","setlog",
         "setchannel","setmode",
         "rebuild","backup","restart","ping","listfiles","editfile","delfile",
         "setwelcome","setglobal","addadmin","deladmin",
@@ -3192,39 +3141,33 @@ def register_handlers(app: Client):
             )
             await cb.answer()
 
-        elif data in ("cb_search", "help_menu", "referral_menu", "premium_menu"):
+        elif data in ("cb_search", "help_menu", "premium_menu"):
             texts = {
-                "cb_search":    "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`",
-                "help_menu":    (
-                    "ℹ️ **Help**\n\n"
-                    "Send file → link | `/batch` → multi link\n"
-                    "🎭 **Dual Post:**\n"
-                    "`/dualpost` → FREE files → `/dpremium` → PRO files → `/dpdone`\n"
-                    "`/myduals` → manage | `/dpstats` → analytics"
-                ),
+                "cb_search": "🔍 **ELITE SEARCH SYSTEM**\n\nUsage: `/search FILENAME`\nOr use inline mode: `@BotUsername query`",
                 "help_menu": (
                     f"🚀 **FILESTORE ULTRA v6.0 — ELITE EDITION**\n\n"
                     f"**Elite Commands:**\n"
                     f" ├ Send any content → Get link\n"
                     f" ├ /batch → Create collection\n"
                     f" ├ /dualpost → Free vs Premium link\n"
-                    f" └ /setchannel → Connect your channel\n\n"
+                    f" ├ /setchannel → Connect your channel\n"
+                    f" └ /buy_premium → Upgrade your status\n\n"
                     f"**Premium Features:**\n"
                     f" ├ No Auto-Delete / Zero Ads\n"
-                    f" └ Unlimited Access\n\n"
-                    f"**Support:** Contact @Admin for upgrades."
+                    f" └ Unlimited Elite Access\n\n"
+                    f"**Support:** Contact the Admin for upgrades."
                 ),
                 "premium_menu": (
                     f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
                     f"Status: {'💎 **ACTIVE**' if (get_user(uid,bot_id) or {}).get('is_premium') else '🆓 **FREE**'}\n\n"
-                    f"✨ **Exclusive Elite Perks:\n"
+                    f"✨ **Exclusive Elite Perks:**\n"
                     f" ├ 🚀 **Permanent Storage:** No auto-delete!\n"
                     f" ├ 🎭 **Elite Access:** Premium Dual Posts!\n"
                     f" ├ ⚡ **Direct Link:** No Ads / Shorteners!\n"
                     f" └ 📦 **Unlimited batching capabilities!**\n\n"
                     f"💰 **Current Price:** `{(get_bot_info(bot_id) or {}).get('premium_price','500')}`\n"
-                    f"Contact Admin to upgrade now!"
+                    f"Use /buy_premium to upgrade!"
                 ),
             }
             await cb.message.edit(
