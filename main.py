@@ -1,6 +1,6 @@
 """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 ULTRA ADVANCED FILESTORE BOT v6.0 — ELITE EDITION
+🚀 ULTRA ADVANCED FILESTORE BOT v7.0 — ELITE EDITION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✅ DUAL TIER POST SYSTEM
    ├─ EK LINK → 2 experiences: FREE + PREMIUM
@@ -19,6 +19,8 @@
 ✅ CAPTION EDITOR          — FSM, -clear support
 ✅ WELCOME EDITOR          — /setwelcome interactive 2-step
 ✅ JOIN REQUEST ACCESS     — pending = bot access
+✅ ADVANCED LINK PROTECT   — dynamic invite link with expiry
+✅ FILE RENAMER            — renaming with download & re-upload
 ✅ CLONE + REFERRAL + PREMIUM + ANALYTICS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
@@ -57,7 +59,7 @@ SHORTENER_TOKEN_EXPIRY   = 900   # 15 minutes
 BACKUP_FILES = [
     "files.json","batches.json","bots.json","users.json",
     "admins.json","file_cache.json","config.json",
-    "pending_requests.json","dual_posts.json"
+    "pending_requests.json","dual_posts.json","protected_links.json","user_links.json"
 ]
 
 DB_FOLDER       = "database"
@@ -70,6 +72,7 @@ FILE_CACHE_DB   = f"{DB_FOLDER}/file_cache.json"
 CONFIG_DB       = f"{DB_FOLDER}/config.json"
 PENDING_REQ_DB  = f"{DB_FOLDER}/pending_requests.json"
 DUAL_POST_DB    = f"{DB_FOLDER}/dual_posts.json"
+PLINKS_DB       = f"{DB_FOLDER}/protected_links.json"
 
 BOT_COMMANDS = [
     BotCommand("start",       "🚀 Start the bot"),
@@ -91,12 +94,16 @@ BOT_COMMANDS = [
     BotCommand("search",      "🔍 Search files"),
     BotCommand("premium",     "🌟 Premium"),
     BotCommand("setprice",    "💰 Set Premium Price (Admin)"),
+    BotCommand("setcontact",  "📞 Set Premium Contact (Admin)"),
+    BotCommand("setqr",       "🖼 Set Premium QR Code (Admin)"),
     BotCommand("givepremium", "💎 Give Premium (Admin)"),
     BotCommand("removepremium", "❌ Remove Premium (Admin)"),
     BotCommand("shortener",   "🔗 URL Shortener"),
     BotCommand("setlog",      "📝 Log Channel"),
     BotCommand("setchannel",  "📢 Connect Channel"),
     BotCommand("setmode",     "⚙️ Set Join Mode"),
+    BotCommand("protect",     "🛡 Protect Channel Link"),
+    BotCommand("myplinks",    "📋 My Protected Links"),
     BotCommand("rebuild",     "🔄 Rebuild DB from channel"),
     BotCommand("backup",      "💾 Force backup now"),
     BotCommand("restart",     "♻️ Restart (Supreme)"),
@@ -284,6 +291,8 @@ def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_
         "custom_welcome": None, "welcome_image": None,
         "auto_delete_time": 600, "auto_approve": False,
         "premium_price": "500",
+        "premium_contact": "zolvid",
+        "premium_qr": None,
         "connected_channel": None,
         "join_method": "direct",
         "verify_link": None,
@@ -620,7 +629,7 @@ async def deliver_file(client, chat_id: int, file_data: dict):
         except Exception:
             pass
 
-    if thumb_fid and media_type in ("document", "video", "audio"):
+    if thumb_fid and media_type in ("document", "video", "audio", "animation"):
         try:
             thumb_io = await client.download_media(thumb_fid, in_memory=True)
             thumb_io.seek(0)
@@ -633,6 +642,9 @@ async def deliver_file(client, chat_id: int, file_data: dict):
             elif media_type == "audio":
                 return await client.send_audio(chat_id, audio=file_id,
                                                thumb=thumb_io, caption=caption, reply_markup=reply_markup)
+            elif media_type == "animation":
+                return await client.send_animation(chat_id, animation=file_id,
+                                                  thumb=thumb_io, caption=caption, reply_markup=reply_markup)
         except Exception as e:
             logger.warning(f"Thumb delivery: {e}")
 
@@ -1023,6 +1035,7 @@ TEMP_BROADCAST: dict = {}
 TEMP_EDIT:      dict = {}
 TEMP_WELCOME:   dict = {}
 TEMP_DUAL:      dict = {}
+TEMP_PROTECT:   dict = {}
 USER_FLOOD:     dict = {}
 _HTTP: aiohttp.ClientSession = None
 
@@ -1099,14 +1112,15 @@ def kb_start(bot_id, user_id):
     if is_admin(user_id) or is_owner:
         rows.append([InlineKeyboardButton("⚡ ADMIN PANEL", callback_data="admin_panel")])
     rows += [
-        [InlineKeyboardButton("📦 BATCH",      callback_data="start_batch"),
-         InlineKeyboardButton("🤖 CLONE",      callback_data="clone_menu")],
+        [InlineKeyboardButton("📦 BATCH MODE", callback_data="start_batch"),
+         InlineKeyboardButton("🤖 CLONE BOT",  callback_data="clone_menu")],
         [InlineKeyboardButton("🎭 DUAL POST",  callback_data="dual_post_menu"),
          InlineKeyboardButton("📊 DASHBOARD",  callback_data="user_dashboard")],
-        [InlineKeyboardButton("🎯 MY BOTS",    callback_data="my_bots_menu"),
+        [InlineKeyboardButton("🛡 PROTECT",    callback_data="plinks_admin"),
          InlineKeyboardButton("🔍 SEARCH",     callback_data="cb_search")],
-        [InlineKeyboardButton("💎 PREMIUM",    callback_data="premium_menu")],
-        [InlineKeyboardButton("ℹ️ HELP",        callback_data="help_menu")],
+        [InlineKeyboardButton("💎 BUY PREMIUM", callback_data="premium_menu")],
+        [InlineKeyboardButton("🎯 MY BOTS",    callback_data="my_bots_menu"),
+         InlineKeyboardButton("ℹ️ HELP",        callback_data="help_menu")],
     ]
     return InlineKeyboardMarkup(rows)
 
@@ -1120,7 +1134,8 @@ def kb_admin():
          InlineKeyboardButton("🔒 FORCE SUB",    callback_data="forcesub_admin")],
         [InlineKeyboardButton("🔗 SHORTENER",    callback_data="shortener_admin"),
          InlineKeyboardButton("⏱ TIMER",         callback_data="edit_timer")],
-        [InlineKeyboardButton("🛡 VERIFY SYSTEM", callback_data="verify_admin")],
+        [InlineKeyboardButton("🛡 VERIFY SYSTEM", callback_data="verify_admin"),
+         InlineKeyboardButton("🛡 PROTECT LINKS", callback_data="plinks_admin")],
         [InlineKeyboardButton("👋 WELCOME MSG",  callback_data="edit_welcome_msg"),
          InlineKeyboardButton("✅ AUTO APPROVE", callback_data="toggle_auto_approve")],
         [InlineKeyboardButton("🎭 DUAL POSTS",   callback_data="dual_posts_admin")],
@@ -1172,9 +1187,10 @@ def kb_file_edit(uid: str):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("✏️ Caption",   callback_data=f"edit_caption_{uid}"),
          InlineKeyboardButton("🖼 Thumbnail", callback_data=f"edit_thumb_{uid}")],
-        [InlineKeyboardButton("🗑 Delete",    callback_data=f"del_file_{uid}"),
+        [InlineKeyboardButton("📝 Rename",    callback_data=f"rename_file_{uid}"),
          InlineKeyboardButton("📤 Get File", callback_data=f"get_file_{uid}")],
-        [InlineKeyboardButton("🔙 Back",      callback_data="my_files_back")],
+        [InlineKeyboardButton("🗑 Delete",    callback_data=f"del_file_{uid}"),
+         InlineKeyboardButton("🔙 Back",      callback_data="my_files_back")],
     ])
 
 # ═══════════════════════════════════════════════════════════════
@@ -1620,14 +1636,45 @@ def register_handlers(app: Client):
         auto_del   = bi.get("auto_delete_time", 600) if bi else 600
         is_premium = user_data.get("is_premium", False)
 
-        # ── Deep link: Join Channel (expiring link) ───────────────
-        if deep == "join":
-            chid = bi.get("connected_channel") if bi else None
-            if not chid:
-                return await message.reply("❌ No channel connected to this bot!")
+        # ── Deep link: Protected Channel Link ───────────────────
+        if deep.startswith("lp_") or deep == "join":
+            lpid = deep[3:] if deep.startswith("lp_") else "default"
+            plinks = load_db(PLINKS_DB)
 
-            mode = bi.get("join_method", "direct")
-            req_approval = (mode == "approval" or mode == "requested")
+            if deep == "join":
+                chid = bi.get("connected_channel") if bi else None
+                if not chid:
+                    return await message.reply("❌ No channel connected to this bot!")
+                mode = bi.get("join_method", "direct")
+                pdata = {"channel_id": chid, "mode": mode, "title": "Main Channel"}
+            else:
+                pdata = plinks.get(lpid)
+                if not pdata or pdata.get("bot_id") != bot_id:
+                    return await message.reply("❌ Protected link not found or expired!")
+                chid = pdata["channel_id"]
+                mode = pdata.get("mode", "direct")
+
+            req_approval = (mode in ("approval", "requested"))
+
+            # Check if user already got a link in last 5 mins
+            user_links = load_db(f"{DB_FOLDER}/user_links.json")
+            ukey = f"{uid}_{lpid}"
+            now_ts = time.time()
+
+            if ukey in user_links:
+                old_ts, old_link = user_links[ukey]
+                if now_ts - old_ts < 300: # 5 minutes
+                    return await message.reply(
+                        f"✨ **YOUR EXCLUSIVE LINK IS STILL ACTIVE** ✨\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"⚠️ **Note:** This link will expire soon!\n\n"
+                        f"📢 **Channel:** `{pdata.get('title', chid)}`\n"
+                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                        f"👇 **CLICK BELOW TO JOIN** 👇",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("🔗 JOIN CHANNEL NOW", url=old_link)]
+                        ])
+                    )
 
             try:
                 invite = await client.create_chat_invite_link(
@@ -1635,11 +1682,16 @@ def register_handlers(app: Client):
                     expire_date=datetime.now() + timedelta(minutes=5),
                     creates_join_request=req_approval
                 )
+
+                # Save to user_links
+                user_links[ukey] = [now_ts, invite.invite_link]
+                save_db(f"{DB_FOLDER}/user_links.json", user_links)
+
                 await message.reply(
                     f"✨ **THIS IS YOUR EXCLUSIVE LINK** ✨\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━\n"
                     f"⚠️ **Note:** This link is valid for **5 minutes** only. Join before it expires!\n\n"
-                    f"📢 **Channel:** `{chid}`\n"
+                    f"📢 **Channel:** `{pdata.get('title', chid)}`\n"
                     f"⚙️ **Join Mode:** `{mode.upper()}`\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━\n"
                     f"👇 **CLICK BELOW TO JOIN** 👇",
@@ -2114,16 +2166,55 @@ def register_handlers(app: Client):
         e = TEMP_EDIT.pop(uid, None)
         w = TEMP_WELCOME.pop(uid, None)
         d = TEMP_DUAL.pop(uid, None)
+        p = TEMP_PROTECT.pop(uid, None)
         cancelled = []
         if b is not None: cancelled.append("Batch")
         if e is not None: cancelled.append("File Edit")
         if w is not None: cancelled.append("Welcome Edit")
+        if p is not None: cancelled.append("Protect Link Setup")
         if d is not None:
             cancelled.append(f"Dual Post ({len(d.free_files)}F+{len(d.pro_files)}P)")
         if cancelled:
             await message.reply(f"❌ Cancelled: {', '.join(cancelled)}")
         else:
             await message.reply("Nothing to cancel.")
+
+    @app.on_message(filters.command("protect") & filters.private, group=1)
+    async def protect_cmd(client, message):
+        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+
+        TEMP_PROTECT[uid] = {"bot_id": bot_id, "step": "channel"}
+        await message.reply(
+            "🛡 **Advanced Link Protection Setup**\n\n"
+            "Step 1: Send the **Channel ID** (starting with -100) you want to protect.",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_protect")]])
+        )
+
+    @app.on_message(filters.command("myplinks") & filters.private, group=1)
+    async def myplinks_cmd(client, message):
+        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+
+        plinks = load_db(PLINKS_DB)
+        my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id and (v.get("created_by") == uid or is_admin(uid))]
+
+        if not my_links:
+            return await message.reply("📭 **No protected links found!**\nUse `/protect` to create one.")
+
+        text = f"📋 **Your Protected Links ({len(my_links)})**\n\n"
+        btns = []
+        for l in my_links[:15]:
+            lpid = l["lpid"]
+            title = l.get("title", "Unknown")[:25]
+            link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
+            text += f"🛡 **{title}**\n`{lpid}` | {l.get('mode').upper()}\n🔗 `{link}`\n\n"
+            btns.append([
+                InlineKeyboardButton(f"📤 {title}", url=f"https://t.me/share/url?url={link}"),
+                InlineKeyboardButton("🗑 Delete", callback_data=f"del_plink_{lpid}")
+            ])
+
+        await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
 
     # ── /editfile /delfile /listfiles ─────────────────────────────
     @app.on_message(filters.command("editfile") & filters.private, group=1)
@@ -2247,6 +2338,32 @@ def register_handlers(app: Client):
         price = message.text.split(None, 1)[1].strip()
         update_bot_info(bot_id, "premium_price", price)
         await message.reply(f"✅ Premium price set to: `{price}`")
+
+    @app.on_message(filters.command("setcontact") & filters.private, group=1)
+    async def setcontact_cmd(client, message):
+        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if len(message.command)<2:
+            curr=bi.get("premium_contact","zolvid")
+            return await message.reply(f"📞 Current Contact: `@{curr}`\n`/setcontact USERNAME` (without @)")
+        contact = message.command[1].replace("@", "").strip()
+        update_bot_info(bot_id, "premium_contact", contact)
+        await message.reply(f"✅ Premium contact set to: `@{contact}`")
+
+    @app.on_message(filters.command("setqr") & filters.private, group=1)
+    async def setqr_cmd(client, message):
+        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not message.reply_to_message or not message.reply_to_message.photo:
+            return await message.reply("🖼 Reply to a QR code image with `/setqr` to set it.\nUse `/setqr off` to remove.")
+
+        if len(message.command) > 1 and message.command[1].lower() == "off":
+            update_bot_info(bot_id, "premium_qr", None)
+            return await message.reply("✅ Premium QR code removed!")
+
+        qr_id = message.reply_to_message.photo.file_id
+        update_bot_info(bot_id, "premium_qr", qr_id)
+        await message.reply("✅ Premium QR code updated successfully!")
 
     @app.on_message(filters.command("setchannel") & filters.private, group=1)
     async def setchannel_cmd(client, message):
@@ -2452,7 +2569,10 @@ def register_handlers(app: Client):
         if cmd == "premium":
             ud=get_user(uid,bot_id); is_p=ud.get("is_premium",False) if ud else False
             bi=get_bot_info(bot_id); price = bi.get("premium_price", "500") if bi else "500"
-            await message.reply(
+            contact = bi.get("premium_contact", "zolvid") if bi else "zolvid"
+            qr_id = bi.get("premium_qr") if bi else None
+
+            text = (
                 f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"✨ **Status:** {'✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`'}\n\n"
@@ -2464,12 +2584,20 @@ def register_handlers(app: Client):
                 f" └ 💎 **PRIORITY:** Faster delivery & support!\n\n"
                 f"💰 **Subscription Fee:** `{price}`\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"👇 **WANT TO UPGRADE? CONTACT NOW!** 👇",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("👑 CONTACT ADMIN", user_id=MAIN_ADMIN)],
-                    [InlineKeyboardButton("🔙 BACK TO HOME", callback_data="back_to_start")]
-                ])
+                f"👇 **WANT TO UPGRADE? CONTACT ADMIN!** 👇"
             )
+
+            kb = [
+                [InlineKeyboardButton("👑 CONTACT ADMIN", url=f"https://t.me/{contact}")],
+                [InlineKeyboardButton("🔙 BACK TO HOME", callback_data="back_to_start")]
+            ]
+            if qr_id:
+                kb.insert(1, [InlineKeyboardButton("🖼 SHOW PAYMENT QR", callback_data="show_premium_qr")])
+
+            if qr_id and not is_p:
+                await message.reply_photo(qr_id, caption=text, reply_markup=InlineKeyboardMarkup(kb))
+            else:
+                await message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
         elif cmd == "botinfo":
             bi=get_bot_info(bot_id)
             if not bi: return await message.reply("Not in DB.")
@@ -2716,6 +2844,32 @@ def register_handlers(app: Client):
     async def fsm_responder(client, message):
         uid = message.from_user.id
 
+        if uid in TEMP_PROTECT:
+            sess = TEMP_PROTECT[uid]; bot_id = sess["bot_id"]; step = sess.get("step")
+            if step == "channel":
+                try:
+                    chid = int(message.text)
+                    chat = await client.get_chat(chid)
+                    sess["channel_id"] = chid
+                    sess["title"] = chat.title
+                    sess["step"] = "mode"
+                    await message.reply(
+                        f"✅ Channel found: **{chat.title}**\n\n"
+                        f"Step 2: Choose **Join Mode**:\n"
+                        f"├ `direct` - Regular join link\n"
+                        f"├ `requested` - Join request (admin approval)\n"
+                        f"└ `normal` - Public channel (no special link needed, but we provide one anyway)",
+                        reply_markup=InlineKeyboardMarkup([
+                            [InlineKeyboardButton("🔗 Direct",    callback_data="pm_direct"),
+                             InlineKeyboardButton("📩 Requested", callback_data="pm_requested")],
+                            [InlineKeyboardButton("📢 Normal",    callback_data="pm_normal")],
+                            [InlineKeyboardButton("❌ Cancel",    callback_data="cancel_protect")]
+                        ])
+                    )
+                except Exception as e:
+                    await message.reply(f"❌ Invalid Channel ID or Bot is not admin there!\n`{e}`")
+            return
+
         if uid in TEMP_WELCOME:
             sess = TEMP_WELCOME[uid]; bot_id = sess["bot_id"]; step = sess.get("step")
             if step == "text":
@@ -2779,6 +2933,75 @@ def register_handlers(app: Client):
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
                 await message.reply("✅ Thumbnail updated!", reply_markup=kb_file_edit(fuid))
+            elif mode == "rename":
+                if not message.text: return await message.reply("❌ Send a **new file name**.")
+                new_name = message.text.strip()
+                fd = files[fuid]
+                del TEMP_EDIT[uid]
+                sm = await message.reply(f"⏳ **Renaming file...**\n\n`{fd.get('file_name')}` ➡️ `{new_name}`\n\n_Please wait, this involves downloading and re-uploading._")
+
+                try:
+                    # Download
+                    t0 = time.time()
+                    async def progress(current, total):
+                        pct = current * 100 / total
+                        if time.time() - t0 > 3:
+                            bar = "█" * (int(pct) // 10) + "░" * (10 - int(pct) // 10)
+                            await sm.edit(f"⏳ **Renaming...**\n\n📥 Downloading: `[{bar}]` {pct:.1f}%")
+
+                    path = await client.download_media(fd['file_id'], progress=progress)
+                    if not path:
+                        return await sm.edit("❌ Download failed!")
+
+                    new_path = os.path.join(os.path.dirname(path), new_name)
+                    os.rename(path, new_path)
+
+                    # Upload
+                    await sm.edit(f"⏳ **Renaming...**\n\n📤 Uploading: `0%`")
+                    t1 = time.time()
+                    async def up_progress(current, total):
+                        pct = current * 100 / total
+                        if time.time() - t1 > 3:
+                            bar = "█" * (int(pct) // 10) + "░" * (10 - int(pct) // 10)
+                            await sm.edit(f"⏳ **Renaming...**\n\n📤 Uploading: `[{bar}]` {pct:.1f}%")
+
+                    thumb = fd.get('custom_thumbnail')
+                    thumb_path = None
+                    if thumb:
+                        thumb_path = await client.download_media(thumb)
+
+                    mtype = fd.get('media_type', 'document')
+                    new_db_msg = None
+                    if mtype == "video":
+                        new_db_msg = await client.send_video(DB_CHANNEL, video=new_path, thumb=thumb_path, caption=fd.get('caption'), progress=up_progress)
+                    elif mtype == "audio":
+                        new_db_msg = await client.send_audio(DB_CHANNEL, audio=new_path, thumb=thumb_path, caption=fd.get('caption'), progress=up_progress)
+                    else:
+                        new_db_msg = await client.send_document(DB_CHANNEL, document=new_path, thumb=thumb_path, caption=fd.get('caption'), progress=up_progress)
+
+                    if new_db_msg:
+                        # Update database
+                        attr = "document" if mtype == "document" else ("video" if mtype == "video" else "audio")
+                        media = getattr(new_db_msg, attr)
+                        fd['file_id'] = media.file_id
+                        fd['file_name'] = new_name
+                        fd['file_size'] = media.file_size
+                        fd['db_msg_id'] = new_db_msg.id
+                        save_db(FILES_DB, files)
+
+                        main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
+                        asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
+
+                        await sm.edit(f"✅ **File Renamed Successfully!**\n\n🆕 Name: `{new_name}`", reply_markup=kb_file_edit(fuid))
+                    else:
+                        await sm.edit("❌ Upload failed!")
+
+                    if os.path.exists(new_path): os.remove(new_path)
+                    if thumb_path and os.path.exists(thumb_path): os.remove(thumb_path)
+
+                except Exception as e:
+                    logger.error(f"Rename error: {e}")
+                    await sm.edit(f"❌ **Rename Error:** `{e}`")
 
     # ── CALLBACK HANDLER ──────────────────────────────────────────
     @app.on_callback_query(group=1)
@@ -2822,11 +3045,64 @@ def register_handlers(app: Client):
             await cb.message.edit(
                 f"🖼 **Edit Thumbnail**\n\nFile: `{fd.get('file_name','?')}`\n\nSend a **photo** as thumbnail.",
                 reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("⚡ Hard Fix Thumbnail", callback_data=f"fix_thumb_{fuid}")],
                     [InlineKeyboardButton("🗑 Remove Thumb", callback_data=f"remove_thumb_{fuid}")],
                     [InlineKeyboardButton("❌ Cancel",       callback_data="cancel_edit")]
                 ])
             )
             await cb.answer("Send a photo")
+
+        elif data.startswith("fix_thumb_"):
+            fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
+            if not fd.get("custom_thumbnail"):
+                return await cb.answer("❌ Set a thumbnail first!", show_alert=True)
+
+            await cb.answer("⏳ Hard fixing thumbnail...")
+            sm = await cb.message.edit(f"⏳ **Hard Fixing Thumbnail...**\n\nFile: `{fd.get('file_name')}`\n\n_Downloading and re-uploading with thumbnail..._")
+
+            try:
+                # Download
+                path = await client.download_media(fd['file_id'])
+                thumb_path = await client.download_media(fd['custom_thumbnail'])
+
+                mtype = fd.get('media_type', 'document')
+                new_db_msg = None
+                if mtype == "video":
+                    new_db_msg = await client.send_video(DB_CHANNEL, video=path, thumb=thumb_path, caption=fd.get('caption'))
+                elif mtype == "audio":
+                    new_db_msg = await client.send_audio(DB_CHANNEL, audio=path, thumb=thumb_path, caption=fd.get('caption'))
+                else:
+                    new_db_msg = await client.send_document(DB_CHANNEL, document=path, thumb=thumb_path, caption=fd.get('caption'))
+
+                if new_db_msg:
+                    attr = "document" if mtype == "document" else ("video" if mtype == "video" else "audio")
+                    media = getattr(new_db_msg, attr)
+                    fd['file_id'] = media.file_id
+                    fd['db_msg_id'] = new_db_msg.id
+                    save_db(FILES_DB, files)
+
+                    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
+                    asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
+
+                    await sm.edit("✅ **Thumbnail Hard-Fixed!**\n\nThe file has been re-uploaded with the thumbnail permanently attached.", reply_markup=kb_file_edit(fuid))
+                else:
+                    await sm.edit("❌ Fix failed during upload!")
+
+                if path and os.path.exists(path): os.remove(path)
+                if thumb_path and os.path.exists(thumb_path): os.remove(thumb_path)
+            except Exception as e:
+                await sm.edit(f"❌ **Fix Error:** `{e}`")
+
+        elif data.startswith("rename_file_"):
+            fuid = data[12:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
+            TEMP_EDIT[uid] = {"mode": "rename", "uid": fuid}
+            await cb.message.edit(
+                f"📝 **Rename File**\n\nCurrent: `{fd.get('file_name','?')}`\n\nSend new name for the file (including extension).",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_edit")]])
+            )
+            await cb.answer("Send new name")
 
         elif data.startswith("remove_thumb_"):
             fuid = data[13:]; files = load_db(FILES_DB)
@@ -2847,6 +3123,16 @@ def register_handlers(app: Client):
             del files[fuid]; save_db(FILES_DB, files)
             await cb.answer("🗑 Deleted!", show_alert=True)
             await cb.message.edit(f"🗑 **Deleted:** `{fd.get('file_name','?')}`")
+
+        elif data.startswith("del_plink_"):
+            lpid = data[10:]; plinks = load_db(PLINKS_DB); p = plinks.get(lpid)
+            if not p: return await cb.answer("Already deleted!", show_alert=True)
+            bi = get_bot_info(bot_id)
+            can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or p.get("created_by")==uid
+            if not can: return await cb.answer("❌ Access denied!", show_alert=True)
+            del plinks[lpid]; save_db(PLINKS_DB, plinks)
+            await cb.answer("🗑 Protected link deleted!", show_alert=True)
+            await cb.message.edit(f"🗑 **Deleted Protected Link:** `{p.get('title','?')}`")
 
         elif data.startswith("get_file_"):
             fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
@@ -2871,6 +3157,40 @@ def register_handlers(app: Client):
             TEMP_WELCOME.pop(uid, None)
             await cb.message.edit("❌ Welcome editor cancelled.")
             await cb.answer()
+
+        elif data == "cancel_protect":
+            TEMP_PROTECT.pop(uid, None)
+            await cb.message.edit("❌ Protection setup cancelled.")
+            await cb.answer()
+
+        elif data.startswith("pm_"):
+            mode = data[3:]
+            if uid not in TEMP_PROTECT: return await cb.answer("Session expired!", show_alert=True)
+            sess = TEMP_PROTECT.pop(uid)
+            lpid = unique_id()
+            plinks = load_db(PLINKS_DB)
+            plinks[lpid] = {
+                "lpid": lpid,
+                "bot_id": bot_id,
+                "channel_id": sess["channel_id"],
+                "title": sess["title"],
+                "mode": mode,
+                "created_by": uid,
+                "created_at": time.time()
+            }
+            save_db(PLINKS_DB, plinks)
+
+            link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
+            await cb.message.edit(
+                f"🛡 **Channel Protected Successfully!**\n\n"
+                f"📢 **Channel:** `{sess['title']}`\n"
+                f"🆔 `{sess['channel_id']}`\n"
+                f"⚙️ **Join Mode:** `{mode.upper()}`\n\n"
+                f"🔗 **Your Sharable Link:**\n`{link}`\n\n"
+                f"⚠️ **Note:** This link will always generate a fresh invite link (valid for 5 mins) for every user who clicks it.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📤 Share Link", url=f"https://t.me/share/url?url={link}")]])
+            )
+            await cb.answer("Protected link created!", show_alert=True)
 
         elif data == "my_files_back":
             await cb.message.edit(
@@ -3221,6 +3541,10 @@ def register_handlers(app: Client):
         elif data in ("cb_search", "help_menu", "premium_menu"):
             bi_cb = get_bot_info(bot_id)
             ud_cb = get_user(uid, bot_id)
+            is_p = (ud_cb or {}).get('is_premium')
+            contact = bi_cb.get("premium_contact", "zolvid") if bi_cb else "zolvid"
+            qr_id = bi_cb.get("premium_qr") if bi_cb else None
+
             texts = {
                 "cb_search":     "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`",
                 "help_menu": (
@@ -3237,7 +3561,7 @@ def register_handlers(app: Client):
                 "premium_menu": (
                     f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"Status: {'💎 **ACTIVE**' if (ud_cb or {}).get('is_premium') else '🆓 **FREE**'}\n\n"
+                    f"Status: {'💎 **ACTIVE**' if is_p else '🆓 **FREE**'}\n\n"
                     f"✨ **Exclusive Perks:**\n"
                     f" ├ 🚀 **Permanent Storage:** No auto-delete!\n"
                     f" ├ 🎭 **Elite Access:** Premium Dual Posts!\n"
@@ -3247,11 +3571,34 @@ def register_handlers(app: Client):
                     f"Contact Admin to upgrade now!"
                 ),
             }
-            await cb.message.edit(
-                texts[data],
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="back_to_start")]])
-            )
+
+            kb = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_start")]]
+            if data == "premium_menu":
+                kb.insert(0, [InlineKeyboardButton("👑 CONTACT ADMIN", url=f"https://t.me/{contact}")])
+                if qr_id:
+                    kb.insert(1, [InlineKeyboardButton("🖼 SHOW PAYMENT QR", callback_data="show_premium_qr")])
+
+            try:
+                await cb.message.edit(
+                    texts[data],
+                    reply_markup=InlineKeyboardMarkup(kb)
+                )
+            except Exception:
+                await cb.message.delete()
+                if qr_id and data == "premium_menu" and not is_p:
+                    await client.send_photo(cb.message.chat.id, qr_id, caption=texts[data], reply_markup=InlineKeyboardMarkup(kb))
+                else:
+                    await client.send_message(cb.message.chat.id, texts[data], reply_markup=InlineKeyboardMarkup(kb))
             await cb.answer()
+
+        elif data == "show_premium_qr":
+            bi_cb = get_bot_info(bot_id)
+            qr_id = bi_cb.get("premium_qr") if bi_cb else None
+            if not qr_id:
+                return await cb.answer("❌ QR code not available!", show_alert=True)
+
+            await cb.answer("🖼 Loading QR Code...")
+            await cb.message.reply_photo(qr_id, caption="✨ **Scan this QR to pay for Premium** ✨\n\nAfter payment, send screenshot to admin.")
 
         elif data == "admin_panel":
             bi = get_bot_info(bot_id)
@@ -3267,6 +3614,70 @@ def register_handlers(app: Client):
             await cb.message.edit(
                 f"📢 **Broadcast**\n\n👥 `{len(get_all_users(bot_id))}`\n\nReply to a message with `/broadcast`",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]])
+            )
+            await cb.answer()
+
+        elif data == "plinks_admin":
+            bi = get_bot_info(bot_id)
+            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+                return await cb.answer("❌ No access!", show_alert=True)
+            plinks = load_db(PLINKS_DB)
+            my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id]
+            await cb.message.edit(
+                f"🛡 **Protected Links Overview**\n\n"
+                f"Total protected: `{len(my_links)}` links\n\n"
+                f"**Commands:**\n"
+                f"├ `/protect` - Create new protection\n"
+                f"└ `/myplinks` - Manage your links\n\n"
+                f"Protected links generate a fresh, 5-minute expiring invite link for every user, making it impossible to leak the real invite link.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📋 List My Links", callback_data="plinks_list_admin")],
+                    [InlineKeyboardButton("🔙 Admin",          callback_data="admin_panel")]
+                ])
+            )
+            await cb.answer()
+
+        elif data == "plinks_list_admin":
+            bi = get_bot_info(bot_id)
+            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+                return await cb.answer("❌ No access!", show_alert=True)
+            plinks = load_db(PLINKS_DB)
+            my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id]
+            if not my_links:
+                return await cb.answer("No protected links found!", show_alert=True)
+
+            text = f"🛡 **Protected Links List ({len(my_links)})**\n\n"
+            btns = []
+            for l in my_links[:10]:
+                lpid = l["lpid"]
+                title = l.get("title", "Unknown")[:22]
+                text += f"• **{title}** | `{lpid}`\n"
+                btns.append([
+                    InlineKeyboardButton(f"🔗 {title}", callback_data=f"show_plink_{lpid}"),
+                    InlineKeyboardButton("🗑", callback_data=f"del_plink_{lpid}")
+                ])
+            btns.append([InlineKeyboardButton("🔙 Back", callback_data="plinks_admin")])
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(btns))
+            await cb.answer()
+
+        elif data.startswith("show_plink_"):
+            lpid = data[11:]
+            plinks = load_db(PLINKS_DB)
+            p = plinks.get(lpid)
+            if not p: return await cb.answer("Not found!", show_alert=True)
+            link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
+            await cb.message.edit(
+                f"🛡 **Protected Link Details**\n\n"
+                f"📢 **Channel:** `{p.get('title')}`\n"
+                f"🆔 `{p['channel_id']}`\n"
+                f"⚙️ **Mode:** `{p.get('mode').upper()}`\n"
+                f"📅 **Created:** `{datetime.fromtimestamp(p.get('created_at')).strftime('%Y-%m-%d %H:%M')}`\n\n"
+                f"🔗 **Sharable Link:**\n`{link}`",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("📤 Share", url=f"https://t.me/share/url?url={link}")],
+                    [InlineKeyboardButton("🗑 Delete", callback_data=f"del_plink_{lpid}"),
+                     InlineKeyboardButton("🔙 Back",   callback_data="plinks_list_admin")]
+                ])
             )
             await cb.answer()
 
@@ -3598,7 +4009,7 @@ async def background_tasks():
 
 async def main():
     print("╔═══════════════════════════════════════════════════════════╗")
-    print("║  🚀 ULTRA FILESTORE BOT v6.0 — ELITE EDITION             ║")
+    print("║  🚀 ULTRA FILESTORE BOT v7.0 — ELITE EDITION             ║")
     print("╚═══════════════════════════════════════════════════════════╝")
 
     if DB_CHANNEL == -1000000000000:
@@ -3641,7 +4052,7 @@ async def main():
 
     print()
     print("╔═══════════════════════════════════════════════════════════╗")
-    print("║         ✅ ALL SYSTEMS OPERATIONAL v6.0 ✅                ║")
+    print("║         ✅ ALL SYSTEMS OPERATIONAL v7.0 ✅                ║")
     print("╚═══════════════════════════════════════════════════════════╝")
     print(f"👑 Admin   : {MAIN_ADMIN}")
     print(f"🤖 Bots    : {len(ACTIVE_CLIENTS)}")
