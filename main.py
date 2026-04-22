@@ -213,8 +213,7 @@ def has_pending_request(channel_id: int, user_id: int) -> bool:
 
 # ─── USER FUNCTIONS ─────────────────────────────────────────────
 
-# FIX: Added ref_by parameter to match call site
-def add_user(user_id, bot_id, username=None, name=None, ref_by=None):
+def add_user(user_id, bot_id, username=None, name=None):
     users = load_db(USERS_DB)
     key   = f"{bot_id}_{user_id}"
     is_new = key not in users
@@ -225,8 +224,7 @@ def add_user(user_id, bot_id, username=None, name=None, ref_by=None):
             "join_date": str(datetime.now()),
             "is_banned": False, "files_uploaded": 0,
             "batches_created": 0, "bots_cloned": 0,
-            "is_premium": False,
-            "referred_by": ref_by
+            "is_premium": False
         }
         save_db(USERS_DB, users)
     return users[key], is_new
@@ -288,6 +286,8 @@ def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_
         "premium_price": "500",
         "connected_channel": None,
         "join_method": "direct",
+        "verify_link": None,
+        "update_channel": None,
         "force_subs": [],
         "shortener_api": None, "shortener_url": None,
         "is_shortener_enabled": False,
@@ -567,6 +567,18 @@ async def do_backup(bot_client=None) -> int:
     )
     if not client: return 0
     count = 0
+    # Create a zip of the database folder for extra safety
+    backup_zip = f"database_backup_{int(time.time())}.zip"
+    try:
+        shutil.make_archive(backup_zip.replace(".zip", ""), 'zip', DB_FOLDER)
+        await client.send_document(
+            DB_CHANNEL, document=backup_zip,
+            caption=f"📦 **FULL DB BUNDLE** | `{backup_zip}`\n📅 {datetime.now():%Y-%m-%d %H:%M:%S}"
+        )
+        os.remove(backup_zip)
+    except Exception as e:
+        logger.error(f"Zip backup failed: {e}")
+
     for fname in BACKUP_FILES:
         path = f"{DB_FOLDER}/{fname}"
         if not os.path.exists(path): continue
@@ -600,6 +612,13 @@ async def deliver_file(client, chat_id: int, file_data: dict):
     media_type = file_data.get("media_type", "document")
     file_id    = file_data["file_id"]
     db_msg_id  = file_data.get("db_msg_id")
+    reply_markup = None
+
+    if file_data.get("reply_markup"):
+        try:
+            reply_markup = InlineKeyboardMarkup.from_json(json.dumps(file_data["reply_markup"]))
+        except Exception:
+            pass
 
     if thumb_fid and media_type in ("document", "video", "audio"):
         try:
@@ -607,13 +626,13 @@ async def deliver_file(client, chat_id: int, file_data: dict):
             thumb_io.seek(0)
             if media_type == "document":
                 return await client.send_document(chat_id, document=file_id,
-                                                  thumb=thumb_io, caption=caption)
+                                                  thumb=thumb_io, caption=caption, reply_markup=reply_markup)
             elif media_type == "video":
                 return await client.send_video(chat_id, video=file_id,
-                                               thumb=thumb_io, caption=caption)
+                                               thumb=thumb_io, caption=caption, reply_markup=reply_markup)
             elif media_type == "audio":
                 return await client.send_audio(chat_id, audio=file_id,
-                                               thumb=thumb_io, caption=caption)
+                                               thumb=thumb_io, caption=caption, reply_markup=reply_markup)
         except Exception as e:
             logger.warning(f"Thumb delivery: {e}")
 
@@ -621,7 +640,7 @@ async def deliver_file(client, chat_id: int, file_data: dict):
         try:
             return await client.copy_message(
                 chat_id=chat_id, from_chat_id=DB_CHANNEL,
-                message_id=db_msg_id, caption=caption
+                message_id=db_msg_id, caption=caption, reply_markup=reply_markup
             )
         except Exception as e:
             logger.warning(f"DB copy: {e}")
@@ -631,14 +650,15 @@ async def deliver_file(client, chat_id: int, file_data: dict):
         try:
             ca = ACTIVE_CLIENTS[cached["bot_id"]]["app"]
             return await ca.copy_message(chat_id, cached["chat_id"],
-                                         cached["message_id"], caption=caption)
+                                         cached["message_id"], caption=caption, reply_markup=reply_markup)
         except Exception as e:
             logger.warning(f"Cache delivery: {e}")
 
     if file_id:
         return await client.send_cached_media(
             chat_id=chat_id, file_id=file_id,
-            caption=caption or f"📁 {file_data.get('file_name', 'File')}"
+            caption=caption or f"📁 {file_data.get('file_name', 'File')}",
+            reply_markup=reply_markup
         )
     return None
 
@@ -1083,10 +1103,9 @@ def kb_start(bot_id, user_id):
          InlineKeyboardButton("🤖 CLONE",      callback_data="clone_menu")],
         [InlineKeyboardButton("🎭 DUAL POST",  callback_data="dual_post_menu"),
          InlineKeyboardButton("📊 DASHBOARD",  callback_data="user_dashboard")],
-        [InlineKeyboardButton("🎁 REFERRAL",   callback_data="referral_menu"),
-         InlineKeyboardButton("🎯 MY BOTS",    callback_data="my_bots_menu")],
-        [InlineKeyboardButton("💎 PREMIUM",    callback_data="premium_menu"),
+        [InlineKeyboardButton("🎯 MY BOTS",    callback_data="my_bots_menu"),
          InlineKeyboardButton("🔍 SEARCH",     callback_data="cb_search")],
+        [InlineKeyboardButton("💎 PREMIUM",    callback_data="premium_menu")],
         [InlineKeyboardButton("ℹ️ HELP",        callback_data="help_menu")],
     ]
     return InlineKeyboardMarkup(rows)
@@ -1101,6 +1120,7 @@ def kb_admin():
          InlineKeyboardButton("🔒 FORCE SUB",    callback_data="forcesub_admin")],
         [InlineKeyboardButton("🔗 SHORTENER",    callback_data="shortener_admin"),
          InlineKeyboardButton("⏱ TIMER",         callback_data="edit_timer")],
+        [InlineKeyboardButton("🛡 VERIFY SYSTEM", callback_data="verify_admin")],
         [InlineKeyboardButton("👋 WELCOME MSG",  callback_data="edit_welcome_msg"),
          InlineKeyboardButton("✅ AUTO APPROVE", callback_data="toggle_auto_approve")],
         [InlineKeyboardButton("🎭 DUAL POSTS",   callback_data="dual_posts_admin")],
@@ -1111,19 +1131,17 @@ def kb_supreme():
     maint = get_global_config().get("maintenance", False)
     sess  = "✅" if SESSION_STRING else "❌"
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🌍 GLOBAL BC",    callback_data="global_broadcast"),
-         InlineKeyboardButton("🖥 SYS STATS",    callback_data="system_stats")],
-        [InlineKeyboardButton("🤖 ALL BOTS",      callback_data="all_bots_list"),
-         InlineKeyboardButton("👑 ADMINS",         callback_data="manage_admins")],
-        [InlineKeyboardButton(f"🛠 MAINT: {'ON ⚠️' if maint else 'OFF ✅'}",
-                              callback_data="toggle_maintenance"),
-         InlineKeyboardButton("📢 GLOBAL MSG",    callback_data="global_msg_set")],
-        [InlineKeyboardButton("💾 BACKUP NOW",     callback_data="manual_backup"),
-         InlineKeyboardButton("🧹 CLEAN CACHE",   callback_data="manual_clean_cache")],
-        [InlineKeyboardButton(f"🔄 REBUILD DB (Session:{sess})",
-                              callback_data="confirm_rebuild")],
-        [InlineKeyboardButton("♻️ RESTART",        callback_data="restart_all_bots"),
-         InlineKeyboardButton("🔙 HOME",           callback_data="back_to_start")],
+        [InlineKeyboardButton("🌍 GLOBAL BROADCAST", callback_data="global_broadcast")],
+        [InlineKeyboardButton("🖥 SYSTEM ANALYTICS", callback_data="system_stats"),
+         InlineKeyboardButton("🤖 BOT NETWORK",    callback_data="all_bots_list")],
+        [InlineKeyboardButton("👑 ADMIN MANAGER",    callback_data="manage_admins"),
+         InlineKeyboardButton("📢 SYSTEM MSG",      callback_data="global_msg_set")],
+        [InlineKeyboardButton(f"🛠 MAINT: {'ON' if maint else 'OFF'}", callback_data="toggle_maintenance"),
+         InlineKeyboardButton("💾 FULL BACKUP",    callback_data="manual_backup")],
+        [InlineKeyboardButton("🧹 PURGE CACHE",      callback_data="manual_clean_cache"),
+         InlineKeyboardButton("🔄 SMART REBUILD",    callback_data="confirm_rebuild")],
+        [InlineKeyboardButton("♻️ SYSTEM RESTART",    callback_data="restart_all_bots")],
+        [InlineKeyboardButton("🔙 BACK TO HOME",     callback_data="back_to_start")],
     ])
 
 def kb_dual_post_creator(stage: str, free_count: int, pro_count: int):
@@ -1556,6 +1574,7 @@ def register_handlers(app: Client):
         uid    = message.from_user.id
         bot_id = client.me.id
         cfg    = get_global_config()
+        bi     = get_bot_info(bot_id)
 
         if cfg.get("maintenance") and uid != MAIN_ADMIN:
             return await message.reply("🚧 **Maintenance Mode** — Bot is temporarily down.")
@@ -1563,16 +1582,27 @@ def register_handlers(app: Client):
             return await message.reply("🚫 You are banned!")
 
         deep   = message.command[1] if len(message.command) > 1 else ""
-        ref_by = None
-        if deep.startswith("ref_"):
-            try:
-                r = int(deep[4:])
-                if r != uid: ref_by = r
-            except ValueError:
-                pass
+
+        # Verification System
+        if bi and bi.get("verify_link") and not is_admin(uid) and uid != bi.get("owner_id"):
+            if not deep.startswith("verify_"):
+                v_link = bi.get("verify_link")
+                u_link = bi.get("update_channel")
+                btns = [[InlineKeyboardButton("🔐 START VERIFICATION", url=v_link)]]
+                if u_link:
+                    btns.append([InlineKeyboardButton("📢 UPDATE CHANNEL", url=u_link)])
+
+                return await message.reply(
+                    f"🛡 **Verification Required!**\n\n"
+                    f"To access the files in this bot, you must complete a quick verification.\n\n"
+                    f"1️⃣ Click the **Verification** button below.\n"
+                    f"2️⃣ Complete the process in the other bot.\n"
+                    f"3️⃣ Come back here and click `/start` again.",
+                    reply_markup=InlineKeyboardMarkup(btns)
+                )
 
         user_data, is_new = add_user(uid, bot_id, message.from_user.username,
-                                      message.from_user.first_name, ref_by)
+                                      message.from_user.first_name)
         is_ok, links = await check_force_sub(client, uid)
         if not is_ok:
             btns = [[InlineKeyboardButton(f"📢 Join {i['title']}", url=i["link"])]
@@ -1597,7 +1627,7 @@ def register_handlers(app: Client):
                 return await message.reply("❌ No channel connected to this bot!")
 
             mode = bi.get("join_method", "direct")
-            req_approval = (mode == "approval")
+            req_approval = (mode == "approval" or mode == "requested")
 
             try:
                 invite = await client.create_chat_invite_link(
@@ -1606,15 +1636,15 @@ def register_handlers(app: Client):
                     creates_join_request=req_approval
                 )
                 await message.reply(
-                    f"🔗 **Your Temporary Join Link**\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"✨ This link will expire in **5 minutes**.\n"
-                    f"📢 Channel: `{chid}`\n"
-                    f"⚙️ Mode: `{mode.capitalize()}`\n"
-                    f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"👇 **Click the button below to join** 👇",
+                    f"✨ **THIS IS YOUR EXCLUSIVE LINK** ✨\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"⚠️ **Note:** This link is valid for **5 minutes** only. Join before it expires!\n\n"
+                    f"📢 **Channel:** `{chid}`\n"
+                    f"⚙️ **Join Mode:** `{mode.upper()}`\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"👇 **CLICK BELOW TO JOIN** 👇",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🚀 JOIN CHANNEL NOW", url=invite.invite_link)]
+                        [InlineKeyboardButton("🔗 JOIN CHANNEL NOW", url=invite.invite_link)]
                     ])
                 )
                 return
@@ -1910,6 +1940,17 @@ def register_handlers(app: Client):
             )
 
         kbd = kb_start(bot_id, uid)
+        if is_new and bi and bi.get("owner_id") == uid:
+            await message.reply(
+                f"👋 **Hey Boss! Welcome to your cloned bot.**\n\n"
+                f"I'm ready to work for you. Here are some quick setups:\n"
+                f"1️⃣ `/setlog -100xxxx` - Set a log channel to see uploads.\n"
+                f"2️⃣ `/setchannel -100xxxx` - Connect your channel for the `/start join` link.\n"
+                f"3️⃣ `/setmode requested` - If you want users to send join requests.\n"
+                f"4️⃣ `/setwelcome` - Customize this message.\n\n"
+                f"Use `/admin` to see all your controls!"
+            )
+
         if welcome_img:
             try:
                 await message.reply_photo(welcome_img, caption=welcome_text, reply_markup=kbd)
@@ -1998,23 +2039,37 @@ def register_handlers(app: Client):
                 d["bot_id"] for d in get_all_descendant_bots(bot_id)
                 if d["bot_id"] in ACTIVE_CLIENTS
             ]
+
         if not can_bc: return await message.reply("❌ No permission!")
+
         if not message.reply_to_message:
             total = sum(len(get_all_users(bid)) for bid in target_bots)
             return await message.reply(
-                f"📢 **Broadcast**\n\n🤖 Bots: `{len(target_bots)}` | 👥 Users: `{total}`\n\nReply to a message with `/broadcast`."
+                f"📢 **ADVANCED BROADCAST SYSTEM**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"🤖 **Target Bots:** `{len(target_bots)}` bots\n"
+                f"👥 **Estimated Reach:** `{total}` users\n\n"
+                f"👉 **HOW TO USE:**\n"
+                f"Reply to any message (Text, Photo, Video, etc.) with `/broadcast` to start the process.\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
-        sm = await message.reply("⏳ Storing broadcast...")
+
+        sm = await message.reply("⏳ **Processing broadcast payload...**")
         bc_msg_id = await store_broadcast(client, message.reply_to_message)
         if not bc_msg_id:
-            return await sm.edit("❌ Failed to store!")
+            return await sm.edit("❌ **Error:** Failed to cache broadcast message. Please try again.")
+
         TEMP_BROADCAST[uid] = {"bc_msg_id": bc_msg_id, "bot_ids": target_bots}
         total = sum(len(get_all_users(bid)) for bid in target_bots)
         await sm.edit(
-            f"⚠️ **Confirm Broadcast?**\n\n🤖 `{len(target_bots)}` bots | 👥 `{total}` users",
+            f"⚠️ **READY FOR BROADCAST?**\n\n"
+            f"🤖 Bots: `{len(target_bots)}` bots\n"
+            f"👥 Users: `{total}` total users\n"
+            f"📦 Payload ID: `{bc_msg_id}`\n\n"
+            f"**Note:** This will deliver a COPY of your message to all users.",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Yes, Send!", callback_data="confirm_broadcast"),
-                 InlineKeyboardButton("❌ Cancel",     callback_data="cancel_broadcast")]
+                [InlineKeyboardButton("✅ CONFIRM & SEND", callback_data="confirm_broadcast")],
+                [InlineKeyboardButton("❌ ABORT",           callback_data="cancel_broadcast")]
             ])
         )
 
@@ -2185,7 +2240,7 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("setprice") & filters.private, group=1)
     async def setprice_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
         if len(message.command)<2:
             curr=bi.get("premium_price","500")
             return await message.reply(f"💰 Current Price: `{curr}`\n`/setprice AMOUNT` (e.g. 500 or 5$)")
@@ -2196,10 +2251,15 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("setchannel") & filters.private, group=1)
     async def setchannel_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
         if len(message.command)<2:
             return await message.reply(
-                f"📢 Channel: `{bi.get('connected_channel') or 'None'}`\n`/setchannel ID` or off"
+                f"📢 **Channel Connection**\n\n"
+                f"Connected: `{bi.get('connected_channel') or 'None'}`\n\n"
+                f"Usage:\n"
+                f"├ `/setchannel -100xxxxxxx` - Connect channel\n"
+                f"└ `/setchannel off` - Disable connection\n\n"
+                f"Note: Users can use `/start join` to get an expiring link to this channel."
             )
         if message.command[1].lower()=="off":
             update_bot_info(bot_id,"connected_channel",None); return await message.reply("✅ Disabled!")
@@ -2207,25 +2267,29 @@ def register_handlers(app: Client):
             chid = int(message.command[1])
             await client.get_chat(chid)
             update_bot_info(bot_id,"connected_channel",chid)
-            await message.reply(f"✅ Channel connected: `{chid}`")
-        except Exception as e: await message.reply(f"❌ Error: `{e}`")
+            await message.reply(f"✅ Channel connected successfully: `{chid}`")
+        except Exception as e: await message.reply(f"❌ Error: Make sure bot is admin in channel!\n`{e}`")
 
     @app.on_message(filters.command("setmode") & filters.private, group=1)
     async def setmode_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
         modes = ["direct", "requested", "approval"]
         if len(message.command)<2:
             return await message.reply(
-                f"⚙️ Join Mode: `{bi.get('join_method','direct')}`\n"
-                f"Available: `direct`, `requested`, `approval`\n"
+                f"⚙️ **Join Mode Selection**\n\n"
+                f"Current Mode: `{bi.get('join_method','direct').upper()}`\n\n"
+                f"Available Modes:\n"
+                f"├ `direct` - Regular join link\n"
+                f"├ `requested` - Admin approval request\n"
+                f"└ `approval` - Same as requested\n\n"
                 f"Usage: `/setmode [mode]`"
             )
         mode = message.command[1].lower()
         if mode not in modes:
             return await message.reply(f"❌ Invalid mode! Use: {', '.join(modes)}")
         update_bot_info(bot_id, "join_method", mode)
-        await message.reply(f"✅ Join mode set to: `{mode}`")
+        await message.reply(f"✅ Join mode set to: `{mode.upper()}`")
 
     @app.on_message(filters.command("settimer") & filters.private, group=1)
     async def settimer_cmd(client, message):
@@ -2244,7 +2308,7 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("setlog") & filters.private, group=1)
     async def setlog_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
         if len(message.command)<2: return await message.reply(f"📝 Log: `{bi.get('log_channel') or 'None'}`\n`/setlog ID` or off")
         if message.command[1].lower()=="off":
             update_bot_info(bot_id,"log_channel",None); return await message.reply("✅ Disabled!")
@@ -2252,6 +2316,42 @@ def register_handlers(app: Client):
             update_bot_info(bot_id,"log_channel",int(message.command[1]))
             await message.reply("✅ Log channel set!")
         except ValueError: await message.reply("❌ Invalid ID!")
+
+    @app.on_message(filters.command("setverify") & filters.private, group=1)
+    async def setverify_cmd(client, message):
+        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if len(message.command)<2:
+            return await message.reply(
+                f"🛡 **Verification System**\n\n"
+                f"Link: `{bi.get('verify_link') or 'None'}`\n"
+                f"Update: `{bi.get('update_channel') or 'None'}`\n\n"
+                f"Usage:\n"
+                f"├ `/setverify LINK` - Set verification link\n"
+                f"├ `/setupdates LINK` - Set update channel link\n"
+                f"└ `/setverify off` - Disable verification"
+            )
+        val = message.command[1]
+        if val.lower() == "off":
+            update_bot_info(bot_id, "verify_link", None)
+            return await message.reply("✅ Verification disabled!")
+
+        update_bot_info(bot_id, "verify_link", val)
+        await message.reply(f"✅ Verification link set to: `{val}`")
+
+    @app.on_message(filters.command("setupdates") & filters.private, group=1)
+    async def setupdates_cmd(client, message):
+        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if len(message.command)<2:
+            return await message.reply(f"📢 Update Channel: `{bi.get('update_channel') or 'None'}`\n`/setupdates LINK` or off")
+        val = message.command[1]
+        if val.lower() == "off":
+            update_bot_info(bot_id, "update_channel", None)
+            return await message.reply("✅ Update channel disabled!")
+
+        update_bot_info(bot_id, "update_channel", val)
+        await message.reply(f"✅ Update channel link set to: `{val}`")
 
     @app.on_message(filters.command("shortener") & filters.private, group=1)
     async def shortener_cmd(client, message):
@@ -2279,20 +2379,34 @@ def register_handlers(app: Client):
         if len(message.command)<2:
             ubts=[b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             return await message.reply(
-                f"🤖 **Clone** — Your bots: `{len(ubts)}`\n\n1. @BotFather → /newbot\n2. `/clone TOKEN`",
+                f"🤖 **Bot Cloning System** 🤖\n\n"
+                f"Create your own version of this bot in seconds!\n\n"
+                f"1️⃣ Go to @BotFather and create a `/newbot`.\n"
+                f"2️⃣ Copy the **API TOKEN** they give you.\n"
+                f"3️⃣ Send it here: `/clone YOUR_TOKEN`.\n\n"
+                f"✅ Your bots: `{len(ubts)}`",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🤖 BotFather",url="https://t.me/BotFather")]]))
         token=message.command[1]
         for b in get_all_bots().values():
             if isinstance(b,dict) and b.get("token")==token: return await message.reply("❌ Already registered!")
-        sm=await message.reply("🔄 Cloning...")
+        sm=await message.reply("🔄 **Establishing connection to Telegram...**")
         try:
             na=await start_bot(token,parent_bot_id=bot_id)
             if na:
                 me=await na.get_me()
                 save_bot_info(token,me.id,me.username,uid,message.from_user.first_name,bot_id)
-                await sm.edit(f"✅ **Cloned!**\n🤖 @{me.username} | `{me.id}`",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 Open",url=f"https://t.me/{me.username}")]]))
-            else: await sm.edit("❌ Failed! Invalid token?")
+                await sm.edit(
+                    f"🎊 **CONGRATULATIONS! YOUR BOT IS READY!** 🎊\n\n"
+                    f"🤖 **Username:** @{me.username}\n"
+                    f"🆔 **Bot ID:** `{me.id}`\n\n"
+                    f"🚀 **NEXT STEPS (IMPORTANT):**\n"
+                    f"1️⃣ Open your new bot: @{me.username}\n"
+                    f"2️⃣ Send `/start` to activate it.\n"
+                    f"3️⃣ Use `/setlog -100xxxx` to set a log channel.\n"
+                    f"4️⃣ Use `/setchannel` to connect your main channel.\n\n"
+                    f"Enjoy your personal FileStore bot!",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 OPEN CLONED BOT", url=f"https://t.me/{me.username}")]]))
+            else: await sm.edit("❌ Failed! Make sure the token is correct and bot is not already running.")
         except Exception as e: await sm.edit(f"❌ Error: `{e}`")
 
     @app.on_message(filters.command("setfs") & filters.private, group=1)
@@ -2339,17 +2453,22 @@ def register_handlers(app: Client):
             ud=get_user(uid,bot_id); is_p=ud.get("is_premium",False) if ud else False
             bi=get_bot_info(bot_id); price = bi.get("premium_price", "500") if bi else "500"
             await message.reply(
-                f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Status: {'✅ **ACTIVE**' if is_p else '❌ **INACTIVE**'}\n\n"
-                f"💎 **Exclusive Benefits:**\n"
-                f" ├ 🚀 **No Auto-Delete:** Files stay forever!\n"
-                f" ├ 🎭 **Dual Tier Access:** Get premium content!\n"
-                f" ├ ⚡ **No Ads:** Direct delivery, zero wait!\n"
-                f" └ 📦 **Unlimited Batches:** No restrictions!\n\n"
-                f"💰 **Pricing:** `{price}`\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"To purchase, contact the admin or owner."
+                f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"✨ **Status:** {'✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`'}\n\n"
+                f"🚀 **UNLOCK THE POWER:**\n"
+                f" ├ ♾ **PERMANENT STORAGE:** No auto-delete timer!\n"
+                f" ├ 🎭 **DUAL-TIER UNLOCK:** Get PRO files instantly!\n"
+                f" ├ ⚡ **ZERO ADS:** Skip all shortener links!\n"
+                f" ├ 📦 **PRO BATCHING:** No limits on creation!\n"
+                f" └ 💎 **PRIORITY:** Faster delivery & support!\n\n"
+                f"💰 **Subscription Fee:** `{price}`\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👇 **WANT TO UPGRADE? CONTACT NOW!** 👇",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("👑 CONTACT ADMIN", user_id=MAIN_ADMIN)],
+                    [InlineKeyboardButton("🔙 BACK TO HOME", callback_data="back_to_start")]
+                ])
             )
         elif cmd == "botinfo":
             bi=get_bot_info(bot_id)
@@ -2443,12 +2562,12 @@ def register_handlers(app: Client):
         uid=message.from_user.id; bot_id=client.me.id
         if is_user_banned(uid,bot_id): return
 
-        # Only handle if in batch/dual session or if it is a file
+        # Only handle if in batch/dual session or if it is a file/message
         in_session = uid in TEMP_BATCH or uid in TEMP_DUAL
         is_media = bool(
             message.document or message.video or message.audio or
             message.photo or message.sticker or message.animation or
-            message.voice or message.video_note
+            message.voice or message.video_note or message.text
         )
 
         if not (in_session or is_media):
@@ -2467,7 +2586,7 @@ def register_handlers(app: Client):
         except Exception as e:
             return await message.reply(f"❌ DB Channel error!\n`{e}`")
 
-        original_caption=message.caption
+        original_caption=message.caption or message.text
         file_id = None
         file_name = "Message/Post"
         file_size = 0
@@ -2492,12 +2611,20 @@ def register_handlers(app: Client):
             file_id=db_msg.animation.file_id; file_name=f"animation_{db_msg.animation.file_unique_id}.mp4"
             media_type="animation"
 
+        reply_markup = None
+        if message.reply_markup:
+            try:
+                reply_markup = json.loads(str(message.reply_markup))
+            except Exception:
+                pass
+
         fuid=unique_id(); files=load_db(FILES_DB)
         fdata={
             "file_id":file_id,"file_name":file_name,"file_size":file_size,
             "caption":original_caption,"user_id":uid,"bot_id":bot_id,
             "upload_date":str(datetime.now()),"db_msg_id":db_msg.id,
-            "access_count":0,"media_type":media_type,"custom_thumbnail":None
+            "access_count":0,"media_type":media_type,"custom_thumbnail":None,
+            "reply_markup": reply_markup
         }
         files[fuid]=fdata; save_db(FILES_DB,files)
         add_to_cache(file_id,db_msg.id,DB_CHANNEL,bot_id,original_caption)
@@ -3091,17 +3218,11 @@ def register_handlers(app: Client):
             )
             await cb.answer()
 
-        elif data in ("cb_search", "help_menu", "referral_menu", "premium_menu"):
+        elif data in ("cb_search", "help_menu", "premium_menu"):
             bi_cb = get_bot_info(bot_id)
             ud_cb = get_user(uid, bot_id)
             texts = {
                 "cb_search":     "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`",
-                "referral_menu": (
-                    f"🎁 **Referral System**\n\n"
-                    f"Share your referral link to invite friends!\n\n"
-                    f"🔗 `https://t.me/{client.me.username}?start=ref_{uid}`\n\n"
-                    f"Every person who joins via your link is tracked."
-                ),
                 "help_menu": (
                     f"🚀 **FileStore v6.0 — Help**\n\n"
                     f"**Files:** Send any file → get link\n"
@@ -3145,6 +3266,24 @@ def register_handlers(app: Client):
                 return await cb.answer("❌ No access!", show_alert=True)
             await cb.message.edit(
                 f"📢 **Broadcast**\n\n👥 `{len(get_all_users(bot_id))}`\n\nReply to a message with `/broadcast`",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]])
+            )
+            await cb.answer()
+
+        elif data == "verify_admin":
+            bi = get_bot_info(bot_id)
+            if not bi: return await cb.answer("Not found!", show_alert=True)
+            vl = bi.get("verify_link") or "None"
+            uc = bi.get("update_channel") or "None"
+            await cb.message.edit(
+                f"🛡 **Verification System Settings**\n\n"
+                f"🔗 **Verify Link:** `{vl}`\n"
+                f"📢 **Updates:** `{uc}`\n\n"
+                f"**Commands:**\n"
+                f"├ `/setverify LINK` - Set link\n"
+                f"├ `/setupdates LINK` - Set update channel\n"
+                f"└ `/setverify off` - Disable\n\n"
+                f"If enabled, users must complete verification before using the bot.",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]])
             )
             await cb.answer()
@@ -3472,8 +3611,21 @@ async def main():
     await start_web_server()
 
     logger.info("🔥 Starting Main Bot...")
-    if not await start_bot(MAIN_BOT_TOKEN):
+    main_app = await start_bot(MAIN_BOT_TOKEN)
+    if not main_app:
         logger.error("❌ Main bot failed!"); return
+
+    # Check if bots.json exists and has data, if not, try to rebuild
+    if not os.path.exists(BOTS_DB) or os.path.getsize(BOTS_DB) < 5:
+        logger.warning("⚠️ Bots database missing or empty! Attempting auto-restore...")
+        if SESSION_STRING:
+            try:
+                await smart_rebuild()
+                logger.info("✅ Auto-restore complete!")
+            except Exception as e:
+                logger.error(f"❌ Auto-restore failed: {e}")
+        else:
+            logger.error("❌ SESSION_STRING missing! Cannot auto-restore bots.")
 
     all_bots = get_all_bots()
     if all_bots:
