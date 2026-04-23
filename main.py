@@ -576,10 +576,14 @@ async def make_shortener_link(client, bi: dict, uid: int, bot_id: int,
 # ═══════════════════════════════════════════════════════════════
 
 async def do_backup(bot_client=None) -> int:
-    client = bot_client or next(
-        (d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None
-    )
-    if not client: return 0
+    # Always prioritize the main bot for backups to ensure DB_CHANNEL access
+    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+    client = main_client or bot_client
+
+    if not client:
+        logger.error("💾 Backup failed: No active bot client found.")
+        return 0
+
     count = 0
     # Create a zip of the database folder for extra safety
     backup_zip = f"database_backup_{int(time.time())}.zip"
@@ -590,6 +594,7 @@ async def do_backup(bot_client=None) -> int:
             caption=f"📦 **FULL DB BUNDLE** | `{backup_zip}`\n📅 {datetime.now():%Y-%m-%d %H:%M:%S}"
         )
         os.remove(backup_zip)
+        logger.info(f"💾 Zip backup sent to DB_CHANNEL")
     except Exception as e:
         logger.error(f"Zip backup failed: {e}")
 
@@ -613,6 +618,7 @@ async def do_backup(bot_client=None) -> int:
                 logger.error(f"Backup retry failed {fname}: {ex}")
         except Exception as e:
             logger.error(f"Backup failed {fname}: {e}")
+
     logger.info(f"💾 Backup complete: {count} files")
     return count
 
@@ -666,14 +672,33 @@ async def deliver_file(client, chat_id: int, file_data: dict):
             logger.warning(f"Thumb delivery: {e}")
 
     if db_msg_id:
+        # Try current bot
         try:
             return await client.copy_message(
                 chat_id=chat_id, from_chat_id=DB_CHANNEL,
                 message_id=db_msg_id, caption=caption, reply_markup=reply_markup
             )
-        except Exception as e:
-            logger.warning(f"DB copy: {e}")
+        except Exception:
+            # Fallback 1: Use Main Bot if current bot is not in channel
+            main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+            if main_client and main_client != client:
+                try:
+                    return await main_client.copy_message(
+                        chat_id=chat_id, from_chat_id=DB_CHANNEL,
+                        message_id=db_msg_id, caption=caption, reply_markup=reply_markup
+                    )
+                except Exception: pass
 
+            # Fallback 2: Use Userbot if available
+            if GLOBAL_USERBOT:
+                try:
+                    return await GLOBAL_USERBOT.copy_message(
+                        chat_id=chat_id, from_chat_id=DB_CHANNEL,
+                        message_id=db_msg_id, caption=caption, reply_markup=reply_markup
+                    )
+                except Exception: pass
+
+    # Fallback 3: Cache from other bots
     cached = get_from_cache(file_id)
     if cached and cached["bot_id"] in ACTIVE_CLIENTS:
         try:
@@ -1047,6 +1072,7 @@ async def start_web_server():
 
 START_TIME      = datetime.now()
 ACTIVE_CLIENTS: dict = {}
+GLOBAL_USERBOT: Client = None
 TEMP_BATCH:     dict = {}
 TEMP_BROADCAST: dict = {}
 TEMP_EDIT:      dict = {}
@@ -1271,13 +1297,22 @@ def register_handlers(app: Client):
     async def backup_cmd(client, message):
         uid = message.from_user.id
         if not is_admin(uid): return await message.reply("❌ Admin only!")
-        sm = await message.reply("💾 **Backing up all databases...**")
-        count = await do_backup(client)
-        await sm.edit(
-            f"✅ **Backup Complete!**\n\n"
-            f"📦 Files backed up: `{count}/{len(BACKUP_FILES)}`\n"
-            f"📅 `{datetime.now():%Y-%m-%d %H:%M:%S}`"
-        )
+
+        sm = await message.reply("💾 **Initializing backup process...**")
+        try:
+            count = await do_backup(client)
+            if count > 0:
+                await sm.edit(
+                    f"✅ **Backup Successful!**\n\n"
+                    f"📦 Files backed up: `{count}`\n"
+                    f"📢 Target: `DB_CHANNEL`\n"
+                    f"📅 `{datetime.now():%Y-%m-%d %H:%M:%S}`\n\n"
+                    f"Tip: You can also send JSON database files directly to me to restore them!"
+                )
+            else:
+                await sm.edit("❌ **Backup Failed!**\n\nCould not send files to DB_CHANNEL. Ensure the main bot is an admin in the channel.")
+        except Exception as e:
+            await sm.edit(f"❌ **Backup Error:**\n`{e}`")
 
     @app.on_message(filters.command("rebuild") & filters.private, group=1)
     async def rebuild_cmd(client, message):
@@ -2739,6 +2774,19 @@ def register_handlers(app: Client):
         uid=message.from_user.id; bot_id=client.me.id
         if is_user_banned(uid,bot_id): return
 
+        # ── DATABASE RESTORE FEATURE ──────────────────────────────
+        if uid == MAIN_ADMIN and message.document and message.document.file_name in BACKUP_FILES:
+            fname = message.document.file_name
+            await message.reply(
+                f"📂 **Database File Detected:** `{fname}`\n\n"
+                f"Do you want to restore/overwrite the current `{fname}` with this one?",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("✅ YES, RESTORE", callback_data=f"confirm_import_{fname}"),
+                     InlineKeyboardButton("❌ NO",           callback_data="cancel_import")]
+                ])
+            )
+            return
+
         # Only handle if in batch/dual session or if it is a file/message
         in_session = uid in TEMP_BATCH or uid in TEMP_DUAL or uid in TEMP_EDIT or uid in TEMP_WELCOME
         is_media = bool(
@@ -2758,10 +2806,35 @@ def register_handlers(app: Client):
         if uid in TEMP_EDIT and TEMP_EDIT[uid].get("mode")=="thumbnail" and message.photo: return
         if uid in TEMP_WELCOME and TEMP_WELCOME[uid].get("step")=="image" and message.photo: return
 
+        main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
+        db_msg = None
+
         try:
-            db_msg=await message.forward(DB_CHANNEL)
-        except Exception as e:
-            return await message.reply(f"❌ DB Channel error!\n`{e}`")
+            # First try forwarding with current client
+            db_msg = await message.forward(DB_CHANNEL)
+        except Exception:
+            # Fallback: Re-upload using main bot if clone is not in channel
+            try:
+                sm = await message.reply("🔄 **Forwarding to DB via Main Bot...**")
+                # Since bots have different file_ids, we download and upload.
+                path = await message.download()
+                if path:
+                    uploader = main_client or GLOBAL_USERBOT
+                    if uploader:
+                        if message.photo:
+                            db_msg = await uploader.send_photo(DB_CHANNEL, photo=path, caption=message.caption)
+                        elif message.video:
+                            db_msg = await uploader.send_video(DB_CHANNEL, video=path, caption=message.caption)
+                        elif message.audio:
+                            db_msg = await uploader.send_audio(DB_CHANNEL, audio=path, caption=message.caption)
+                        else:
+                            db_msg = await uploader.send_document(DB_CHANNEL, document=path, caption=message.caption)
+                    os.remove(path)
+                    await sm.delete()
+                else:
+                    return await message.reply("❌ Failed to process file for DB.")
+            except Exception as e:
+                return await message.reply(f"❌ DB Channel error (Main Bot fallback): \n`{e}`")
 
         bi = get_bot_info(bot_id)
         original_caption = message.caption or message.text
@@ -4146,6 +4219,46 @@ def register_handlers(app: Client):
             await cb.answer("♻️ Restarting...", show_alert=True)
             os.execl(sys.executable, sys.executable, *sys.argv)
 
+        elif data.startswith("confirm_import_"):
+            if uid != MAIN_ADMIN: return await cb.answer("❌ Only Supreme Admin!", show_alert=True)
+            fname = data[15:]
+            if fname not in BACKUP_FILES: return await cb.answer("Invalid file!", show_alert=True)
+
+            # Find the message with the document
+            msg = cb.message.reply_to_message
+            if not msg or not msg.document or msg.document.file_name != fname:
+                return await cb.message.edit("❌ **Error:** Original file message not found. Please send the file again.")
+
+            await cb.answer(f"⏳ Restoring {fname}...", show_alert=True)
+            await cb.message.edit(f"⏳ **Restoring `{fname}`... Please wait.**")
+
+            try:
+                path = await msg.download(file_name=f"{DB_FOLDER}/{fname}.new")
+                if path:
+                    # Validate JSON
+                    with open(path, "r") as f:
+                        json.load(f)
+
+                    # Replace old file
+                    old_path = f"{DB_FOLDER}/{fname}"
+                    if os.path.exists(old_path):
+                        os.replace(path, old_path)
+                    else:
+                        os.rename(path, old_path)
+
+                    invalidate_cache(old_path)
+                    await cb.message.edit(f"✅ **Database Restored!**\n\nFile `{fname}` has been successfully updated.\n\nRestarting system to apply changes...")
+                    await asyncio.sleep(2)
+                    os.execl(sys.executable, sys.executable, *sys.argv)
+                else:
+                    await cb.message.edit("❌ **Download failed!**")
+            except Exception as e:
+                await cb.message.edit(f"❌ **Restore Error:**\n`{e}`")
+
+        elif data == "cancel_import":
+            await cb.message.edit("❌ Import cancelled.")
+            await cb.answer()
+
         elif data == "back_to_start":
             bi  = get_bot_info(bot_id)
             text = (bi.get("custom_welcome") if bi else None) or f"✨ **Welcome Back!**\n🤖 @{client.me.username}"
@@ -4220,6 +4333,18 @@ async def main():
     logger.info(f"🔑 SESSION_STRING: {'✅ Set' if SESSION_STRING else '❌ Not set'}")
 
     await start_web_server()
+
+    if SESSION_STRING:
+        try:
+            global GLOBAL_USERBOT
+            GLOBAL_USERBOT = Client(
+                "global_userbot", api_id=API_ID, api_hash=API_HASH,
+                session_string=SESSION_STRING, in_memory=True
+            )
+            await GLOBAL_USERBOT.start()
+            logger.info("✅ Persistent Userbot Started!")
+        except Exception as e:
+            logger.error(f"❌ Userbot failed to start: {e}")
 
     logger.info("🔥 Starting Main Bot...")
     main_app = await start_bot(MAIN_BOT_TOKEN)
