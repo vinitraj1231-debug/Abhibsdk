@@ -141,25 +141,66 @@ _DB_CACHE:   dict = {}
 _GLOBAL_CFG: dict = {}
 
 def load_db(path: str) -> dict:
+    """Load JSON database with fallback to backup and cache."""
     if path in _DB_CACHE:
         return _DB_CACHE[path]
-    if not os.path.exists(path):
-        with open(path, "w") as f:
-            json.dump({}, f)
-    try:
-        with open(path) as f:
-            data = json.load(f)
-    except Exception:
-        data = {}
+
+    data = {}
+    bak_path = path + ".bak"
+
+    # Try primary
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+        except Exception as e:
+            logger.error(f"Failed to load primary DB {path}: {e}")
+            # Try backup if primary failed
+            if os.path.exists(bak_path):
+                try:
+                    with open(bak_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    logger.info(f"Successfully restored {path} from backup.")
+                except Exception as be:
+                    logger.error(f"Failed to load backup DB {bak_path}: {be}")
+    elif os.path.exists(bak_path):
+        # Primary missing, try backup
+        try:
+            with open(bak_path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            logger.info(f"Restored {path} from backup (primary was missing).")
+        except Exception as be:
+            logger.error(f"Failed to load backup DB {bak_path}: {be}")
+
     _DB_CACHE[path] = data
     return data
 
 def save_db(path: str, data: dict) -> None:
+    """Save JSON database atomically with verification and backup."""
     _DB_CACHE[path] = data
     tmp = path + ".tmp"
-    with open(tmp, "w") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
-    os.replace(tmp, path)
+    bak = path + ".bak"
+
+    try:
+        # Write to temporary file
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+
+        # Verify written file is valid JSON
+        with open(tmp, "r", encoding="utf-8") as f:
+            json.load(f)
+
+        # If primary exists, move it to backup
+        if os.path.exists(path):
+            shutil.copy2(path, bak)
+
+        # Move temp to primary
+        os.replace(tmp, path)
+    except Exception as e:
+        logger.error(f"Critical error saving database {path}: {e}")
+        if os.path.exists(tmp):
+            try: os.remove(tmp)
+            except: pass
 
 def invalidate_cache(path: str) -> None:
     _DB_CACHE.pop(path, None)
@@ -1146,62 +1187,68 @@ async def start_bot(token: str, parent_bot_id=None):
 # 🎨 KEYBOARDS
 # ═══════════════════════════════════════════════════════════════
 
+def get_btn_name(key: str, default: str) -> str:
+    btns = get_global_config().get("custom_buttons", {})
+    return btns.get(key, default)
+
 def kb_start(bot_id, user_id):
     bi = get_bot_info(bot_id)
     is_owner = bi and bi.get("owner_id") == user_id
     rows = []
+
     if user_id == MAIN_ADMIN:
-        rows.append([InlineKeyboardButton("👑 SUPREME PANEL", callback_data="supreme_panel")])
+        rows.append([InlineKeyboardButton(get_btn_name("btn_supreme", "👑 SUPREME PANEL"), callback_data="supreme_panel")])
     if is_admin(user_id) or is_owner:
-        rows.append([InlineKeyboardButton("⚡ ADMIN PANEL", callback_data="admin_panel")])
+        rows.append([InlineKeyboardButton(get_btn_name("btn_admin", "⚡ ADMIN PANEL"), callback_data="admin_panel")])
+
     rows += [
-        [InlineKeyboardButton("📦 BATCH MODE", callback_data="start_batch"),
-         InlineKeyboardButton("🤖 CLONE BOT",  callback_data="clone_menu")],
-        [InlineKeyboardButton("🎭 DUAL POST",  callback_data="dual_post_menu"),
-         InlineKeyboardButton("👥 REFER & EARN", callback_data="referral_menu")],
-        [InlineKeyboardButton("📊 DASHBOARD",  callback_data="user_dashboard"),
-         InlineKeyboardButton("ℹ️ HELP",        callback_data="help_menu")],
-        [InlineKeyboardButton("🛡 PROTECT",    callback_data="plinks_admin"),
-         InlineKeyboardButton("🔍 SEARCH",     callback_data="cb_search")],
-        [InlineKeyboardButton("💎 BUY PREMIUM", callback_data="premium_menu"),
-         InlineKeyboardButton("🎯 MY BOTS",    callback_data="my_bots_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_batch", "📦 BATCH MODE"),   callback_data="start_batch"),
+         InlineKeyboardButton(get_btn_name("btn_clone", "🤖 CLONE BOT"),    callback_data="clone_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_dual",  "🎭 DUAL POST"),    callback_data="dual_post_menu"),
+         InlineKeyboardButton(get_btn_name("btn_refer", "👥 REFER & EARN"), callback_data="referral_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_dash",  "📊 DASHBOARD"),    callback_data="user_dashboard"),
+         InlineKeyboardButton(get_btn_name("btn_help",  "ℹ️ HELP"),         callback_data="help_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_prot",  "🛡 PROTECT"),     callback_data="plinks_admin"),
+         InlineKeyboardButton(get_btn_name("btn_srch",  "🔍 SEARCH"),       callback_data="cb_search")],
+        [InlineKeyboardButton(get_btn_name("btn_prem",  "💎 BUY PREMIUM"),  callback_data="premium_menu"),
+         InlineKeyboardButton(get_btn_name("btn_mybt",  "🎯 MY BOTS"),      callback_data="my_bots_menu")],
     ]
     return InlineKeyboardMarkup(rows)
 
 def kb_admin():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📢 BROADCAST",   callback_data="broadcast_menu"),
-         InlineKeyboardButton("📊 ANALYTICS",   callback_data="admin_stats")],
-        [InlineKeyboardButton("👥 USERS",        callback_data="manage_users"),
-         InlineKeyboardButton("🤖 CLONES",       callback_data="my_bots_admin")],
-        [InlineKeyboardButton("⚙️ SETTINGS",     callback_data="bot_settings_admin"),
-         InlineKeyboardButton("🔒 FORCE SUB",    callback_data="forcesub_admin")],
-        [InlineKeyboardButton("🛡 VERIFICATION", callback_data="verify_admin"),
-         InlineKeyboardButton("🔗 SHORTENER",    callback_data="shortener_admin")],
-        [InlineKeyboardButton("🛡 PROTECT LINKS", callback_data="plinks_admin"),
-         InlineKeyboardButton("🎭 DUAL POSTS",   callback_data="dual_posts_admin")],
-        [InlineKeyboardButton("👋 WELCOME MSG",  callback_data="edit_welcome_msg"),
-         InlineKeyboardButton("✅ AUTO APPROVE", callback_data="toggle_auto_approve")],
-        [InlineKeyboardButton("📝 AUTO CAPTION", callback_data="toggle_auto_caption"),
-         InlineKeyboardButton("⏱ TIMER SET",    callback_data="edit_timer")],
-        [InlineKeyboardButton("🔙 BACK TO HOME", callback_data="back_to_start")],
+        [InlineKeyboardButton(get_btn_name("btn_abrd", "📢 BROADCAST"),   callback_data="broadcast_menu"),
+         InlineKeyboardButton(get_btn_name("btn_asta", "📊 ANALYTICS"),   callback_data="admin_stats")],
+        [InlineKeyboardButton(get_btn_name("btn_ausr", "👥 USERS"),        callback_data="manage_users"),
+         InlineKeyboardButton(get_btn_name("btn_acln", "🤖 CLONES"),       callback_data="my_bots_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aset", "⚙️ SETTINGS"),     callback_data="bot_settings_admin"),
+         InlineKeyboardButton(get_btn_name("btn_afsb", "🔒 FORCE SUB"),    callback_data="forcesub_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aver", "🛡 VERIFICATION"), callback_data="verify_admin"),
+         InlineKeyboardButton(get_btn_name("btn_ashr", "🔗 SHORTENER"),    callback_data="shortener_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aprt", "🛡 PROTECT LINKS"), callback_data="plinks_admin"),
+         InlineKeyboardButton(get_btn_name("btn_adul", "🎭 DUAL POSTS"),   callback_data="dual_posts_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_awlc", "👋 WELCOME MSG"),  callback_data="edit_welcome_msg"),
+         InlineKeyboardButton(get_btn_name("btn_aapr", "✅ AUTO APPROVE"), callback_data="toggle_auto_approve")],
+        [InlineKeyboardButton(get_btn_name("btn_acap", "📝 AUTO CAPTION"), callback_data="toggle_auto_caption"),
+         InlineKeyboardButton(get_btn_name("btn_atmr", "⏱ TIMER SET"),    callback_data="edit_timer")],
+        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"), callback_data="back_to_start")],
     ])
 
 def kb_supreme():
     maint = get_global_config().get("maintenance", False)
-    sess  = "✅" if SESSION_STRING else "❌"
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🌍 GLOBAL BROADCAST", callback_data="global_broadcast")],
-        [InlineKeyboardButton("🖥 SYSTEM ANALYTICS", callback_data="system_stats"),
-         InlineKeyboardButton("🤖 BOT NETWORK",    callback_data="all_bots_list")],
-        [InlineKeyboardButton("👑 ADMIN MANAGER",    callback_data="manage_admins"),
-         InlineKeyboardButton("📢 SYSTEM MSG",      callback_data="global_msg_set")],
+        [InlineKeyboardButton(get_btn_name("btn_sgbr", "🌍 GLOBAL BROADCAST"), callback_data="global_broadcast")],
+        [InlineKeyboardButton(get_btn_name("btn_ssys", "🖥 SYSTEM ANALYTICS"), callback_data="system_stats"),
+         InlineKeyboardButton(get_btn_name("btn_snet", "🤖 BOT NETWORK"),    callback_data="all_bots_list")],
+        [InlineKeyboardButton(get_btn_name("btn_sadm", "👑 ADMIN MANAGER"),    callback_data="manage_admins"),
+         InlineKeyboardButton(get_btn_name("btn_smsg", "📢 SYSTEM MSG"),      callback_data="global_msg_set")],
         [InlineKeyboardButton(f"🛠 MAINT: {'ON' if maint else 'OFF'}", callback_data="toggle_maintenance"),
-         InlineKeyboardButton("💾 FULL BACKUP",    callback_data="manual_backup")],
-        [InlineKeyboardButton("🧹 PURGE CACHE",      callback_data="manual_clean_cache"),
-         InlineKeyboardButton("🔄 SMART REBUILD",    callback_data="confirm_rebuild")],
-        [InlineKeyboardButton("♻️ SYSTEM RESTART",    callback_data="restart_all_bots")],
-        [InlineKeyboardButton("🔙 BACK TO HOME",     callback_data="back_to_start")],
+         InlineKeyboardButton(get_btn_name("btn_sbak", "💾 FULL BACKUP"),    callback_data="manual_backup")],
+        [InlineKeyboardButton(get_btn_name("btn_spur", "🧹 PURGE CACHE"),      callback_data="manual_clean_cache"),
+         InlineKeyboardButton(get_btn_name("btn_srbd", "🔄 SMART REBUILD"),    callback_data="confirm_rebuild")],
+        [InlineKeyboardButton(get_btn_name("btn_scus", "🎨 CUSTOMIZE BUTTONS"), callback_data="supreme_customize")],
+        [InlineKeyboardButton(get_btn_name("btn_srst", "♻️ SYSTEM RESTART"),    callback_data="restart_all_bots")],
+        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"),     callback_data="back_to_start")],
     ])
 
 def kb_dual_post_creator(stage: str, free_count: int, pro_count: int):
@@ -2054,14 +2101,18 @@ def register_handlers(app: Client):
 
         if not welcome_text:
             welcome_text = (
-                f"✨ **{'Welcome' if is_new else 'Welcome Back'}, {message.from_user.first_name}!**\n\n"
-                f"🚀 **FileStore Bot v6.0**\n\n"
-                f" ├ 📂 Unlimited Cloud Storage\n"
-                f" ├ 📦 Batch Mode (many files → 1 link)\n"
-                f" ├ 🎭 Dual Post (FREE + PREMIUM in one link)\n"
-                f" ├ ✏️ Caption & Thumbnail Editor\n"
-                f" ├ 🤖 Bot Cloning System\n"
-                f" └ ⚡ Smart Auto-Destruct"
+                f"✨ **Greetings, {message.from_user.first_name}!**\n\n"
+                f"Welcome to the **ULTRA ADVANCED FILESTORE v7.0** 🚀\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"I am your elite assistant for managing and storing files with unparalleled efficiency.\n\n"
+                f"🛡 **Elite Features:**\n"
+                f" ├ ♾ **Unlimited Storage:** Secure & Permanent\n"
+                f" ├ 📦 **Smart Batching:** Multiple files, one link\n"
+                f" ├ 🎭 **Dual-Tier System:** Free & Premium access\n"
+                f" ├ 🎨 **Full Customization:** Caption & Thumbs\n"
+                f" ├ 🤖 **Bot Cloning:** Create your own network\n"
+                f" └ ⚡ **Lightning Fast:** Instant file delivery\n\n"
+                f"👇 **Choose an option below to get started!**"
             )
 
         kbd = kb_start(bot_id, uid)
@@ -2696,22 +2747,19 @@ def register_handlers(app: Client):
                 f"🎭 Dual Posts: `{dp_count}`"
             )
         elif cmd == "help":
-            sess="✅" if SESSION_STRING else "❌"
+            help_text = "🚀 **FileStore v7.0 — Command List**\n\n"
+            for command in BOT_COMMANDS:
+                help_text += f"• `/{command.command}` — {command.description}\n"
+
+            help_text += "\n💡 *Tip: You can use most commands by clicking the menu button or typing / followed by the command.*"
+
             await message.reply(
-                "🚀 **FileStore v6.0 — Help**\n\n"
-                "**Files:** Send → get link\n"
-                "**Batch:** `/batch` → files → `/done`\n"
-                "**Edit:** `/editfile ID` → caption/thumbnail\n\n"
-                "🎭 **Dual Post (Premium vs Free):**\n"
-                "`/dualpost Title` → send FREE files\n"
-                "`/dpremium` → switch to PREMIUM stage\n"
-                "`/dpdone` → finalize + get link\n"
-                "`/myduals` → manage all dual posts\n"
-                "`/dpstats` → view analytics\n\n"
-                f"**Rebuild:** `/rebuild` (Session:{sess})\n"
-                "**Backup:** `/backup`\n"
-                "**Welcome:** `/setwelcome`\n"
-                "**Clone:** `/clone TOKEN`"
+                help_text,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🎭 DUAL POST GUIDE", callback_data="dual_help"),
+                     InlineKeyboardButton("💎 PREMIUM INFO", callback_data="premium_menu")],
+                    [InlineKeyboardButton("🔙 BACK TO HOME", callback_data="back_to_start")]
+                ])
             )
         elif cmd == "setglobal":
             if uid!=MAIN_ADMIN: return
@@ -3088,6 +3136,16 @@ def register_handlers(app: Client):
                     del TEMP_EDIT[uid]
                     await message.reply(f"✅ Timer set to `{secs}s`!", reply_markup=kb_admin())
                 except: await message.reply("❌ Send a valid number of seconds.")
+
+            elif mode == "customize_button":
+                if not message.text: return await message.reply("❌ Send a **name**.")
+                new_name = message.text.strip()
+                key = sess["key"]
+                btns = get_global_config().get("custom_buttons", {})
+                btns[key] = new_name
+                update_global_config("custom_buttons", btns)
+                del TEMP_EDIT[uid]
+                await message.reply(f"✅ Button `{key}` updated to: `{new_name}`", reply_markup=kb_supreme())
 
             elif mode == "rename":
                 if not message.text: return await message.reply("❌ Send a **new file name**.")
@@ -3587,6 +3645,24 @@ def register_handlers(app: Client):
             )
             await cb.answer()
 
+        elif data == "dual_help":
+            await cb.message.edit(
+                "🎭 **Dual Post System Guide**\n\n"
+                "One link → Two different user experiences!\n\n"
+                "1️⃣ `/dualpost Title` — Start a new session.\n"
+                "2️⃣ Send files for **FREE** users (Stage 1).\n"
+                "3️⃣ `/dpremium` — Switch to premium stage.\n"
+                "4️⃣ Send files for **PREMIUM** users (Stage 2).\n"
+                "5️⃣ `/dpdone` — Finalize and get your link.\n\n"
+                "💎 **Premium users** get Stage 2 files directly.\n"
+                "📂 **Free users** get Stage 1 files after ads.",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("➕ START NOW", callback_data="dual_post_start_new")],
+                    [InlineKeyboardButton("🔙 BACK TO HELP", callback_data="help_menu")]
+                ])
+            )
+            await cb.answer()
+
         elif data.startswith("dp_delete_"):
             post_id = data[len("dp_delete_"):]
             post    = get_dual_post(post_id)
@@ -3722,27 +3798,23 @@ def register_handlers(app: Client):
             texts = {
                 "cb_search":     "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`",
                 "help_menu": (
-                    f"🚀 **FileStore v7.0 — Help**\n\n"
-                    f"**Files:** Send any file → get link\n"
-                    f"**Batch:** `/batch` → files → `/done`\n"
-                    f"**Edit:** `/editfile ID` → caption/thumbnail\n\n"
-                    f"🎭 **Dual Post:**\n"
-                    f"`/dualpost Title` → FREE files → `/dpremium`\n"
-                    f"→ PREMIUM files → `/dpdone` → link\n"
-                    f"`/myduals` → manage | `/dpstats` → analytics\n\n"
-                    f"**Premium:** `/premium` | **Clone:** `/clone TOKEN`"
+                    "🚀 **FileStore v7.0 — Command List**\n\n" +
+                    "\n".join([f"• `/{c.command}` — {c.description}" for c in BOT_COMMANDS[:15]]) +
+                    "\n\n*(Send /help for full list of all commands)*"
                 ),
                 "premium_menu": (
-                    f"👑 **ULTRA PREMIUM EXPERIENCE**\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"Status: {'💎 **ACTIVE**' if is_p else '🆓 **FREE**'}\n\n"
-                    f"✨ **Exclusive Perks:**\n"
-                    f" ├ 🚀 **Permanent Storage:** No auto-delete!\n"
-                    f" ├ 🎭 **Elite Access:** Premium Dual Posts!\n"
-                    f" ├ ⚡ **Direct Link:** No Ads / Shorteners!\n"
-                    f" └ 📦 **Unlimited batching capabilities!**\n\n"
-                    f"💰 **Current Price:** `{(bi_cb or {}).get('premium_price', '500')}`\n"
-                    f"Contact Admin to upgrade now!"
+                    f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"✨ **Current Status:** {'✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`'}\n\n"
+                    f"🚀 **EXCLUSIVE PRIVILEGES:**\n"
+                    f" ├ ♾ **PERMANENT STORAGE:** Files never expire!\n"
+                    f" ├ 🎭 **ELITE ACCESS:** Unlock Premium Dual Posts!\n"
+                    f" ├ ⚡ **DIRECT DELIVERY:** No ads, no shorteners!\n"
+                    f" ├ 📦 **PRO BATCHING:** No limits on creation!\n"
+                    f" └ 💎 **PRIORITY SUPPORT:** Instant assistance!\n\n"
+                    f"💰 **Subscription Fee:** `{(bi_cb or {}).get('premium_price', '500')}`\n"
+                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                    f"👇 **WANT TO UPGRADE? CONTACT ADMIN!** 👇"
                 ),
                 "referral_menu": (
                     f"👥 **Refer & Earn Program**\n━━━━━━━━━━━━━━━━━━━━\n"
@@ -3915,22 +3987,34 @@ def register_handlers(app: Client):
             premium_users = sum(1 for u in users if u.get("is_premium"))
 
             top_files = sorted(bot_files, key=lambda f: f.get("access_count", 0), reverse=True)[:5]
-            top_files_text = "\n".join([f"• `{f.get('file_name')[:20]}` - 👁 {f.get('access_count')}" for f in top_files])
+            top_files_text = ""
+            for i, f in enumerate(top_files, 1):
+                name = f.get('file_name', 'Unknown')[:20]
+                count = f.get('access_count', 0)
+                icon = file_icon(f.get('file_name', ''))
+                top_files_text += f"{i}. {icon} `{name}` — 👁 **{count}**\n"
 
             await cb.message.edit(
-                f"📊 **Advanced Bot Analytics**\n━━━━━━━━━━━━━━━━━━━━\n"
-                f"👥 **Users:** `{len(users)}` (Active today: `{active_today}`)\n"
-                f"💎 **Premium Users:** `{premium_users}`\n"
-                f"📁 **Total Files:** `{len(bot_files)}` | 👁 **Total Views:** `{sum(f.get('access_count',0) for f in bot_files)}`\n"
-                f"🎭 **Dual Posts:** `{dp_count}` | 👁 **Views:** `{dp_views}`\n\n"
-                f"🔝 **Top 5 Files:**\n{top_files_text or '_No views yet_'}\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"⏱ **Uptime:** `{str(datetime.now()-START_TIME).split('.')[0]}`",
+                f"📊 **ELITE BOT ANALYTICS**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"👥 **USER METRICS**\n"
+                f" ├ Total Base: `{len(users)}` users\n"
+                f" ├ Active Today: `{active_today}`\n"
+                f" └ Premium Members: `{premium_users}`\n\n"
+                f"📁 **CONTENT METRICS**\n"
+                f" ├ Total Files: `{len(bot_files)}` items\n"
+                f" ├ Global Views: `{sum(f.get('access_count',0) for f in bot_files)}`\n"
+                f" ├ Dual Posts: `{dp_count}` active\n"
+                f" └ DP Views: `{dp_views}`\n\n"
+                f"🔝 **TRENDING CONTENT (TOP 5)**\n"
+                f"{top_files_text or '_No data recorded yet._'}\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"⏱ **System Uptime:** `{str(datetime.now()-START_TIME).split('.')[0]}`",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔄 Refresh",    callback_data="admin_stats")],
-                    [InlineKeyboardButton("🎭 Dual Posts", callback_data="dual_posts_admin"),
-                     InlineKeyboardButton("👥 Users",      callback_data="manage_users")],
-                    [InlineKeyboardButton("🔙 Back",       callback_data="admin_panel")]
+                    [InlineKeyboardButton("🔄 REFRESH DATA", callback_data="admin_stats")],
+                    [InlineKeyboardButton("🎭 DUAL POSTS",  callback_data="dual_posts_admin"),
+                     InlineKeyboardButton("👥 USER LIST",   callback_data="manage_users")],
+                    [InlineKeyboardButton("🔙 BACK TO PANEL", callback_data="admin_panel")]
                 ])
             )
             await cb.answer()
@@ -4123,10 +4207,59 @@ def register_handlers(app: Client):
             if uid != MAIN_ADMIN: return await cb.answer("❌ Supreme only!", show_alert=True)
             sess = "✅" if SESSION_STRING else "❌"
             await cb.message.edit(
-                f"👑 **Supreme Panel v6.0**\n🔑 Session: {sess}",
+                f"👑 **Supreme Panel v7.0**\n🔑 Session: {sess}",
                 reply_markup=kb_supreme()
             )
             await cb.answer()
+
+        elif data == "supreme_customize":
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            btns_config = get_global_config().get("custom_buttons", {})
+            text = "🎨 **Button Customizer**\n\nClick a button to change its name:\n\n"
+
+            # Grouping buttons for better UI
+            keyboard = []
+
+            # Start Menu
+            keyboard.append([InlineKeyboardButton("--- START MENU ---", callback_data="none")])
+            keyboard.append([
+                InlineKeyboardButton(f"Supreme: {btns_config.get('btn_supreme', '👑 SUPREME PANEL')}", callback_data="cbtn_btn_supreme"),
+                InlineKeyboardButton(f"Admin: {btns_config.get('btn_admin', '⚡ ADMIN PANEL')}", callback_data="cbtn_btn_admin")
+            ])
+            keyboard.append([
+                InlineKeyboardButton(f"Batch: {btns_config.get('btn_batch', '📦 BATCH MODE')}", callback_data="cbtn_btn_batch"),
+                InlineKeyboardButton(f"Clone: {btns_config.get('btn_clone', '🤖 CLONE BOT')}", callback_data="cbtn_btn_clone")
+            ])
+
+            # Admin Menu
+            keyboard.append([InlineKeyboardButton("--- ADMIN MENU ---", callback_data="none")])
+            keyboard.append([
+                InlineKeyboardButton(f"B-Cast: {btns_config.get('btn_abrd', '📢 BROADCAST')}", callback_data="cbtn_btn_abrd"),
+                InlineKeyboardButton(f"Stats: {btns_config.get('btn_asta', '📊 ANALYTICS')}", callback_data="cbtn_btn_asta")
+            ])
+
+            keyboard.append([InlineKeyboardButton("♻️ RESET ALL", callback_data="reset_buttons")])
+            keyboard.append([InlineKeyboardButton("🔙 BACK", callback_data="supreme_panel")])
+
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(keyboard))
+            await cb.answer()
+
+        elif data.startswith("cbtn_"):
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            key = data[5:]
+            TEMP_EDIT[uid] = {"mode": "customize_button", "key": key}
+            await cb.message.edit(
+                f"📝 **Customize Button**\n\nKey: `{key}`\n\nSend the **new name** for this button.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="supreme_customize")]])
+            )
+            await cb.answer()
+
+        elif data == "reset_buttons":
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            update_global_config("custom_buttons", {})
+            await cb.answer("✅ All buttons reset to default!", show_alert=True)
+            cb.data = "supreme_customize"
+            await cb_handler(client, cb)
 
         elif data == "global_broadcast":
             if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
@@ -4140,22 +4273,33 @@ def register_handlers(app: Client):
             if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
             t, u, f = shutil.disk_usage("/")
             pend    = sum(len(v) for v in _PENDING.values())
-            sess    = "✅" if SESSION_STRING else "❌"
+            sess    = "✅ ACTIVATED" if SESSION_STRING else "❌ NOT SET"
             active_tokens = sum(1 for v in SHORTENER_TOKENS.values()
                                 if not v["used"] and time.time() < v["expires_at"])
             dp_count = len(load_db(DUAL_POST_DB))
             await cb.message.edit(
-                f"🖥 **System Stats v6.0**\n━━━━━━━━━━━━━━━━━━━━\n"
-                f"🤖 `{len(get_all_bots())}` bots | 🟢 `{len(ACTIVE_CLIENTS)}` online\n"
-                f"👥 `{len(load_db(USERS_DB))}` | 📁 `{len(load_db(FILES_DB))}` | "
-                f"🎭 `{dp_count}` duals\n"
-                f"⏳ Pending joins: `{pend}` | 🔑 Tokens: `{active_tokens}`\n"
-                f"🔑 Session: {sess}\n"
-                f"💾 Disk: `{u//(2**30)}GB/{t//(2**30)}GB` (Free:`{f//(2**30)}GB`)\n"
-                f"⏱ Uptime: `{str(datetime.now()-START_TIME).split('.')[0]}`",
+                f"🖥 **ELITE SUPREME SYSTEM METRICS**\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
+                f"🤖 **NETWORK STATUS**\n"
+                f" ├ Registered Bots: `{len(get_all_bots())}`\n"
+                f" └ Active Instances: `{len(ACTIVE_CLIENTS)}` online\n\n"
+                f"📊 **GLOBAL DATABASE**\n"
+                f" ├ Total Users: `{len(load_db(USERS_DB))}`\n"
+                f" ├ Total Files: `{len(load_db(FILES_DB))}`\n"
+                f" └ Dual Posts: `{dp_count}`\n\n"
+                f"⚙️ **SYSTEM CORE**\n"
+                f" ├ Pending Requests: `{pend}`\n"
+                f" ├ Active Tokens: `{active_tokens}`\n"
+                f" └ Session String: `{sess}`\n\n"
+                f"💾 **SERVER STORAGE**\n"
+                f" ├ Used Space: `{u//(2**30)} GB`\n"
+                f" ├ Total Space: `{t//(2**30)} GB`\n"
+                f" └ Free Space: `{f//(2**30)} GB`\n\n"
+                f"⏱ **UPTIME:** `{str(datetime.now()-START_TIME).split('.')[0]}`\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔄 Refresh", callback_data="system_stats")],
-                    [InlineKeyboardButton("🔙 Back",    callback_data="supreme_panel")]
+                    [InlineKeyboardButton("🔄 REFRESH SYSTEM", callback_data="system_stats")],
+                    [InlineKeyboardButton("🔙 BACK TO PANEL",  callback_data="supreme_panel")]
                 ])
             )
             await cb.answer()
