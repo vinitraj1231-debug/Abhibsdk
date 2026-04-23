@@ -2968,10 +2968,10 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.private & ~filters.command(_CMD_LIST), group=2)
     async def fsm_responder(client, message):
-        uid = message.from_user.id
+        uid = message.from_user.id; bot_id = client.me.id
 
         if uid in TEMP_PROTECT:
-            sess = TEMP_PROTECT[uid]; bot_id = sess["bot_id"]; step = sess.get("step")
+            sess = TEMP_PROTECT[uid]; step = sess.get("step")
             if step == "channel":
                 try:
                     chid = int(message.text)
@@ -2997,7 +2997,7 @@ def register_handlers(app: Client):
             return
 
         if uid in TEMP_WELCOME:
-            sess = TEMP_WELCOME[uid]; bot_id = sess["bot_id"]; step = sess.get("step")
+            sess = TEMP_WELCOME[uid]; step = sess.get("step")
             if step == "text":
                 if not message.text: return await message.reply("❌ Send text or `-skip`.")
                 txt = message.text.strip()
@@ -3140,8 +3140,7 @@ def register_handlers(app: Client):
                             new_db_msg = await client.send_document(DB_CHANNEL, document=new_path, thumb=thumb_path, caption=fd.get('caption'), progress=up_progress)
 
                         if new_db_msg:
-                            attr = "document" if mtype == "document" else ("video" if mtype == "video" else "audio")
-                            media = getattr(new_db_msg, attr)
+                            media = new_db_msg.document or new_db_msg.video or new_db_msg.audio or new_db_msg.animation or new_db_msg.sticker
 
                             # Invalidate old cache
                             load_db(FILE_CACHE_DB).pop(fd['file_id'], None)
@@ -3242,8 +3241,7 @@ def register_handlers(app: Client):
                     new_db_msg = await client.send_document(DB_CHANNEL, document=path, thumb=thumb_path, caption=fd.get('caption'))
 
                 if new_db_msg:
-                    attr = "document" if mtype == "document" else ("video" if mtype == "video" else "audio")
-                    media = getattr(new_db_msg, attr)
+                    media = new_db_msg.document or new_db_msg.video or new_db_msg.audio or new_db_msg.animation or new_db_msg.sticker
                     fd['file_id'] = media.file_id
                     fd['db_msg_id'] = new_db_msg.id
                     save_db(FILES_DB, files)
@@ -4226,6 +4224,13 @@ def register_handlers(app: Client):
 
             # Find the message with the document
             msg = cb.message.reply_to_message
+            if not msg:
+                # Attempt to fetch it manually if it's not cached in the callback object
+                try:
+                    msg = await client.get_messages(cb.message.chat.id, cb.message.reply_to_message_id)
+                except Exception:
+                    msg = None
+
             if not msg or not msg.document or msg.document.file_name != fname:
                 return await cb.message.edit("❌ **Error:** Original file message not found. Please send the file again.")
 
