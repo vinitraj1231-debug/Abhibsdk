@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>FileStore Mini App</title>
+    <title>FileStore Elite Mini App</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <style>
@@ -15,6 +15,9 @@
             --tg-theme-button-color: #2481cc;
             --tg-theme-button-text-color: #ffffff;
             --tg-theme-secondary-bg-color: #efeff3;
+            --accent-color: #2481cc;
+            --premium-color: #f39c12;
+            --success-color: #27ae60;
         }
 
         body {
@@ -23,18 +26,24 @@
             color: var(--tg-theme-text-color);
             margin: 0;
             padding: 0;
-            padding-bottom: 80px;
+            padding-bottom: 90px;
             display: flex;
             flex-direction: column;
             min-height: 100vh;
+            user-select: none;
         }
 
         .header {
-            padding: 20px;
+            padding: 15px;
             text-align: center;
             background-color: var(--tg-theme-secondary-bg-color);
-            border-bottom: 1px solid rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
         }
+
+        .header h2 { margin: 0; font-size: 18px; }
 
         .content {
             flex: 1;
@@ -42,71 +51,89 @@
         }
 
         .search-container {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             display: flex;
-            gap: 10px;
+            gap: 8px;
         }
 
         .search-container input {
             flex: 1;
-            padding: 12px;
-            border-radius: 10px;
-            border: 1px solid var(--tg-theme-hint-color);
-            background: var(--tg-theme-bg-color);
+            padding: 10px 15px;
+            border-radius: 12px;
+            border: 1px solid rgba(0,0,0,0.1);
+            background: var(--tg-theme-secondary-bg-color);
             color: var(--tg-theme-text-color);
             outline: none;
+            font-size: 14px;
+        }
+
+        .tabs {
+            display: flex;
+            background: var(--tg-theme-secondary-bg-color);
+            padding: 4px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .tab {
+            flex: 1;
+            text-align: center;
+            padding: 8px;
+            font-size: 13px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .tab.active {
+            background: var(--tg-theme-bg-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            font-weight: bold;
         }
 
         .file-list {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 8px;
         }
 
-        .file-item {
+        .list-item {
             background-color: var(--tg-theme-secondary-bg-color);
-            padding: 15px;
-            border-radius: 12px;
+            padding: 12px;
+            border-radius: 14px;
             display: flex;
             align-items: center;
-            gap: 15px;
+            gap: 12px;
             cursor: pointer;
-            transition: transform 0.1s;
+            transition: 0.1s;
         }
 
-        .file-item:active {
-            transform: scale(0.98);
+        .list-item:active { transform: scale(0.98); }
+
+        .item-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--tg-theme-bg-color);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: var(--accent-color);
         }
 
-        .file-icon {
-            font-size: 24px;
-            color: var(--tg-theme-button-color);
-        }
-
-        .file-info {
-            flex: 1;
-        }
-
-        .file-name {
-            font-weight: bold;
-            display: block;
-            margin-bottom: 4px;
-            word-break: break-all;
-        }
-
-        .file-meta {
-            font-size: 12px;
-            color: var(--tg-theme-hint-color);
-        }
+        .item-info { flex: 1; }
+        .item-name { font-weight: 600; display: block; font-size: 14px; margin-bottom: 2px; word-break: break-all; }
+        .item-meta { font-size: 11px; color: var(--tg-theme-hint-color); }
 
         .nav-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 70px;
+            height: 65px;
             background-color: var(--tg-theme-secondary-bg-color);
-            border-top: 1px solid rgba(0,0,0,0.1);
+            border-top: 1px solid rgba(0,0,0,0.05);
             display: flex;
             justify-content: space-around;
             align-items: center;
@@ -120,74 +147,104 @@
             align-items: center;
             gap: 4px;
             color: var(--tg-theme-hint-color);
-            font-size: 11px;
+            font-size: 10px;
             cursor: pointer;
             text-decoration: none;
             flex: 1;
+            padding: 10px 0;
         }
 
-        .nav-item.active {
-            color: var(--tg-theme-button-color);
-        }
+        .nav-item.active { color: var(--accent-color); }
+        .nav-item i { font-size: 20px; }
 
-        .nav-item i {
-            font-size: 22px;
-        }
+        .section { display: none; }
+        .section.active { display: block; }
 
-        .section {
-            display: none;
-        }
-
-        .section.active {
-            display: block;
+        .card {
+            background: var(--tg-theme-secondary-bg-color);
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 15px;
         }
 
         .premium-card {
             background: linear-gradient(135deg, #f39c12, #e67e22);
             color: white;
-            padding: 20px;
-            border-radius: 15px;
-            margin-top: 20px;
-            box-shadow: 0 4px 15px rgba(230, 126, 34, 0.3);
         }
 
         .btn-main {
             width: 100%;
-            padding: 15px;
+            padding: 14px;
             border-radius: 12px;
             border: none;
             background: var(--tg-theme-button-color);
             color: var(--tg-theme-button-text-color);
             font-weight: bold;
-            margin-top: 15px;
+            font-size: 14px;
             cursor: pointer;
+            margin-top: 10px;
         }
 
         .stats-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            margin-top: 20px;
         }
 
         .stat-box {
             background: var(--tg-theme-secondary-bg-color);
-            padding: 15px;
+            padding: 12px;
             border-radius: 12px;
             text-align: center;
         }
 
-        .stat-val {
-            display: block;
-            font-size: 18px;
-            font-weight: bold;
-            color: var(--tg-theme-button-color);
+        .stat-val { display: block; font-size: 16px; font-weight: 700; color: var(--accent-color); }
+        .stat-lbl { font-size: 11px; color: var(--tg-theme-hint-color); margin-top: 2px; }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 20px;
         }
 
-        .stat-lbl {
-            font-size: 12px;
+        .profile-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: var(--tg-theme-secondary-bg-color);
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            color: var(--tg-theme-hint-color);
+            border: 2px solid var(--accent-color);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .badge-premium { background: var(--premium-color); color: white; }
+        .badge-free { background: var(--success-color); color: white; }
+        .badge-admin { background: #8e44ad; color: white; margin-left: 5px; }
+
+        .user-meta { margin-bottom: 15px; }
+        .meta-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(0,0,0,0.05); font-size: 13px; }
+        .meta-label { color: var(--tg-theme-hint-color); }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
             color: var(--tg-theme-hint-color);
         }
+        .empty-state i { font-size: 40px; margin-bottom: 10px; opacity: 0.5; }
+
+        #admin-btn { display: none; }
     </style>
 </head>
 <body>
@@ -196,35 +253,63 @@
     </div>
 
     <div class="content">
+        <!-- HOME SECTION -->
         <div id="home-section" class="section active">
             <div class="search-container">
                 <input type="text" id="search-input" placeholder="Search files...">
-                <button onclick="searchFiles()" style="padding: 10px 15px; border-radius: 10px; border: none; background: var(--tg-theme-button-color); color: var(--tg-theme-button-text-color);"><i class="fas fa-search"></i></button>
             </div>
-            <div class="file-list" id="recent-files">
-                <p style="text-align: center; color: var(--tg-theme-hint-color);">Loading files...</p>
+
+            <div class="tabs">
+                <div class="tab active" id="tab-all" onclick="setFileTab('all')">Global</div>
+                <div class="tab" id="tab-mine" onclick="setFileTab('mine')">My Files</div>
+            </div>
+
+            <div class="file-list" id="files-container">
+                <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
             </div>
         </div>
 
+        <!-- MY ASSETS SECTION -->
+        <div id="assets-section" class="section">
+            <div class="tabs">
+                <div class="tab active" id="tab-batches" onclick="setAssetTab('batches')">Batches</div>
+                <div class="tab" id="tab-duals" onclick="setAssetTab('duals')">Dual Posts</div>
+            </div>
+            <div class="file-list" id="assets-container">
+                <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>
+            </div>
+        </div>
+
+        <!-- PREMIUM SECTION -->
         <div id="premium-section" class="section">
-            <div class="premium-card">
-                <h3>💎 ELITE PREMIUM</h3>
-                <p>Unlock the full potential of FileStore.</p>
-                <ul style="padding-left: 20px;">
-                    <li>♾ Permanent Storage</li>
-                    <li>⚡ Direct Delivery (No Ads)</li>
-                    <li>🎭 Exclusive Dual-Tier Access</li>
-                    <li>📦 Unlimited Batches</li>
+            <div class="card premium-card">
+                <h3 style="margin-top:0"><i class="fas fa-crown"></i> ELITE PREMIUM</h3>
+                <p style="font-size:14px">Unlock the ultimate power of FileStore with zero limits.</p>
+                <ul style="padding-left: 20px; font-size: 13px; line-height: 1.6;">
+                    <li>♾ <b>Permanent Storage:</b> No auto-delete timer!</li>
+                    <li>⚡ <b>Zero Ads:</b> Skip all shorteners instantly.</li>
+                    <li>🎭 <b>Elite Access:</b> Direct delivery for Dual Posts.</li>
+                    <li>📦 <b>Pro Batching:</b> Create unlimited file groups.</li>
+                    <li>🚀 <b>Priority:</b> Faster downloads and support.</li>
                 </ul>
             </div>
-            <button onclick="contactAdmin()" class="btn-main" style="background: #f39c12;">Upgrade Now</button>
+
+            <div class="card">
+                <div class="meta-row"><span class="meta-label">Current Status</span><span id="prem-status-val">Checking...</span></div>
+                <div class="meta-row"><span class="meta-label">Subscription Fee</span><span id="prem-price-val">500</span></div>
+            </div>
+
+            <button onclick="contactAdmin()" class="btn-main" style="background: var(--premium-color);">Upgrade Now</button>
         </div>
 
+        <!-- PROFILE SECTION -->
         <div id="profile-section" class="section">
-            <div style="text-align: center; margin-bottom: 20px;">
-                <i class="fas fa-user-circle" style="font-size: 60px; color: var(--tg-theme-hint-color);"></i>
-                <h3 id="profile-name">User Name</h3>
-                <span id="profile-status" style="background: #27ae60; color: white; padding: 4px 10px; border-radius: 20px; font-size: 12px;">Free Tier</span>
+            <div class="profile-header">
+                <div class="profile-img"><i class="fas fa-user"></i></div>
+                <h3 id="profile-name" style="margin:0">User Name</h3>
+                <p id="profile-username" style="margin:5px 0 10px; color:var(--tg-theme-hint-color); font-size:14px">@username</p>
+                <span id="profile-badge" class="badge badge-free">Free Tier</span>
+                <span id="admin-badge" class="badge badge-admin" style="display:none">Admin</span>
             </div>
 
             <div class="stats-grid">
@@ -236,18 +321,53 @@
                     <span class="stat-val" id="stat-batches">0</span>
                     <span class="stat-lbl">Batches</span>
                 </div>
+                <div class="stat-box">
+                    <span class="stat-val" id="stat-duals">0</span>
+                    <span class="stat-lbl">Dual Posts</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-val" id="stat-refers">0</span>
+                    <span class="stat-lbl">Referrals</span>
+                </div>
             </div>
+
+            <div class="card" style="margin-top:15px">
+                <h4 style="margin-top:0; font-size:14px">Refer & Earn</h4>
+                <p style="font-size:12px; color:var(--tg-theme-hint-color)">Earn 1 day Premium for every 5 successful referrals.</p>
+                <div class="meta-row"><span class="meta-label">Rewards Earned</span><span id="stat-rewards">0 days</span></div>
+                <button onclick="shareReferral()" class="btn-main" style="background: var(--success-color); padding: 10px; font-size: 12px;">Invite Friends</button>
+            </div>
+
+            <button id="admin-btn" onclick="showSection('admin', this)" class="btn-main" style="background: #8e44ad;"><i class="fas fa-user-shield"></i> Admin Dashboard</button>
         </div>
 
+        <!-- ADMIN SECTION -->
+        <div id="admin-section" class="section">
+            <h3>🛡 Admin Dashboard</h3>
+            <div class="stats-grid">
+                <div class="stat-box"><span class="stat-val" id="adm-users">0</span><span class="stat-lbl">Total Users</span></div>
+                <div class="stat-box"><span class="stat-val" id="adm-files">0</span><span class="stat-lbl">Total Files</span></div>
+                <div class="stat-box"><span class="stat-val" id="adm-bots">0</span><span class="stat-lbl">Total Bots</span></div>
+                <div class="stat-box"><span class="stat-val" id="adm-duals">0</span><span class="stat-lbl">Total Duals</span></div>
+            </div>
+            <div class="card" style="margin-top:15px">
+                <div class="meta-row"><span class="meta-label">System Uptime</span><span id="adm-uptime">0:00:00</span></div>
+            </div>
+            <p style="font-size:12px; color:var(--tg-theme-hint-color); text-align:center">For full controls, use /admin command in the bot.</p>
+        </div>
+
+        <!-- HELP SECTION -->
         <div id="help-section" class="section">
             <h3>ℹ️ Help Center</h3>
-            <p>How to use the bot:</p>
-            <ol>
-                <li>Send any file to the bot.</li>
-                <li>Get a shareable link instantly.</li>
-                <li>Use /batch to group files.</li>
-                <li>Use /dualpost for free/pro tiers.</li>
-            </ol>
+            <div class="card">
+                <h4 style="margin-top:0">Quick Start</h4>
+                <ul style="font-size:13px; padding-left:15px; line-height:1.8">
+                    <li><b>Upload:</b> Send any file directly to the bot.</li>
+                    <li><b>Share:</b> Use the link provided by the bot.</li>
+                    <li><b>Batch:</b> Use <code>/batch</code> to combine files.</li>
+                    <li><b>Dual Post:</b> Use <code>/dualpost</code> for two tiers.</li>
+                </ul>
+            </div>
             <button onclick="webapp.openTelegramLink('https://t.me/zolvid')" class="btn-main">Contact Support</button>
         </div>
     </div>
@@ -256,6 +376,10 @@
         <div class="nav-item active" onclick="showSection('home', this)">
             <i class="fas fa-home"></i>
             <span>Home</span>
+        </div>
+        <div class="nav-item" onclick="showSection('assets', this)">
+            <i class="fas fa-folder-open"></i>
+            <span>My Assets</span>
         </div>
         <div class="nav-item" onclick="showSection('premium', this)">
             <i class="fas fa-crown"></i>
@@ -276,87 +400,201 @@
         webapp.expand();
         webapp.ready();
 
+        const params = new URLSearchParams(window.location.search);
+        const botId = params.get('bot_id');
+        let userId = webapp.initDataUnsafe.user ? webapp.initDataUnsafe.user.id : null;
+
+        // Polling for Telegram user data if not immediately available
+        if (!userId) {
+            const checkUser = setInterval(() => {
+                if (webapp.initDataUnsafe.user) {
+                    userId = webapp.initDataUnsafe.user.id;
+                    const u = webapp.initDataUnsafe.user;
+                    document.getElementById('welcome-text').innerText = `Hello, ${u.first_name}!`;
+                    document.getElementById('profile-name').innerText = `${u.first_name} ${u.last_name || ''}`;
+                    document.getElementById('profile-username').innerText = u.username ? `@${u.username}` : '';
+                    fetchUserInfo();
+                    fetchFiles();
+                    clearInterval(checkUser);
+                }
+            }, 500);
+            setTimeout(() => clearInterval(checkUser), 5000);
+        }
+
         let botUsername = '';
+        let fileTab = 'all';
+        let assetTab = 'batches';
+        let isUserAdmin = false;
 
         function showSection(sectionId, element) {
             document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
             document.getElementById(sectionId + '-section').classList.add('active');
 
-            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
-            element.classList.add('active');
+            if(element) {
+                document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+                element.classList.add('active');
+            }
 
+            if(sectionId === 'home') fetchFiles();
             if(sectionId === 'profile') fetchUserInfo();
+            if(sectionId === 'assets') fetchAssets();
+            if(sectionId === 'admin') fetchAdminStats();
         }
 
-        async function fetchFiles(query = '') {
-            const user_id = webapp.initDataUnsafe.user ? webapp.initDataUnsafe.user.id : null;
+        async function fetchFiles() {
+            const container = document.getElementById('files-container');
+            const q = document.getElementById('search-input').value;
 
             try {
-                const response = await fetch(`/api/files?q=${query}&user_id=${user_id}`);
+                const response = await fetch(`/api/files?q=${q}&user_id=${userId}&bot_id=${botId}&mode=${fileTab}`);
                 const data = await response.json();
                 botUsername = data.bot_username;
-                renderFiles(data.files);
+
+                if (!data.files || data.files.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><i class="far fa-folder-open"></i><p>No files found.</p></div>';
+                    return;
+                }
+
+                container.innerHTML = data.files.map(f => `
+                    <div class="list-item" onclick="openAsset('f', '${f.id}')">
+                        <div class="item-icon">${f.icon}</div>
+                        <div class="item-info">
+                            <span class="item-name">${f.name}</span>
+                            <span class="item-meta">${f.size} • 👁 ${f.views} • ${f.date}</span>
+                        </div>
+                    </div>
+                `).join('');
             } catch (e) {
-                console.error("Fetch error:", e);
-                document.getElementById('recent-files').innerHTML = '<p style="text-align: center; color: red;">Failed to load files.</p>';
+                container.innerHTML = '<p style="text-align:center; color:red">Error loading files.</p>';
             }
         }
 
         async function fetchUserInfo() {
-            const user_id = webapp.initDataUnsafe.user ? webapp.initDataUnsafe.user.id : null;
-            if(!user_id) return;
-
+            if(!userId) {
+                console.log("No user ID found, skipping fetchUserInfo");
+                return;
+            }
             try {
-                const response = await fetch(`/api/user?user_id=${user_id}`);
+                console.log(`Fetching user info for ${userId} on bot ${botId}`);
+                const response = await fetch(`/api/user?user_id=${userId}&bot_id=${botId}`);
                 const data = await response.json();
+                console.log("User info data:", data);
+
                 document.getElementById('stat-uploads').innerText = data.uploads;
                 document.getElementById('stat-batches').innerText = data.batches;
-                document.getElementById('profile-status').innerText = data.is_premium ? 'Premium Tier' : 'Free Tier';
-                document.getElementById('profile-status').style.background = data.is_premium ? '#f39c12' : '#27ae60';
+                document.getElementById('stat-duals').innerText = data.duals;
+                document.getElementById('stat-refers').innerText = data.refer_count;
+                document.getElementById('stat-rewards').innerText = `${data.refer_rewards} days`;
+
+                const badge = document.getElementById('profile-badge');
+                badge.innerText = data.is_premium ? 'Premium Tier' : 'Free Tier';
+                badge.className = data.is_premium ? 'badge badge-premium' : 'badge badge-free';
+
+                document.getElementById('prem-status-val').innerText = data.is_premium ? 'Activated ✅' : 'Not Active ❌';
+                document.getElementById('prem-price-val').innerText = data.price || '500';
+
+                document.getElementById('profile-name').innerText = data.name;
+                document.getElementById('profile-username').innerText = data.username ? `@${data.username}` : '';
+                botUsername = data.bot_username;
+
+                // Extra check for names if data.name is missing or default
+                if ((!data.name || data.name === 'User') && window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe && window.Telegram.WebApp.initDataUnsafe.user) {
+                    const u = window.Telegram.WebApp.initDataUnsafe.user;
+                    document.getElementById('profile-name').innerText = `${u.first_name} ${u.last_name || ''}`;
+                    document.getElementById('profile-username').innerText = u.username ? `@${u.username}` : '';
+                }
+
+                isUserAdmin = data.is_admin || data.is_supreme;
+                if(isUserAdmin) {
+                    document.getElementById('admin-badge').style.display = 'inline-block';
+                    document.getElementById('admin-btn').style.display = 'block';
+                }
             } catch (e) {}
         }
 
-        function renderFiles(files) {
-            const container = document.getElementById('recent-files');
-            if (!files || files.length === 0) {
-                container.innerHTML = '<p style="text-align: center; color: var(--tg-theme-hint-color);">No files found.</p>';
-                return;
-            }
-            container.innerHTML = files.map(f => `
-                <div class="file-item" onclick="openFile('${f.id}')">
-                    <div class="file-icon">${f.icon}</div>
-                    <div class="file-info">
-                        <span class="file-name">${f.name}</span>
-                        <span class="file-meta">${f.size} • 👁 ${f.views}</span>
+        async function fetchAssets() {
+            const container = document.getElementById('assets-container');
+            const endpoint = assetTab === 'batches' ? '/api/batches' : '/api/duals';
+
+            try {
+                const response = await fetch(`${endpoint}?user_id=${userId}&bot_id=${botId}`);
+                const data = await response.json();
+                const list = assetTab === 'batches' ? data.batches : data.duals;
+
+                if (!list || list.length === 0) {
+                    container.innerHTML = `<div class="empty-state"><i class="fas fa-box-open"></i><p>No ${assetTab} found.</p></div>`;
+                    return;
+                }
+
+                container.innerHTML = list.map(item => `
+                    <div class="list-item" onclick="openAsset('${assetTab === 'batches' ? 'b' : 'dp'}', '${item.id}')">
+                        <div class="item-icon"><i class="fas ${assetTab === 'batches' ? 'fa-cubes' : 'fa-masks-theater'}"></i></div>
+                        <div class="item-info">
+                            <span class="item-name">${item.title || 'Batch #' + item.id.substring(0,6)}</span>
+                            <span class="item-meta">${item.count ? item.count + ' files • ' : ''} ${item.views ? item.views + ' views • ' : ''} ${item.date}</span>
+                        </div>
                     </div>
-                </div>
-            `).join('');
+                `).join('');
+            } catch (e) {
+                container.innerHTML = '<p style="text-align:center; color:red">Error loading assets.</p>';
+            }
         }
 
-        function openFile(id) {
-            webapp.openTelegramLink(`https://t.me/${botUsername}?start=f_${id}`);
+        async function fetchAdminStats() {
+            if(!isUserAdmin) return;
+            try {
+                const response = await fetch(`/api/admin/stats?user_id=${userId}&bot_id=${botId}`);
+                const data = await response.json();
+                document.getElementById('adm-users').innerText = data.users;
+                document.getElementById('adm-files').innerText = data.files;
+                document.getElementById('adm-bots').innerText = data.bots;
+                document.getElementById('adm-duals').innerText = data.duals;
+                document.getElementById('adm-uptime').innerText = data.uptime;
+            } catch (e) {}
         }
 
-        function searchFiles() {
-            const q = document.getElementById('search-input').value;
-            fetchFiles(q);
+        function setFileTab(tab) {
+            fileTab = tab;
+            document.getElementById('tab-all').classList.toggle('active', tab === 'all');
+            document.getElementById('tab-mine').classList.toggle('active', tab === 'mine');
+            fetchFiles();
+        }
+
+        function setAssetTab(tab) {
+            assetTab = tab;
+            document.getElementById('tab-batches').classList.toggle('active', tab === 'batches');
+            document.getElementById('tab-duals').classList.toggle('active', tab === 'duals');
+            fetchAssets();
+        }
+
+        function openAsset(prefix, id) {
+            webapp.openTelegramLink(`https://t.me/${botUsername}?start=${prefix}_${id}`);
         }
 
         function contactAdmin() {
             webapp.openTelegramLink('https://t.me/zolvid');
         }
 
-        fetchFiles();
+        function shareReferral() {
+            const link = `https://t.me/${botUsername}?start=ref_${userId}`;
+            webapp.openTelegramLink(`https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Join FileStore Elite and manage your files like a pro!')}`);
+        }
 
+        // Initialize
         if (webapp.initDataUnsafe.user) {
             const user = webapp.initDataUnsafe.user;
             document.getElementById('welcome-text').innerText = `Hello, ${user.first_name}!`;
             document.getElementById('profile-name').innerText = `${user.first_name} ${user.last_name || ''}`;
+            document.getElementById('profile-username').innerText = user.username ? `@${user.username}` : '';
         }
 
-        document.getElementById('search-input').addEventListener('keypress', (e) => {
-            if(e.key === 'Enter') searchFiles();
+        document.getElementById('search-input').addEventListener('input', () => {
+            clearTimeout(window.searchTimeout);
+            window.searchTimeout = setTimeout(fetchFiles, 500);
         });
+
+        fetchFiles();
+        fetchUserInfo();
     </script>
 </body>
 </html>
