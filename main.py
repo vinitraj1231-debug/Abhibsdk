@@ -1191,6 +1191,13 @@ def get_btn_name(key: str, default: str) -> str:
     btns = get_global_config().get("custom_buttons", {})
     return btns.get(key, default)
 
+def get_msg_text(key: str, default: str) -> str:
+    msgs = get_global_config().get("custom_messages", {})
+    return msgs.get(key, default)
+
+class SafeDict(dict):
+    def __missing__(self, key): return '{' + key + '}'
+
 def kb_start(bot_id, user_id):
     bi = get_bot_info(bot_id)
     is_owner = bi and bi.get("owner_id") == user_id
@@ -1242,7 +1249,7 @@ def kb_supreme():
          InlineKeyboardButton(get_btn_name("btn_snet", "🤖 BOT NETWORK"),    callback_data="all_bots_list")],
         [InlineKeyboardButton(get_btn_name("btn_sadm", "👑 ADMIN MANAGER"),    callback_data="manage_admins"),
          InlineKeyboardButton(get_btn_name("btn_smsg", "📢 SYSTEM MSG"),      callback_data="global_msg_set")],
-        [InlineKeyboardButton(f"🛠 MAINT: {'ON' if maint else 'OFF'}", callback_data="toggle_maintenance"),
+        [InlineKeyboardButton(get_btn_name("btn_smnt", f"🛠 MAINT: {'ON' if maint else 'OFF'}"), callback_data="toggle_maintenance"),
          InlineKeyboardButton(get_btn_name("btn_sbak", "💾 FULL BACKUP"),    callback_data="manual_backup")],
         [InlineKeyboardButton(get_btn_name("btn_spur", "🧹 PURGE CACHE"),      callback_data="manual_clean_cache"),
          InlineKeyboardButton(get_btn_name("btn_srbd", "🔄 SMART REBUILD"),    callback_data="confirm_rebuild")],
@@ -2100,7 +2107,7 @@ def register_handlers(app: Client):
             await message.reply(f"📢 **System Notice**\n\n{global_msg}")
 
         if not welcome_text:
-            welcome_text = (
+            default_welcome = (
                 f"✨ **Greetings, {message.from_user.first_name}!**\n\n"
                 f"Welcome to the **ULTRA ADVANCED FILESTORE v7.0** 🚀\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -2114,6 +2121,10 @@ def register_handlers(app: Client):
                 f" └ ⚡ **Lightning Fast:** Instant file delivery\n\n"
                 f"👇 **Choose an option below to get started!**"
             )
+            welcome_text = get_msg_text("msg_welcome", default_welcome).format_map(SafeDict(
+                name=message.from_user.first_name,
+                username=f"@{client.me.username}"
+            ))
 
         kbd = kb_start(bot_id, uid)
         if is_new and bi and bi.get("owner_id") == uid:
@@ -2141,20 +2152,28 @@ def register_handlers(app: Client):
         uid = message.from_user.id
         bi  = get_bot_info(client.me.id)
         if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
-        await message.reply("⚡ **Admin Panel**", reply_markup=kb_admin())
+        text = get_msg_text("msg_admin", "⚡ **Admin Panel**")
+        await message.reply(text, reply_markup=kb_admin())
 
     # ── /supreme ──────────────────────────────────────────────────
     @app.on_message(filters.command("supreme") & filters.private, group=1)
     async def supreme_cmd(client, message):
         if message.from_user.id != MAIN_ADMIN: return
         sess = "✅ Set" if SESSION_STRING else "❌ Not Set"
-        await message.reply(
-            f"👑 **Supreme Panel v6.0**\n\n"
-            f"🤖 Bots: `{len(ACTIVE_CLIENTS)}` | 👥 Users: `{len(load_db(USERS_DB))}`\n"
-            f"📁 Files: `{len(load_db(FILES_DB))}` | 🎭 Duals: `{len(load_db(DUAL_POST_DB))}`\n"
-            f"🔑 Session: {sess}",
-            reply_markup=kb_supreme()
+        default_supreme = (
+            f"👑 **Supreme Panel v7.0**\n\n"
+            f"🤖 Bots: `{{bots}}` | 👥 Users: `{{users}}`\n"
+            f"📁 Files: `{{files}}` | 🎭 Duals: `{{duals}}`\n"
+            f"🔑 Session: {{sess}}"
         )
+        text = get_msg_text("msg_supreme", default_supreme).format_map(SafeDict(
+            bots=len(ACTIVE_CLIENTS),
+            users=len(load_db(USERS_DB)),
+            files=len(load_db(FILES_DB)),
+            duals=len(load_db(DUAL_POST_DB)),
+            sess=sess
+        ))
+        await message.reply(text, reply_markup=kb_supreme())
 
     # ── /stats ────────────────────────────────────────────────────
     @app.on_message(filters.command("stats") & filters.private, group=1)
@@ -2707,27 +2726,32 @@ def register_handlers(app: Client):
             contact = bi.get("premium_contact", "zolvid") if bi else "zolvid"
             qr_id = bi.get("premium_qr") if bi else None
 
-            text = (
+            default_prem = (
                 f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"✨ **Status:** {'✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`'}\n\n"
+                f"✨ **Status:** {{status}}\n\n"
                 f"🚀 **UNLOCK THE POWER:**\n"
                 f" ├ ♾ **PERMANENT STORAGE:** No auto-delete timer!\n"
                 f" ├ 🎭 **DUAL-TIER UNLOCK:** Get PRO files instantly!\n"
                 f" ├ ⚡ **ZERO ADS:** Skip all shortener links!\n"
                 f" ├ 📦 **PRO BATCHING:** No limits on creation!\n"
                 f" └ 💎 **PRIORITY:** Faster delivery & support!\n\n"
-                f"💰 **Subscription Fee:** `{price}`\n"
+                f"💰 **Subscription Fee:** `{{price}}`\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
                 f"👇 **WANT TO UPGRADE? CONTACT ADMIN!** 👇"
             )
+            text = get_msg_text("msg_premium", default_prem).format_map(SafeDict(
+                status='✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`',
+                price=price,
+                contact=f"@{contact}"
+            ))
 
             kb = [
-                [InlineKeyboardButton("👑 CONTACT ADMIN", url=f"https://t.me/{contact}")],
-                [InlineKeyboardButton("🔙 BACK TO HOME", callback_data="back_to_start")]
+                [InlineKeyboardButton(get_btn_name("btn_pcon", "👑 CONTACT ADMIN"), url=f"https://t.me/{contact}")],
+                [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"), callback_data="back_to_start")]
             ]
             if qr_id:
-                kb.insert(1, [InlineKeyboardButton("🖼 SHOW PAYMENT QR", callback_data="show_premium_qr")])
+                kb.insert(1, [InlineKeyboardButton(get_btn_name("btn_pqrs", "🖼 SHOW PAYMENT QR"), callback_data="show_premium_qr")])
 
             if qr_id and not is_p:
                 await message.reply_photo(qr_id, caption=text, reply_markup=InlineKeyboardMarkup(kb))
@@ -3146,6 +3170,19 @@ def register_handlers(app: Client):
                 update_global_config("custom_buttons", btns)
                 del TEMP_EDIT[uid]
                 await message.reply(f"✅ Button `{key}` updated to: `{new_name}`", reply_markup=kb_supreme())
+
+            elif mode == "customize_message":
+                if not message.text: return await message.reply("❌ Send **text**.")
+                txt = message.text.strip()
+                key = sess["key"]
+                msgs = get_global_config().get("custom_messages", {})
+                if txt == "-clear":
+                    msgs.pop(key, None)
+                else:
+                    msgs[key] = txt
+                update_global_config("custom_messages", msgs)
+                del TEMP_EDIT[uid]
+                await message.reply(f"✅ Message `{key}` updated!", reply_markup=kb_supreme())
 
             elif mode == "rename":
                 if not message.text: return await message.reply("❌ Send a **new file name**.")
@@ -3795,47 +3832,60 @@ def register_handlers(app: Client):
             contact = bi_cb.get("premium_contact", "zolvid") if bi_cb else "zolvid"
             qr_id = bi_cb.get("premium_qr") if bi_cb else None
 
+            default_help = (
+                "🚀 **FileStore v7.0 — Command List**\n\n" +
+                "\n".join([f"• `/{c.command}` — {c.description}" for c in BOT_COMMANDS[:15]]) +
+                "\n\n*(Send /help for full list of all commands)*"
+            )
+            default_prem = (
+                f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"✨ **Current Status:** {{status}}\n\n"
+                f"🚀 **EXCLUSIVE PRIVILEGES:**\n"
+                f" ├ ♾ **PERMANENT STORAGE:** Files never expire!\n"
+                f" ├ 🎭 **ELITE ACCESS:** Unlock Premium Dual Posts!\n"
+                f" ├ ⚡ **DIRECT DELIVERY:** No ads, no shorteners!\n"
+                f" ├ 📦 **PRO BATCHING:** No limits on creation!\n"
+                f" └ 💎 **PRIORITY SUPPORT:** Instant assistance!\n\n"
+                f"💰 **Subscription Fee:** `{{price}}`\n"
+                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
+                f"👇 **WANT TO UPGRADE? CONTACT ADMIN!** 👇"
+            )
+            default_ref = (
+                f"👥 **Refer & Earn Program**\n━━━━━━━━━━━━━━━━━━━━\n"
+                f"Invite your friends and earn rewards!\n\n"
+                f"📊 **Your Stats:**\n"
+                f"├ Total Refers: `{{ref_count}}` users\n"
+                f"└ Rewards Earned: `{{ref_rewards}}` days of Premium\n\n"
+                f"🎁 **Reward:** Earn 1 day of Premium for every 5 successful refers!\n\n"
+                f"🔗 **Your Referral Link:**\n"
+                f"`https://t.me/{{bot_username}}?start=ref_{{uid}}`"
+            )
+
             texts = {
-                "cb_search":     "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`",
-                "help_menu": (
-                    "🚀 **FileStore v7.0 — Command List**\n\n" +
-                    "\n".join([f"• `/{c.command}` — {c.description}" for c in BOT_COMMANDS[:15]]) +
-                    "\n\n*(Send /help for full list of all commands)*"
-                ),
-                "premium_menu": (
-                    f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"✨ **Current Status:** {'✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`'}\n\n"
-                    f"🚀 **EXCLUSIVE PRIVILEGES:**\n"
-                    f" ├ ♾ **PERMANENT STORAGE:** Files never expire!\n"
-                    f" ├ 🎭 **ELITE ACCESS:** Unlock Premium Dual Posts!\n"
-                    f" ├ ⚡ **DIRECT DELIVERY:** No ads, no shorteners!\n"
-                    f" ├ 📦 **PRO BATCHING:** No limits on creation!\n"
-                    f" └ 💎 **PRIORITY SUPPORT:** Instant assistance!\n\n"
-                    f"💰 **Subscription Fee:** `{(bi_cb or {}).get('premium_price', '500')}`\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"👇 **WANT TO UPGRADE? CONTACT ADMIN!** 👇"
-                ),
-                "referral_menu": (
-                    f"👥 **Refer & Earn Program**\n━━━━━━━━━━━━━━━━━━━━\n"
-                    f"Invite your friends and earn rewards!\n\n"
-                    f"📊 **Your Stats:**\n"
-                    f"├ Total Refers: `{ud_cb.get('refer_count', 0)}` users\n"
-                    f"└ Rewards Earned: `{ud_cb.get('refer_rewards', 0)}` days of Premium\n\n"
-                    f"🎁 **Reward:** Earn 1 day of Premium for every 5 successful refers!\n\n"
-                    f"🔗 **Your Referral Link:**\n"
-                    f"`https://t.me/{client.me.username}?start=ref_{uid}`"
-                )
+                "cb_search":     get_msg_text("msg_search", "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`"),
+                "help_menu":     get_msg_text("msg_help", default_help),
+                "premium_menu":  get_msg_text("msg_premium", default_prem).format_map(SafeDict(
+                    status='✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`',
+                    price=(bi_cb or {}).get('premium_price', '500'),
+                    contact=f"@{contact}"
+                )),
+                "referral_menu": get_msg_text("msg_referral", default_ref).format_map(SafeDict(
+                    ref_count=ud_cb.get('refer_count', 0),
+                    ref_rewards=ud_cb.get('refer_rewards', 0),
+                    bot_username=client.me.username,
+                    uid=uid
+                ))
             }
 
-            kb = [[InlineKeyboardButton("🔙 Back", callback_data="back_to_start")]]
+            kb = [[InlineKeyboardButton(get_btn_name("btn_back", "🔙 Back"), callback_data="back_to_start")]]
             if data == "premium_menu":
-                kb.insert(0, [InlineKeyboardButton("👑 CONTACT ADMIN", url=f"https://t.me/{contact}")])
+                kb.insert(0, [InlineKeyboardButton(get_btn_name("btn_pcon", "👑 CONTACT ADMIN"), url=f"https://t.me/{contact}")])
                 if qr_id:
-                    kb.insert(1, [InlineKeyboardButton("🖼 SHOW PAYMENT QR", callback_data="show_premium_qr")])
+                    kb.insert(1, [InlineKeyboardButton(get_btn_name("btn_pqrs", "🖼 SHOW PAYMENT QR"), callback_data="show_premium_qr")])
             elif data == "referral_menu":
                 ref_link = f"https://t.me/{client.me.username}?start=ref_{uid}"
-                kb.insert(0, [InlineKeyboardButton("📤 Invite Friends", url=f"https://t.me/share/url?url={ref_link}")])
+                kb.insert(0, [InlineKeyboardButton(get_btn_name("btn_invite", "📤 Invite Friends"), url=f"https://t.me/share/url?url={ref_link}")])
 
             try:
                 await cb.message.edit(
@@ -4214,35 +4264,138 @@ def register_handlers(app: Client):
 
         elif data == "supreme_customize":
             if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
-            btns_config = get_global_config().get("custom_buttons", {})
-            text = "🎨 **Button Customizer**\n\nClick a button to change its name:\n\n"
+            await cb.message.edit(
+                "🎨 **Supreme Customizer**\n\nChoose what you want to customize:",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔘 BUTTON NAMES",   callback_data="cust_btns")],
+                    [InlineKeyboardButton("📝 PANEL MESSAGES", callback_data="cust_msgs")],
+                    [InlineKeyboardButton("🔙 BACK",           callback_data="supreme_panel")]
+                ])
+            )
+            await cb.answer()
 
-            # Grouping buttons for better UI
+        elif data == "cust_btns":
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            await cb.message.edit(
+                "🔘 **Button Customizer**\n\nSelect a menu category:",
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🏠 START MENU", callback_data="cbtn_cat_start")],
+                    [InlineKeyboardButton("⚡ ADMIN MENU", callback_data="cbtn_cat_admin")],
+                    [InlineKeyboardButton("👑 SUPREME MENU", callback_data="cbtn_cat_supreme")],
+                    [InlineKeyboardButton("ℹ️ HELP & OTHERS", callback_data="cbtn_cat_other")],
+                    [InlineKeyboardButton("♻️ RESET ALL",  callback_data="reset_buttons")],
+                    [InlineKeyboardButton("🔙 BACK",       callback_data="supreme_customize")]
+                ])
+            )
+            await cb.answer()
+
+        elif data.startswith("cbtn_cat_"):
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            cat = data[9:]
+            btns_config = get_global_config().get("custom_buttons", {})
             keyboard = []
 
-            # Start Menu
-            keyboard.append([InlineKeyboardButton("--- START MENU ---", callback_data="none")])
-            keyboard.append([
-                InlineKeyboardButton(f"Supreme: {btns_config.get('btn_supreme', '👑 SUPREME PANEL')}", callback_data="cbtn_btn_supreme"),
-                InlineKeyboardButton(f"Admin: {btns_config.get('btn_admin', '⚡ ADMIN PANEL')}", callback_data="cbtn_btn_admin")
-            ])
-            keyboard.append([
-                InlineKeyboardButton(f"Batch: {btns_config.get('btn_batch', '📦 BATCH MODE')}", callback_data="cbtn_btn_batch"),
-                InlineKeyboardButton(f"Clone: {btns_config.get('btn_clone', '🤖 CLONE BOT')}", callback_data="cbtn_btn_clone")
-            ])
+            if cat == "start":
+                b_list = [
+                    ("btn_supreme", "👑 SUPREME PANEL"), ("btn_admin", "⚡ ADMIN PANEL"),
+                    ("btn_batch", "📦 BATCH MODE"), ("btn_clone", "🤖 CLONE BOT"),
+                    ("btn_dual", "🎭 DUAL POST"), ("btn_refer", "👥 REFER & EARN"),
+                    ("btn_dash", "📊 DASHBOARD"), ("btn_help", "ℹ️ HELP"),
+                    ("btn_prot", "🛡 PROTECT"), ("btn_srch", "🔍 SEARCH"),
+                    ("btn_prem", "💎 BUY PREMIUM"), ("btn_mybt", "🎯 MY BOTS")
+                ]
+            elif cat == "admin":
+                b_list = [
+                    ("btn_abrd", "📢 BROADCAST"), ("btn_asta", "📊 ANALYTICS"),
+                    ("btn_ausr", "👥 USERS"), ("btn_acln", "🤖 CLONES"),
+                    ("btn_aset", "⚙️ SETTINGS"), ("btn_afsb", "🔒 FORCE SUB"),
+                    ("btn_aver", "🛡 VERIFICATION"), ("btn_ashr", "🔗 SHORTENER"),
+                    ("btn_aprt", "🛡 PROTECT LINKS"), ("btn_adul", "🎭 DUAL POSTS"),
+                    ("btn_awlc", "👋 WELCOME MSG"), ("btn_aapr", "✅ AUTO APPROVE"),
+                    ("btn_acap", "📝 AUTO CAPTION"), ("btn_atmr", "⏱ TIMER SET")
+                ]
+            elif cat == "supreme":
+                b_list = [
+                    ("btn_sgbr", "🌍 GLOBAL BROADCAST"), ("btn_ssys", "🖥 SYSTEM ANALYTICS"),
+                    ("btn_snet", "🤖 BOT NETWORK"), ("btn_sadm", "👑 ADMIN MANAGER"),
+                    ("btn_smsg", "📢 SYSTEM MSG"), ("btn_smnt", "🛠 MAINT: ON/OFF"),
+                    ("btn_sbak", "💾 FULL BACKUP"), ("btn_spur", "🧹 PURGE CACHE"),
+                    ("btn_srbd", "🔄 SMART REBUILD"), ("btn_scus", "🎨 CUSTOMIZE BUTTONS"),
+                    ("btn_srst", "♻️ SYSTEM RESTART")
+                ]
+            else: # other
+                b_list = [
+                    ("btn_back", "🔙 BACK TO HOME"), ("btn_hdual", "🎭 DUAL POST GUIDE"),
+                    ("btn_hprem", "💎 PREMIUM INFO"), ("btn_pcon", "👑 CONTACT ADMIN"),
+                    ("btn_pqrs", "🖼 SHOW PAYMENT QR"), ("btn_invite", "📤 Invite Friends")
+                ]
 
-            # Admin Menu
-            keyboard.append([InlineKeyboardButton("--- ADMIN MENU ---", callback_data="none")])
-            keyboard.append([
-                InlineKeyboardButton(f"B-Cast: {btns_config.get('btn_abrd', '📢 BROADCAST')}", callback_data="cbtn_btn_abrd"),
-                InlineKeyboardButton(f"Stats: {btns_config.get('btn_asta', '📊 ANALYTICS')}", callback_data="cbtn_btn_asta")
-            ])
+            for i in range(0, len(b_list), 2):
+                row = []
+                key, def_val = b_list[i]
+                row.append(InlineKeyboardButton(f"{btns_config.get(key, def_val)}", callback_data=f"editbtn_{key}"))
+                if i + 1 < len(b_list):
+                    key2, def_val2 = b_list[i+1]
+                    row.append(InlineKeyboardButton(f"{btns_config.get(key2, def_val2)}", callback_data=f"editbtn_{key2}"))
+                keyboard.append(row)
 
-            keyboard.append([InlineKeyboardButton("♻️ RESET ALL", callback_data="reset_buttons")])
-            keyboard.append([InlineKeyboardButton("🔙 BACK", callback_data="supreme_panel")])
-
-            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(keyboard))
+            keyboard.append([InlineKeyboardButton("🔙 BACK", callback_data="cust_btns")])
+            await cb.message.edit(f"🔘 **Customize {cat.upper()} Buttons**\n\nClick a button to rename it:", reply_markup=InlineKeyboardMarkup(keyboard))
             await cb.answer()
+
+        elif data == "cust_msgs":
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            msgs_config = get_global_config().get("custom_messages", {})
+            m_list = [
+                ("msg_welcome", "👋 Welcome Message"), ("msg_help", "ℹ️ Help Message"),
+                ("msg_premium", "💎 Premium Message"), ("msg_referral", "👥 Referral Message"),
+                ("msg_search", "🔍 Search Message"), ("msg_admin", "⚡ Admin Panel"),
+                ("msg_supreme", "👑 Supreme Panel")
+            ]
+            keyboard = []
+            for key, label in m_list:
+                status = "✅ Set" if key in msgs_config else "⚪ Default"
+                keyboard.append([InlineKeyboardButton(f"{label} ({status})", callback_data=f"editmsg_{key}")])
+
+            keyboard.append([InlineKeyboardButton("♻️ RESET ALL",  callback_data="reset_messages")])
+            keyboard.append([InlineKeyboardButton("🔙 BACK",       callback_data="supreme_customize")])
+
+            await cb.message.edit("📝 **Panel Message Customizer**\n\nSelect a message to edit:", reply_markup=InlineKeyboardMarkup(keyboard))
+            await cb.answer()
+
+        elif data.startswith("editbtn_"):
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            key = data[8:]
+            TEMP_EDIT[uid] = {"mode": "customize_button", "key": key}
+            await cb.message.edit(
+                f"📝 **Customize Button**\n\nKey: `{key}`\n\nSend the **new name** for this button.\n`/cancel` to abort.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="cust_btns")]])
+            )
+            await cb.answer()
+
+        elif data.startswith("editmsg_"):
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            key = data[8:]
+            TEMP_EDIT[uid] = {"mode": "customize_message", "key": key}
+
+            placeholders = ""
+            if key == "msg_welcome": placeholders = "\n\nAvailable: `{name}`, `{username}`"
+            elif key == "msg_premium": placeholders = "\n\nAvailable: `{status}`, `{price}`, `{contact}`"
+            elif key == "msg_referral": placeholders = "\n\nAvailable: `{ref_count}`, `{ref_rewards}`, `{bot_username}`, `{uid}`"
+            elif key == "msg_supreme": placeholders = "\n\nAvailable: `{bots}`, `{users}`, `{files}`, `{duals}`, `{sess}`"
+
+            await cb.message.edit(
+                f"📝 **Edit Panel Message**\n\nKey: `{key}`{placeholders}\n\nSend the **new text** for this message.\nUse `-clear` to reset to default.\n`/cancel` to abort.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="cust_msgs")]])
+            )
+            await cb.answer()
+
+        elif data == "reset_messages":
+            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            update_global_config("custom_messages", {})
+            await cb.answer("✅ All messages reset to default!", show_alert=True)
+            cb.data = "cust_msgs"
+            await cb_handler(client, cb)
 
         elif data.startswith("cbtn_"):
             if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
@@ -4258,7 +4411,7 @@ def register_handlers(app: Client):
             if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
             update_global_config("custom_buttons", {})
             await cb.answer("✅ All buttons reset to default!", show_alert=True)
-            cb.data = "supreme_customize"
+            cb.data = "cust_btns"
             await cb_handler(client, cb)
 
         elif data == "global_broadcast":
