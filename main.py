@@ -31,7 +31,7 @@ from aiohttp import web
 from datetime import datetime, timedelta
 from pyrogram import Client, filters, idle
 from pyrogram.types import (
-    InlineKeyboardMarkup, InlineKeyboardButton, BotCommand,
+    InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, WebAppInfo,
     InlineQueryResultArticle, InputTextMessageContent
 )
 from pyrogram.errors import FloodWait, UserNotParticipant, SlowmodeWait
@@ -47,6 +47,7 @@ MAIN_BOT_TOKEN = os.environ.get("MAIN_BOT_TOKEN",     "8607033631:AAEEHymSzeLeP8
 MAIN_ADMIN     = int(os.environ.get("MAIN_ADMIN",     "7915069238"))
 DB_CHANNEL     = int(os.environ.get("DB_CHANNEL",     "-1003982754680"))
 PORT           = int(os.environ.get("PORT",            "8080"))
+WEBAPP_URL     = os.environ.get("WEBAPP_URL",          "")
 SESSION_STRING = os.environ.get("SESSION_STRING",     "")
 
 FILE_CACHE_DURATION      = 3600
@@ -828,6 +829,67 @@ async def _get_latest_msg_id(userbot, chat_id: int) -> int:
         pass
     return 0
 
+async def fetch_remote_metadata(target_uid: str, target_type="file") -> dict | None:
+    """Fallback: Search DB_CHANNEL for a specific UID if not found in local DB."""
+    if not GLOBAL_USERBOT: return None
+
+    try:
+        latest_id = await _get_latest_msg_id(GLOBAL_USERBOT, DB_CHANNEL)
+        if not latest_id: return None
+
+        offset_id = latest_id + 1
+        scanned = 0
+        MAX_METADATA_SCAN = 1000 # Only scan last 1000 messages for speed
+
+        while offset_id > 1 and scanned < MAX_METADATA_SCAN:
+            batch = await _fetch_batch(GLOBAL_USERBOT, DB_CHANNEL, offset_id)
+            if not batch: break
+
+            for msg in batch:
+                scanned += 1
+                try:
+                    text = msg.text or msg.caption
+                    if text and text.startswith(METADATA_TAG):
+                        raw = text[len(METADATA_TAG):].strip()
+                        meta = json.loads(raw)
+                        if meta.get("unique_id") == target_uid:
+                            # Found it! Save to local DB for future use
+                            if target_type == "file":
+                                files = load_db(FILES_DB)
+                                files[target_uid] = {
+                                    "file_id": meta["file_id"],
+                                    "file_name": meta.get("file_name", "Unknown"),
+                                    "file_size": meta.get("file_size", 0),
+                                    "caption": meta.get("caption"),
+                                    "user_id": meta.get("user_id"),
+                                    "bot_id": meta.get("bot_id"),
+                                    "upload_date": meta.get("upload_date", str(datetime.now())),
+                                    "db_msg_id": meta.get("db_msg_id"),
+                                    "access_count": meta.get("access_count", 0),
+                                    "media_type": meta.get("media_type", "document"),
+                                    "custom_thumbnail": meta.get("custom_thumbnail"),
+                                }
+                                save_db(FILES_DB, files)
+                                return files[target_uid]
+                            elif target_type == "batch":
+                                batches = load_db(BATCH_DB)
+                                batches[target_uid] = meta
+                                save_db(BATCH_DB, batches)
+                                return batches[target_uid]
+                            elif target_type == "dual_post":
+                                duals = load_db(DUAL_POST_DB)
+                                duals[target_uid] = meta
+                                save_db(DUAL_POST_DB, duals)
+                                return duals[target_uid]
+                except Exception: pass
+
+            offset_id = batch[-1].id
+            await asyncio.sleep(0.1)
+    except Exception as e:
+        logger.error(f"Remote metadata fetch error: {e}")
+
+    return None
+
 async def rebuild_phase1(userbot, upd_fn) -> dict:
     await upd_fn("📥 **Phase 1: Finding backup files...**")
     latest_id = await _get_latest_msg_id(userbot, DB_CHANNEL)
@@ -837,7 +899,7 @@ async def rebuild_phase1(userbot, upd_fn) -> dict:
     found    = {}
     offset_id = latest_id + 1
     scanned  = 0
-    MAX_SCAN = 5000
+    MAX_SCAN = 100000
 
     while offset_id > 1 and scanned < MAX_SCAN and len(found) < len(BACKUP_FILES):
         batch = await _fetch_batch(userbot, DB_CHANNEL, offset_id)
@@ -1097,11 +1159,65 @@ async def health_handler(request):
         "ts": datetime.now().isoformat()
     })
 
+async def webapp_handler(request):
+    try:
+        with open("index.html", "r", encoding="utf-8") as f:
+            return web.Response(text=f.read(), content_type="text/html")
+    except Exception as e:
+        return web.Response(text=f"Error: {e}", status=500)
+
+async def api_files_handler(request):
+    q = request.query.get("q", "").lower()
+    user_id = request.query.get("user_id")
+    bot_id = next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None
+
+    files = load_db(FILES_DB)
+    results = []
+
+    for k, f in files.items():
+        if bot_id and f.get("bot_id") != bot_id: continue
+        if q and q not in f.get("file_name", "").lower(): continue
+
+        results.append({
+            "id": k,
+            "name": f.get("file_name", "Unknown"),
+            "size": fmt_size(f.get("file_size", 0)),
+            "icon": file_icon(f.get("file_name", "")),
+            "views": f.get("access_count", 0),
+            "date": f.get("upload_date", "")[:10]
+        })
+
+    # Sort by date
+    results = sorted(results, key=lambda x: x["date"], reverse=True)[:50]
+
+    bot_username = ACTIVE_CLIENTS[bot_id]["username"] if bot_id else "bot"
+
+    return web.json_response({"files": results, "bot_username": bot_username})
+
+async def api_user_handler(request):
+    uid = request.query.get("user_id")
+    bot_id = next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None
+
+    if not uid or not bot_id:
+        return web.json_response({"error": "missing info"}, status=400)
+
+    u = get_user(int(uid), bot_id)
+    if not u:
+        return web.json_response({"uploads": 0, "batches": 0, "is_premium": False})
+
+    return web.json_response({
+        "uploads": u.get("files_uploaded", 0),
+        "batches": u.get("batches_created", 0),
+        "is_premium": u.get("is_premium", False)
+    })
+
 async def start_web_server():
     app = web.Application()
-    app.router.add_get("/",       health_handler)
+    app.router.add_get("/",       webapp_handler)
     app.router.add_get("/health", health_handler)
     app.router.add_get("/ping",   health_handler)
+    app.router.add_get("/api/files", api_files_handler)
+    app.router.add_get("/api/user", api_user_handler)
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", PORT).start()
@@ -1202,6 +1318,9 @@ def kb_start(bot_id, user_id):
     bi = get_bot_info(bot_id)
     is_owner = bi and bi.get("owner_id") == user_id
     rows = []
+
+    if WEBAPP_URL:
+        rows.append([InlineKeyboardButton("🚀 OPEN MINI APP", web_app=WebAppInfo(url=WEBAPP_URL))])
 
     if user_id == MAIN_ADMIN:
         rows.append([InlineKeyboardButton(get_btn_name("btn_supreme", "👑 SUPREME PANEL"), callback_data="supreme_panel")])
@@ -1844,6 +1963,8 @@ def register_handlers(app: Client):
             files = load_db(FILES_DB)
             fdata = files.get(fuid)
             if not fdata:
+                fdata = await fetch_remote_metadata(fuid, "file")
+            if not fdata:
                 return await message.reply("❌ **File not found!**")
             td = validate_token(token, uid, bot_id)
             if not td or td.get("resource_id") != fuid:
@@ -1873,6 +1994,8 @@ def register_handlers(app: Client):
             fuid  = deep[2:]
             files = load_db(FILES_DB)
             fdata = files.get(fuid)
+            if not fdata:
+                fdata = await fetch_remote_metadata(fuid, "file")
             if not fdata:
                 return await message.reply("❌ **File not found!**")
 
@@ -1917,6 +2040,8 @@ def register_handlers(app: Client):
             bid_key = parts[0]
             token   = parts[1] if len(parts) > 1 else ""
             bdata   = load_db(BATCH_DB).get(bid_key)
+            if not bdata:
+                bdata = await fetch_remote_metadata(bid_key, "batch")
             if not bdata: return await message.reply("❌ Batch not found.")
             td = validate_token(token, uid, bot_id)
             if not td or td.get("resource_id") != bid_key:
@@ -1937,6 +2062,8 @@ def register_handlers(app: Client):
         elif deep.startswith("b_") and "_t_" not in deep:
             bid_key = deep[2:]
             bdata   = load_db(BATCH_DB).get(bid_key)
+            if not bdata:
+                bdata = await fetch_remote_metadata(bid_key, "batch")
             if not bdata: return await message.reply("❌ Batch not found.")
             total = len(bdata["files"])
 
@@ -1979,6 +2106,8 @@ def register_handlers(app: Client):
                 actual_pid, token_val = raw_deep.split("_t_", 1)
 
             post = get_dual_post(actual_pid)
+            if not post:
+                post = await fetch_remote_metadata(actual_pid, "dual_post")
             if not post:
                 return await message.reply(
                     "❌ **Dual Post not found!**\n\n"
@@ -4653,17 +4782,30 @@ async def main():
     if not main_app:
         logger.error("❌ Main bot failed!"); return
 
-    # Check if bots.json exists and has data, if not, try to rebuild
-    if not os.path.exists(BOTS_DB) or os.path.getsize(BOTS_DB) < 5:
-        logger.warning("⚠️ Bots database missing or empty! Attempting auto-restore...")
+    # Check if databases exist and have data, if not, try to rebuild
+    critical_dbs = [BOTS_DB, FILES_DB, USERS_DB]
+    needs_restore = False
+    for db_path in critical_dbs:
+        if not os.path.exists(db_path) or os.path.getsize(db_path) < 5:
+            needs_restore = True
+            break
+
+    if needs_restore:
+        logger.warning("⚠️ Critical database missing or empty! Attempting auto-restore...")
         if SESSION_STRING:
             try:
+                # Wait a bit for everything to stabilize
+                await asyncio.sleep(2)
                 await smart_rebuild()
                 logger.info("✅ Auto-restore complete!")
+                # Refresh variables after restore
+                invalidate_cache(BOTS_DB)
+                invalidate_cache(FILES_DB)
+                invalidate_cache(USERS_DB)
             except Exception as e:
                 logger.error(f"❌ Auto-restore failed: {e}")
         else:
-            logger.error("❌ SESSION_STRING missing! Cannot auto-restore bots.")
+            logger.warning("❌ SESSION_STRING missing! Cannot auto-restore from channel.")
 
     all_bots = get_all_bots()
     if all_bots:
