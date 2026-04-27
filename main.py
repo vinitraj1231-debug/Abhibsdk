@@ -1168,14 +1168,19 @@ async def webapp_handler(request):
 
 async def api_files_handler(request):
     q = request.query.get("q", "").lower()
-    user_id = request.query.get("user_id")
-    bot_id = next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None
+    uid = request.query.get("user_id")
+    req_bot_id = request.query.get("bot_id")
+    mode = request.query.get("mode", "all")
+
+    bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
+    if not bot_id: return web.json_response({"files": []})
 
     files = load_db(FILES_DB)
     results = []
 
     for k, f in files.items():
-        if bot_id and f.get("bot_id") != bot_id: continue
+        if f.get("bot_id") != bot_id: continue
+        if mode == "mine" and uid and str(f.get("user_id")) != str(uid): continue
         if q and q not in f.get("file_name", "").lower(): continue
 
         results.append({
@@ -1187,29 +1192,102 @@ async def api_files_handler(request):
             "date": f.get("upload_date", "")[:10]
         })
 
-    # Sort by date
-    results = sorted(results, key=lambda x: x["date"], reverse=True)[:50]
-
-    bot_username = ACTIVE_CLIENTS[bot_id]["username"] if bot_id else "bot"
+    results = sorted(results, key=lambda x: x["date"], reverse=True)[:100]
+    bot_username = ACTIVE_CLIENTS[bot_id]["username"] if bot_id in ACTIVE_CLIENTS else "bot"
 
     return web.json_response({"files": results, "bot_username": bot_username})
 
 async def api_user_handler(request):
-    uid = request.query.get("user_id")
-    bot_id = next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None
+    uid_str = request.query.get("user_id")
+    req_bot_id = request.query.get("bot_id")
 
-    if not uid or not bot_id:
+    bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
+
+    if not uid_str or not bot_id:
         return web.json_response({"error": "missing info"}, status=400)
 
-    u = get_user(int(uid), bot_id)
-    if not u:
-        return web.json_response({"uploads": 0, "batches": 0, "is_premium": False})
+    uid = int(uid_str)
+    u = get_user(uid, bot_id)
+    bi = get_bot_info(bot_id)
+
+    is_owner = bi and bi.get("owner_id") == uid
+    is_adm = is_admin(uid) or is_owner
+    is_supreme = uid == MAIN_ADMIN
+
+    # Count dual posts
+    all_duals = load_db(DUAL_POST_DB)
+    user_duals = [d for d in all_duals.values() if d.get("bot_id") == bot_id and d.get("created_by") == uid]
+
+    # Count bots
+    all_bots = get_all_bots()
+    user_bots = [b for b in all_bots.values() if isinstance(b, dict) and b.get("owner_id") == uid]
+
+    data = {
+        "uploads": u.get("files_uploaded", 0) if u else 0,
+        "batches": u.get("batches_created", 0) if u else 0,
+        "duals": len(user_duals),
+        "bots": len(user_bots),
+        "is_premium": u.get("is_premium", False) if u else False,
+        "refer_count": u.get("refer_count", 0) if u else 0,
+        "refer_rewards": u.get("refer_rewards", 0) if u else 0,
+        "is_admin": is_adm,
+        "is_supreme": is_supreme,
+        "name": u.get("name", "User") if u else "User",
+        "username": u.get("username", "") if u else "",
+        "premium_price": bi.get("premium_price", "500") if bi else "500",
+        "bot_username": ACTIVE_CLIENTS[bot_id]["username"] if bot_id in ACTIVE_CLIENTS else "bot"
+    }
+    return web.json_response(data)
+
+async def api_admin_stats_handler(request):
+    uid_str = request.query.get("user_id")
+    req_bot_id = request.query.get("bot_id")
+    bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
+
+    if not uid_str or not bot_id: return web.json_response({"error": "missing info"}, status=400)
+    uid = int(uid_str)
+    bi = get_bot_info(bot_id)
+    if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+        return web.json_response({"error": "unauthorized"}, status=403)
+
+    if uid == MAIN_ADMIN:
+        users_c, files_c, bots_c, duals_c = len(load_db(USERS_DB)), len(load_db(FILES_DB)), len(get_all_bots()), len(load_db(DUAL_POST_DB))
+    else:
+        users_c = len([u for u in load_db(USERS_DB).values() if u.get("bot_id") == bot_id])
+        files_c = len([f for f in load_db(FILES_DB).values() if f.get("bot_id") == bot_id])
+        bots_c = len(get_child_bots(bot_id))
+        duals_c = len(get_bot_dual_posts(bot_id))
 
     return web.json_response({
-        "uploads": u.get("files_uploaded", 0),
-        "batches": u.get("batches_created", 0),
-        "is_premium": u.get("is_premium", False)
+        "users": users_c, "files": files_c, "bots": bots_c, "duals": duals_c,
+        "uptime": str(datetime.now() - START_TIME).split(".")[0]
     })
+
+async def api_batches_handler(request):
+    uid = request.query.get("user_id")
+    req_bot_id = request.query.get("bot_id")
+    bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
+
+    batches = load_db(BATCH_DB)
+    results = []
+    for k, b in batches.items():
+        if bot_id and b.get("bot_id") != bot_id: continue
+        if uid and str(b.get("created_by")) != str(uid): continue
+        results.append({"id": k, "count": len(b.get("files", [])), "date": b.get("date", "")[:10]})
+    return web.json_response({"batches": sorted(results, key=lambda x: x["date"], reverse=True)})
+
+async def api_duals_handler(request):
+    uid = request.query.get("user_id")
+    req_bot_id = request.query.get("bot_id")
+    bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
+
+    duals = load_db(DUAL_POST_DB)
+    results = []
+    for k, d in duals.items():
+        if bot_id and d.get("bot_id") != bot_id: continue
+        if uid and str(d.get("created_by")) != str(uid): continue
+        results.append({"id": k, "title": d.get("title", "Dual Post"), "views": d.get("access_total", 0), "date": d.get("created_at", "")[:10]})
+    return web.json_response({"duals": sorted(results, key=lambda x: x["date"], reverse=True)})
 
 async def start_web_server():
     app = web.Application()
@@ -1218,6 +1296,9 @@ async def start_web_server():
     app.router.add_get("/ping",   health_handler)
     app.router.add_get("/api/files", api_files_handler)
     app.router.add_get("/api/user", api_user_handler)
+    app.router.add_get("/api/admin/stats", api_admin_stats_handler)
+    app.router.add_get("/api/batches", api_batches_handler)
+    app.router.add_get("/api/duals", api_duals_handler)
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", PORT).start()
@@ -1320,7 +1401,8 @@ def kb_start(bot_id, user_id):
     rows = []
 
     if WEBAPP_URL:
-        rows.append([InlineKeyboardButton("🚀 OPEN MINI APP", web_app=WebAppInfo(url=WEBAPP_URL))])
+        url = f"{WEBAPP_URL}?bot_id={bot_id}" if "?" not in WEBAPP_URL else f"{WEBAPP_URL}&bot_id={bot_id}"
+        rows.append([InlineKeyboardButton("🚀 OPEN MINI APP", web_app=WebAppInfo(url=url))])
 
     if user_id == MAIN_ADMIN:
         rows.append([InlineKeyboardButton(get_btn_name("btn_supreme", "👑 SUPREME PANEL"), callback_data="supreme_panel")])
