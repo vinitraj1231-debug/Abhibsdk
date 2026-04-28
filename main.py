@@ -785,13 +785,23 @@ async def deliver_batch_files(client, chat_id: int, file_ids: list,
 # ═══════════════════════════════════════════════════════════════
 
 async def save_meta(client, meta: dict) -> bool:
+    txt = f"{METADATA_TAG}\n{json.dumps(meta, ensure_ascii=False)}"
     try:
-        txt = f"{METADATA_TAG}\n{json.dumps(meta, ensure_ascii=False)}"
         await client.send_message(DB_CHANNEL, txt)
         return True
-    except Exception as e:
-        logger.error(f"Meta save: {e}")
-        return False
+    except Exception:
+        main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+        if main_client and main_client != client:
+            try:
+                await main_client.send_message(DB_CHANNEL, txt)
+                return True
+            except: pass
+        if GLOBAL_USERBOT:
+            try:
+                await GLOBAL_USERBOT.send_message(DB_CHANNEL, txt)
+                return True
+            except: pass
+    return False
 
 # ═══════════════════════════════════════════════════════════════
 # 🔄 SMART 2-PHASE DB REBUILD
@@ -1111,6 +1121,8 @@ async def store_broadcast(client, original_msg) -> int | None:
 async def do_broadcast(bot_ids: list, bc_msg_id: int, status_msg=None, reply_markup=None) -> tuple:
     total_ok = total_fail = 0
     t0 = datetime.now()
+    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+
     for b_idx, bot_id in enumerate(bot_ids, 1):
         if bot_id not in ACTIVE_CLIENTS: continue
         app   = ACTIVE_CLIENTS[bot_id]["app"]
@@ -1119,12 +1131,25 @@ async def do_broadcast(bot_ids: list, bc_msg_id: int, status_msg=None, reply_mar
         for u_idx, user in enumerate(users, 1):
             uid = user["user_id"]
             try:
-                await app.copy_message(uid, DB_CHANNEL, bc_msg_id, reply_markup=reply_markup)
+                try:
+                    await app.copy_message(uid, DB_CHANNEL, bc_msg_id, reply_markup=reply_markup)
+                except Exception:
+                    # Fallback to main client if clone is not in channel
+                    if main_client and main_client != app:
+                        await main_client.copy_message(uid, DB_CHANNEL, bc_msg_id, reply_markup=reply_markup)
+                    else:
+                        raise
                 total_ok += 1
             except FloodWait as e:
                 await asyncio.sleep(e.value + 2)
                 try:
-                    await app.copy_message(uid, DB_CHANNEL, bc_msg_id, reply_markup=reply_markup)
+                    try:
+                        await app.copy_message(uid, DB_CHANNEL, bc_msg_id, reply_markup=reply_markup)
+                    except Exception:
+                        if main_client and main_client != app:
+                            await main_client.copy_message(uid, DB_CHANNEL, bc_msg_id, reply_markup=reply_markup)
+                        else:
+                            raise
                     total_ok += 1
                 except Exception:
                     total_fail += 1
@@ -1330,11 +1355,21 @@ async def check_force_sub(client, user_id: int):
     force_subs = bi.get("force_subs", [])
     if not force_subs: return True, []
     must_join = []
+    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+
     for fs in force_subs:
         ch_id = fs["channel_id"] if isinstance(fs, dict) else fs
         try:
-            m = await client.get_chat_member(ch_id, user_id)
+            try:
+                m = await client.get_chat_member(ch_id, user_id)
+            except Exception:
+                if main_client and main_client != client:
+                    m = await main_client.get_chat_member(ch_id, user_id)
+                else:
+                    raise
+
             if m.status in (ChatMemberStatus.BANNED, ChatMemberStatus.LEFT):
+                if has_pending_request(ch_id, user_id): continue
                 must_join.append(fs)
         except UserNotParticipant:
             if has_pending_request(ch_id, user_id): continue
@@ -1402,96 +1437,96 @@ def kb_start(bot_id, user_id):
 
     if WEBAPP_URL:
         url = f"{WEBAPP_URL}?bot_id={bot_id}" if "?" not in WEBAPP_URL else f"{WEBAPP_URL}&bot_id={bot_id}"
-        rows.append([InlineKeyboardButton("🚀 OPEN MINI APP", web_app=WebAppInfo(url=url))])
+        rows.append([InlineKeyboardButton("ᴏᴘᴇɴ ᴍɪɴɪ ᴀᴘᴘ", web_app=WebAppInfo(url=url))])
 
     if user_id == MAIN_ADMIN:
-        rows.append([InlineKeyboardButton(get_btn_name("btn_supreme", "👑 SUPREME PANEL"), callback_data="supreme_panel")])
+        rows.append([InlineKeyboardButton(get_btn_name("btn_supreme", "sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), callback_data="supreme_panel")])
     if is_admin(user_id) or is_owner:
-        rows.append([InlineKeyboardButton(get_btn_name("btn_admin", "⚡ ADMIN PANEL"), callback_data="admin_panel")])
+        rows.append([InlineKeyboardButton(get_btn_name("btn_admin", "ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"), callback_data="admin_panel")])
 
     rows += [
-        [InlineKeyboardButton(get_btn_name("btn_batch", "📦 BATCH MODE"),   callback_data="start_batch"),
-         InlineKeyboardButton(get_btn_name("btn_clone", "🤖 CLONE BOT"),    callback_data="clone_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_dual",  "🎭 DUAL POST"),    callback_data="dual_post_menu"),
-         InlineKeyboardButton(get_btn_name("btn_refer", "👥 REFER & EARN"), callback_data="referral_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_dash",  "📊 DASHBOARD"),    callback_data="user_dashboard"),
-         InlineKeyboardButton(get_btn_name("btn_help",  "ℹ️ HELP"),         callback_data="help_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_prot",  "🛡 PROTECT"),     callback_data="plinks_admin"),
-         InlineKeyboardButton(get_btn_name("btn_srch",  "🔍 SEARCH"),       callback_data="cb_search")],
-        [InlineKeyboardButton(get_btn_name("btn_prem",  "💎 BUY PREMIUM"),  callback_data="premium_menu"),
-         InlineKeyboardButton(get_btn_name("btn_mybt",  "🎯 MY BOTS"),      callback_data="my_bots_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_batch", "ʙᴀᴛᴄʜ ᴍᴏᴅᴇ"),   callback_data="start_batch"),
+         InlineKeyboardButton(get_btn_name("btn_clone", "ᴄʟᴏɴᴇ ʙᴏᴛ"),    callback_data="clone_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_dual",  "ᴅᴜᴀʟ ᴘᴏsᴛ"),    callback_data="dual_post_menu"),
+         InlineKeyboardButton(get_btn_name("btn_refer", "ʀᴇғᴇʀ & ᴇᴀʀɴ"), callback_data="referral_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_aapr",  "ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ"),    callback_data="toggle_auto_approve"),
+         InlineKeyboardButton(get_btn_name("btn_help",  "ʜᴇʟᴘ"),         callback_data="help_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_prot",  "ᴘʀᴏᴛᴇᴄᴛ"),     callback_data="plinks_admin"),
+         InlineKeyboardButton(get_btn_name("btn_srch",  "sᴇᴀʀᴄʜ"),       callback_data="cb_search")],
+        [InlineKeyboardButton(get_btn_name("btn_prem",  "ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ"),  callback_data="premium_menu"),
+         InlineKeyboardButton(get_btn_name("btn_mybt",  "ᴍʏ ʙᴏᴛs"),      callback_data="my_bots_menu")],
     ]
     return InlineKeyboardMarkup(rows)
 
 def kb_admin():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(get_btn_name("btn_abrd", "📢 BROADCAST"),   callback_data="broadcast_menu"),
-         InlineKeyboardButton(get_btn_name("btn_asta", "📊 ANALYTICS"),   callback_data="admin_stats")],
-        [InlineKeyboardButton(get_btn_name("btn_ausr", "👥 USERS"),        callback_data="manage_users"),
-         InlineKeyboardButton(get_btn_name("btn_acln", "🤖 CLONES"),       callback_data="my_bots_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aset", "⚙️ SETTINGS"),     callback_data="bot_settings_admin"),
-         InlineKeyboardButton(get_btn_name("btn_afsb", "🔒 FORCE SUB"),    callback_data="forcesub_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aver", "🛡 VERIFICATION"), callback_data="verify_admin"),
-         InlineKeyboardButton(get_btn_name("btn_ashr", "🔗 SHORTENER"),    callback_data="shortener_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aprt", "🛡 PROTECT LINKS"), callback_data="plinks_admin"),
-         InlineKeyboardButton(get_btn_name("btn_adul", "🎭 DUAL POSTS"),   callback_data="dual_posts_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_awlc", "👋 WELCOME MSG"),  callback_data="edit_welcome_msg"),
-         InlineKeyboardButton(get_btn_name("btn_aapr", "✅ AUTO APPROVE"), callback_data="toggle_auto_approve")],
-        [InlineKeyboardButton(get_btn_name("btn_acap", "📝 AUTO CAPTION"), callback_data="toggle_auto_caption"),
-         InlineKeyboardButton(get_btn_name("btn_atmr", "⏱ TIMER SET"),    callback_data="edit_timer")],
-        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"), callback_data="back_to_start")],
+        [InlineKeyboardButton(get_btn_name("btn_abrd", "ʙʀᴏᴀᴅᴄᴀsᴛ"),   callback_data="broadcast_menu"),
+         InlineKeyboardButton(get_btn_name("btn_asta", "ᴀɴᴀʟʏᴛɪᴄs"),   callback_data="admin_stats")],
+        [InlineKeyboardButton(get_btn_name("btn_ausr", "ᴜsᴇʀs"),        callback_data="manage_users"),
+         InlineKeyboardButton(get_btn_name("btn_acln", "ᴄʟᴏɴᴇs"),       callback_data="my_bots_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aset", "sᴇᴛᴛɪɴɢs"),     callback_data="bot_settings_admin"),
+         InlineKeyboardButton(get_btn_name("btn_afsb", "ғᴏʀᴄᴇ sᴜʙ"),    callback_data="forcesub_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aver", "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ"), callback_data="verify_admin"),
+         InlineKeyboardButton(get_btn_name("btn_ashr", "sʜᴏʀᴛᴇɴᴇʀ"),    callback_data="shortener_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aprt", "ᴘʀᴏᴛᴇᴄᴛ ʟɪɴᴋs"), callback_data="plinks_admin"),
+         InlineKeyboardButton(get_btn_name("btn_adul", "ᴅᴜᴀʟ ᴘᴏsᴛs"),   callback_data="dual_posts_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_awlc", "ᴡᴇʟᴄᴏᴍᴇ ᴍsɢ"),  callback_data="edit_welcome_msg"),
+         InlineKeyboardButton(get_btn_name("btn_aapr", "ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ"), callback_data="toggle_auto_approve")],
+        [InlineKeyboardButton(get_btn_name("btn_acap", "ᴀᴜᴛᴏ ᴄᴀᴘᴛɪᴏɴ"), callback_data="toggle_auto_caption"),
+         InlineKeyboardButton(get_btn_name("btn_atmr", "ᴛɪᴍᴇʀ sᴇᴛ"),    callback_data="edit_timer")],
+        [InlineKeyboardButton(get_btn_name("btn_back", "ʙᴀᴄᴋ ᴛᴏ ʜᴏᴍᴇ"), callback_data="back_to_start")],
     ])
 
 def kb_supreme():
     maint = get_global_config().get("maintenance", False)
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(get_btn_name("btn_sgbr", "🌍 GLOBAL BROADCAST"), callback_data="global_broadcast")],
-        [InlineKeyboardButton(get_btn_name("btn_ssys", "🖥 SYSTEM ANALYTICS"), callback_data="system_stats"),
-         InlineKeyboardButton(get_btn_name("btn_snet", "🤖 BOT NETWORK"),    callback_data="all_bots_list")],
-        [InlineKeyboardButton(get_btn_name("btn_sadm", "👑 ADMIN MANAGER"),    callback_data="manage_admins"),
-         InlineKeyboardButton(get_btn_name("btn_smsg", "📢 SYSTEM MSG"),      callback_data="global_msg_set")],
-        [InlineKeyboardButton(get_btn_name("btn_smnt", f"🛠 MAINT: {'ON' if maint else 'OFF'}"), callback_data="toggle_maintenance"),
-         InlineKeyboardButton(get_btn_name("btn_sbak", "💾 FULL BACKUP"),    callback_data="manual_backup")],
-        [InlineKeyboardButton(get_btn_name("btn_spur", "🧹 PURGE CACHE"),      callback_data="manual_clean_cache"),
-         InlineKeyboardButton(get_btn_name("btn_srbd", "🔄 SMART REBUILD"),    callback_data="confirm_rebuild")],
-        [InlineKeyboardButton(get_btn_name("btn_scus", "🎨 CUSTOMIZE BUTTONS"), callback_data="supreme_customize")],
-        [InlineKeyboardButton(get_btn_name("btn_srst", "♻️ SYSTEM RESTART"),    callback_data="restart_all_bots")],
-        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"),     callback_data="back_to_start")],
+        [InlineKeyboardButton(get_btn_name("btn_sgbr", "ɢʟᴏʙᴀʟ ʙʀᴏᴀᴅᴄᴀsᴛ"), callback_data="global_broadcast")],
+        [InlineKeyboardButton(get_btn_name("btn_ssys", "sʏsᴛᴇᴍ ᴀɴᴀʟʏᴛɪᴄs"), callback_data="system_stats"),
+         InlineKeyboardButton(get_btn_name("btn_snet", "ʙᴏᴛ ɴᴇᴛᴡᴏʀᴋ"),    callback_data="all_bots_list")],
+        [InlineKeyboardButton(get_btn_name("btn_sadm", "ᴀᴅᴍɪɴ ᴍᴀɴᴀɢᴇʀ"),    callback_data="manage_admins"),
+         InlineKeyboardButton(get_btn_name("btn_smsg", "sʏsᴛᴇᴍ ᴍsɢ"),      callback_data="global_msg_set")],
+        [InlineKeyboardButton(get_btn_name("btn_smnt", f"ᴍᴀɪɴᴛ: {'ᴏɴ' if maint else 'ᴏғғ'}"), callback_data="toggle_maintenance")],
+        [InlineKeyboardButton(get_btn_name("btn_sbak", "ғᴜʟʟ ʙᴀᴄᴋᴜᴘ"),    callback_data="manual_backup")],
+        [InlineKeyboardButton(get_btn_name("btn_spur", "ᴘᴜʀɢᴇ ᴄᴀᴄʜᴇ"),      callback_data="manual_clean_cache"),
+         InlineKeyboardButton(get_btn_name("btn_srbd", "sᴍᴀʀᴛ ʀᴇʙᴜɪʟᴅ"),    callback_data="confirm_rebuild")],
+        [InlineKeyboardButton(get_btn_name("btn_scus", "ᴄᴜsᴛᴏᴍɪᴢᴇ ʙᴜᴛᴛᴏɴs"), callback_data="supreme_customize")],
+        [InlineKeyboardButton(get_btn_name("btn_srst", "sʏsᴛᴇᴍ ʀᴇsᴛᴀʀᴛ"),    callback_data="restart_all_bots")],
+        [InlineKeyboardButton(get_btn_name("btn_back", "ʙᴀᴄᴋ ᴛᴏ ʜᴏᴍᴇ"),     callback_data="back_to_start")],
     ])
 
 def kb_dual_post_creator(stage: str, free_count: int, pro_count: int):
     rows = []
     if stage == "free":
         rows.append([InlineKeyboardButton(
-            f"💎 Switch to Premium Tier ({pro_count} files)",
+            f"sᴡɪᴛᴄʜ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ ᴛɪᴇʀ ({pro_count} ғɪʟᴇs)",
             callback_data="dp_switch_pro"
         )])
     rows.append([InlineKeyboardButton(
-        f"✅ Generate Link ({free_count}F + {pro_count}P files)",
+        f"ɢᴇɴᴇʀᴀᴛᴇ ʟɪɴᴋ ({free_count}ғ + {pro_count}ᴘ ғɪʟᴇs)",
         callback_data="dp_finish"
     )])
-    rows.append([InlineKeyboardButton("❌ Cancel Session", callback_data="dp_cancel_session")])
+    rows.append([InlineKeyboardButton("ᴄᴀɴᴄᴇʟ sᴇssɪᴏɴ", callback_data="dp_cancel_session")])
     return InlineKeyboardMarkup(rows)
 
 def kb_dual_post_done(post_id: str, share_link: str):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📤 Share Link",        url=f"https://t.me/share/url?url={share_link}")],
-        [InlineKeyboardButton("👁 Preview FREE",      callback_data=f"dp_prev_free_{post_id}"),
-         InlineKeyboardButton("💎 Preview PRO",       callback_data=f"dp_prev_pro_{post_id}")],
-        [InlineKeyboardButton("📊 Analytics",         callback_data=f"dp_analytics_{post_id}"),
-         InlineKeyboardButton("🗑 Delete",            callback_data=f"dp_delete_{post_id}")],
-        [InlineKeyboardButton("🎭 Create Another",    callback_data="dual_post_start_new")],
+        [InlineKeyboardButton("sʜᴀʀᴇ ʟɪɴᴋ",        url=f"https://t.me/share/url?url={share_link}")],
+        [InlineKeyboardButton("ᴘʀᴇᴠɪᴇᴡ ғʀᴇᴇ",      callback_data=f"dp_prev_free_{post_id}"),
+         InlineKeyboardButton("ᴘʀᴇᴠɪᴇᴡ ᴘʀᴏ",       callback_data=f"dp_prev_pro_{post_id}")],
+        [InlineKeyboardButton("ᴀɴᴀʟʏᴛɪᴄs",         callback_data=f"dp_analytics_{post_id}"),
+         InlineKeyboardButton("ᴅᴇʟᴇᴛᴇ",            callback_data=f"dp_delete_{post_id}")],
+        [InlineKeyboardButton("ᴄʀᴇᴀᴛᴇ ᴀɴᴏᴛʜᴇʀ",    callback_data="dual_post_start_new")],
     ])
 
 def kb_file_edit(uid: str):
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("✏️ Caption",   callback_data=f"edit_caption_{uid}"),
-         InlineKeyboardButton("🖼 Thumbnail", callback_data=f"edit_thumb_{uid}")],
-        [InlineKeyboardButton("📝 Quick Rename", callback_data=f"qrename_{uid}"),
-         InlineKeyboardButton("🚀 Hard Rename",  callback_data=f"rename_file_{uid}")],
-        [InlineKeyboardButton("📤 Get File", callback_data=f"get_file_{uid}"),
-         InlineKeyboardButton("🗑 Delete",    callback_data=f"del_file_{uid}")],
-        [InlineKeyboardButton("🔙 Back",      callback_data="my_files_back")],
+        [InlineKeyboardButton("ᴄᴀᴘᴛɪᴏɴ",   callback_data=f"edit_caption_{uid}"),
+         InlineKeyboardButton("ᴛʜᴜᴍʙɴᴀɪʟ", callback_data=f"edit_thumb_{uid}")],
+        [InlineKeyboardButton("ǫᴜɪᴄᴋ ʀᴇɴᴀᴍᴇ", callback_data=f"qrename_{uid}"),
+         InlineKeyboardButton("ʜᴀʀᴅ ʀᴇɴᴀᴍᴇ",  callback_data=f"rename_file_{uid}")],
+        [InlineKeyboardButton("ɢᴇᴛ ғɪʟᴇ", callback_data=f"get_file_{uid}"),
+         InlineKeyboardButton("ᴅᴇʟᴇᴛᴇ",    callback_data=f"del_file_{uid}")],
+        [InlineKeyboardButton("ʙᴀᴄᴋ",      callback_data="my_files_back")],
     ])
 
 # ═══════════════════════════════════════════════════════════════
@@ -1517,7 +1552,13 @@ def register_handlers(app: Client):
         ch  = req.chat.id
         if bi and bi.get("auto_approve"):
             try:
-                await client.approve_chat_join_request(ch, uid)
+                try:
+                    await client.approve_chat_join_request(ch, uid)
+                except Exception:
+                    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+                    if main_client and main_client != client:
+                        await main_client.approve_chat_join_request(ch, uid)
+                    else: raise
                 clear_join_request(ch, uid)
             except Exception as e:
                 logger.warning(f"Auto-approve: {e}")
@@ -1955,14 +1996,14 @@ def register_handlers(app: Client):
                                       message.from_user.first_name)
         is_ok, links = await check_force_sub(client, uid)
         if not is_ok:
-            btns = [[InlineKeyboardButton(f"📢 Join {i['title']}", url=i["link"])]
+            btns = [[InlineKeyboardButton(f"ᴊᴏɪɴ {i['title']}", url=i["link"])]
                     for i in links]
             btns.append([InlineKeyboardButton(
-                "🔄 I Joined — Try Again",
+                "ᴛʀʏ ᴀɢᴀɪɴ",
                 url=f"https://t.me/{client.me.username}?start={deep}"
             )])
             return await message.reply(
-                "⚠️ **Membership Required!**\n\nJoin channels below.",
+                "ᴍᴇᴍʙᴇʀsʜɪᴘ ʀᴇǫᴜɪʀᴇᴅ!\n\nᴊᴏɪɴ ᴄʜᴀɴɴᴇʟs ʙᴇʟᴏᴡ.",
                 reply_markup=InlineKeyboardMarkup(btns)
             )
 
@@ -2319,18 +2360,9 @@ def register_handlers(app: Client):
 
         if not welcome_text:
             default_welcome = (
-                f"✨ **Greetings, {message.from_user.first_name}!**\n\n"
-                f"Welcome to the **ULTRA ADVANCED FILESTORE v7.0** 🚀\n"
-                f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"I am your elite assistant for managing and storing files with unparalleled efficiency.\n\n"
-                f"🛡 **Elite Features:**\n"
-                f" ├ ♾ **Unlimited Storage:** Secure & Permanent\n"
-                f" ├ 📦 **Smart Batching:** Multiple files, one link\n"
-                f" ├ 🎭 **Dual-Tier System:** Free & Premium access\n"
-                f" ├ 🎨 **Full Customization:** Caption & Thumbs\n"
-                f" ├ 🤖 **Bot Cloning:** Create your own network\n"
-                f" └ ⚡ **Lightning Fast:** Instant file delivery\n\n"
-                f"👇 **Choose an option below to get started!**"
+                "ʜᴇʟʟᴏ {name}\n\n"
+                "ɪ ᴀᴍ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ, ɪ ᴄᴀɴ sᴛᴏʀᴇ ᴘʀɪᴠᴀᴛᴇ ғɪʟᴇs ɪɴ sᴘᴇᴄɪғɪᴇᴅ ᴄʜᴀɴɴᴇʟ ᴀɴᴅ ᴏᴛʜᴇʀ ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss ɪᴛ ғʀᴏᴍ sᴘᴇᴄɪᴀʟ ʟɪɴᴋ.\n\n"
+                "/help 𝚝𝚘 𝚔𝚗𝚘𝚠 𝚖𝚘𝚛𝚎 𝚊𝚋𝚘𝚞𝚝 𝚋𝚘𝚝"
             )
             welcome_text = get_msg_text("msg_welcome", default_welcome).format_map(SafeDict(
                 name=message.from_user.first_name,
@@ -3172,12 +3204,14 @@ def register_handlers(app: Client):
 
         bi=get_bot_info(bot_id)
         if bi and bi.get("log_channel"):
+            log_text = f"📤 Upload | {file_icon(file_name)} `{file_name}`\n📊 {fmt_size(file_size)} | 👤 `{uid}` | 🆔 `{fuid}`"
             try:
-                await client.copy_message(
-                    bi["log_channel"],message.chat.id,message.id,
-                    caption=f"📤 Upload | {file_icon(file_name)} `{file_name}`\n📊 {fmt_size(file_size)} | 👤 `{uid}` | 🆔 `{fuid}`"
-                )
-            except Exception: pass
+                await client.copy_message(bi["log_channel"], message.chat.id, message.id, caption=log_text)
+            except Exception:
+                main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+                if main_client and main_client != client:
+                    try: await main_client.copy_message(bi["log_channel"], message.chat.id, message.id, caption=log_text)
+                    except: pass
 
         # ── DUAL POST SESSION ────────────────────────────────────
         if uid in TEMP_DUAL:
@@ -3895,7 +3929,7 @@ def register_handlers(app: Client):
 
         elif data == "dual_help":
             await cb.message.edit(
-                "🎭 **Dual Post System Guide**\n\n"
+                "ᴅᴜᴀʟ ᴘᴏsᴛ sʏsᴛᴇᴍ ɢᴜɪᴅᴇ\n\n"
                 "One link → Two different user experiences!\n\n"
                 "1️⃣ `/dualpost Title` — Start a new session.\n"
                 "2️⃣ Send files for **FREE** users (Stage 1).\n"
@@ -3905,8 +3939,8 @@ def register_handlers(app: Client):
                 "💎 **Premium users** get Stage 2 files directly.\n"
                 "📂 **Free users** get Stage 1 files after ads.",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("➕ START NOW", callback_data="dual_post_start_new")],
-                    [InlineKeyboardButton("🔙 BACK TO HELP", callback_data="help_menu")]
+                    [InlineKeyboardButton("sᴛᴀʀᴛ ɴᴏᴡ", callback_data="dual_post_start_new")],
+                    [InlineKeyboardButton("ʙᴀᴄᴋ ᴛᴏ ʜᴇʟᴘ", callback_data="help_menu")]
                 ])
             )
             await cb.answer()
@@ -4089,14 +4123,14 @@ def register_handlers(app: Client):
                 ))
             }
 
-            kb = [[InlineKeyboardButton(get_btn_name("btn_back", "🔙 Back"), callback_data="back_to_start")]]
+            kb = [[InlineKeyboardButton(get_btn_name("btn_back", "ʙᴀᴄᴋ"), callback_data="back_to_start")]]
             if data == "premium_menu":
-                kb.insert(0, [InlineKeyboardButton(get_btn_name("btn_pcon", "👑 CONTACT ADMIN"), url=f"https://t.me/{contact}")])
+                kb.insert(0, [InlineKeyboardButton(get_btn_name("btn_pcon", "ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ"), url=f"https://t.me/{contact}")])
                 if qr_id:
-                    kb.insert(1, [InlineKeyboardButton(get_btn_name("btn_pqrs", "🖼 SHOW PAYMENT QR"), callback_data="show_premium_qr")])
+                    kb.insert(1, [InlineKeyboardButton(get_btn_name("btn_pqrs", "sʜᴏᴡ ᴘᴀʏᴍᴇɴᴛ ǫʀ"), callback_data="show_premium_qr")])
             elif data == "referral_menu":
                 ref_link = f"https://t.me/{client.me.username}?start=ref_{uid}"
-                kb.insert(0, [InlineKeyboardButton(get_btn_name("btn_invite", "📤 Invite Friends"), url=f"https://t.me/share/url?url={ref_link}")])
+                kb.insert(0, [InlineKeyboardButton(get_btn_name("btn_invite", "ɪɴᴠɪᴛᴇ ғʀɪᴇɴᴅs"), url=f"https://t.me/share/url?url={ref_link}")])
 
             try:
                 await cb.message.edit(
@@ -4256,26 +4290,26 @@ def register_handlers(app: Client):
                 top_files_text += f"{i}. {icon} `{name}` — 👁 **{count}**\n"
 
             await cb.message.edit(
-                f"📊 **ELITE BOT ANALYTICS**\n"
+                f"ʙᴏᴛ ᴀɴᴀʟʏᴛɪᴄs\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                f"👥 **USER METRICS**\n"
+                f"ᴜsᴇʀ ᴍᴇᴛʀɪᴄs\n"
                 f" ├ Total Base: `{len(users)}` users\n"
                 f" ├ Active Today: `{active_today}`\n"
                 f" └ Premium Members: `{premium_users}`\n\n"
-                f"📁 **CONTENT METRICS**\n"
+                f"ᴄᴏɴᴛᴇɴᴛ ᴍᴇᴛʀɪᴄs\n"
                 f" ├ Total Files: `{len(bot_files)}` items\n"
                 f" ├ Global Views: `{sum(f.get('access_count',0) for f in bot_files)}`\n"
                 f" ├ Dual Posts: `{dp_count}` active\n"
                 f" └ DP Views: `{dp_views}`\n\n"
-                f"🔝 **TRENDING CONTENT (TOP 5)**\n"
+                f"ᴛʀᴇɴᴅɪɴɢ ᴄᴏɴᴛᴇɴᴛ\n"
                 f"{top_files_text or '_No data recorded yet._'}\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"⏱ **System Uptime:** `{str(datetime.now()-START_TIME).split('.')[0]}`",
+                f"ᴜᴘᴛɪᴍᴇ: `{str(datetime.now()-START_TIME).split('.')[0]}`",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔄 REFRESH DATA", callback_data="admin_stats")],
-                    [InlineKeyboardButton("🎭 DUAL POSTS",  callback_data="dual_posts_admin"),
-                     InlineKeyboardButton("👥 USER LIST",   callback_data="manage_users")],
-                    [InlineKeyboardButton("🔙 BACK TO PANEL", callback_data="admin_panel")]
+                    [InlineKeyboardButton("ʀᴇғʀᴇsʜ ᴅᴀᴛᴀ", callback_data="admin_stats")],
+                    [InlineKeyboardButton("ᴅᴜᴀʟ ᴘᴏsᴛs",  callback_data="dual_posts_admin"),
+                     InlineKeyboardButton("ᴜsᴇʀ ʟɪsᴛ",   callback_data="manage_users")],
+                    [InlineKeyboardButton("ʙᴀᴄᴋ ᴛᴏ ᴘᴀɴᴇʟ", callback_data="admin_panel")]
                 ])
             )
             await cb.answer()
@@ -4405,10 +4439,14 @@ def register_handlers(app: Client):
         elif data == "toggle_auto_approve":
             bi = get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
+            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+                return await cb.answer("❌ Access Denied!", show_alert=True)
             curr = bi.get("auto_approve", False)
             update_bot_info(bot_id, "auto_approve", not curr)
-            await cb.answer(f"Auto-Approve: {'ON ✅' if not curr else 'OFF ❌'}", show_alert=True)
-            await cb.message.edit("⚡ **Admin Panel**", reply_markup=kb_admin())
+            await cb.answer(f"ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ: {'ᴏɴ' if not curr else 'ᴏғғ'}", show_alert=True)
+            try:
+                await cb.message.edit(cb.message.text, reply_markup=kb_start(bot_id, uid) if "ʜᴇʟʟᴏ" in cb.message.text else kb_admin())
+            except: pass
 
         elif data == "toggle_auto_caption":
             bi = get_bot_info(bot_id)
@@ -4508,37 +4546,37 @@ def register_handlers(app: Client):
 
             if cat == "start":
                 b_list = [
-                    ("btn_supreme", "👑 SUPREME PANEL"), ("btn_admin", "⚡ ADMIN PANEL"),
-                    ("btn_batch", "📦 BATCH MODE"), ("btn_clone", "🤖 CLONE BOT"),
-                    ("btn_dual", "🎭 DUAL POST"), ("btn_refer", "👥 REFER & EARN"),
-                    ("btn_dash", "📊 DASHBOARD"), ("btn_help", "ℹ️ HELP"),
-                    ("btn_prot", "🛡 PROTECT"), ("btn_srch", "🔍 SEARCH"),
-                    ("btn_prem", "💎 BUY PREMIUM"), ("btn_mybt", "🎯 MY BOTS")
+                    ("btn_supreme", "sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), ("btn_admin", "ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"),
+                    ("btn_batch", "ʙᴀᴛᴄʜ ᴍᴏᴅᴇ"), ("btn_clone", "ᴄʟᴏɴᴇ ʙᴏᴛ"),
+                    ("btn_dual", "ᴅᴜᴀʟ ᴘᴏsᴛ"), ("btn_refer", "ʀᴇғᴇʀ & ᴇᴀʀɴ"),
+                    ("btn_aapr", "ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ"), ("btn_help", "ʜᴇʟᴘ"),
+                    ("btn_prot", "ᴘʀᴏᴛᴇᴄᴛ"), ("btn_srch", "sᴇᴀʀᴄʜ"),
+                    ("btn_prem", "ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ"), ("btn_mybt", "ᴍʏ ʙᴏᴛs")
                 ]
             elif cat == "admin":
                 b_list = [
-                    ("btn_abrd", "📢 BROADCAST"), ("btn_asta", "📊 ANALYTICS"),
-                    ("btn_ausr", "👥 USERS"), ("btn_acln", "🤖 CLONES"),
-                    ("btn_aset", "⚙️ SETTINGS"), ("btn_afsb", "🔒 FORCE SUB"),
-                    ("btn_aver", "🛡 VERIFICATION"), ("btn_ashr", "🔗 SHORTENER"),
-                    ("btn_aprt", "🛡 PROTECT LINKS"), ("btn_adul", "🎭 DUAL POSTS"),
-                    ("btn_awlc", "👋 WELCOME MSG"), ("btn_aapr", "✅ AUTO APPROVE"),
-                    ("btn_acap", "📝 AUTO CAPTION"), ("btn_atmr", "⏱ TIMER SET")
+                    ("btn_abrd", "ʙʀᴏᴀᴅᴄᴀsᴛ"), ("btn_asta", "ᴀɴᴀʟʏᴛɪᴄs"),
+                    ("btn_ausr", "ᴜsᴇʀs"), ("btn_acln", "ᴄʟᴏɴᴇs"),
+                    ("btn_aset", "sᴇᴛᴛɪɴɢs"), ("btn_afsb", "ғᴏʀᴄᴇ sᴜʙ"),
+                    ("btn_aver", "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ"), ("btn_ashr", "sʜᴏʀᴛᴇɴᴇʀ"),
+                    ("btn_aprt", "ᴘʀᴏᴛᴇᴄᴛ ʟɪɴᴋs"), ("btn_adul", "ᴅᴜᴀʟ ᴘᴏsᴛs"),
+                    ("btn_awlc", "ᴡᴇʟᴄᴏᴍᴇ ᴍsɢ"), ("btn_aapr", "ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ"),
+                    ("btn_acap", "ᴀᴜᴛᴏ ᴄᴀᴘᴛɪᴏɴ"), ("btn_atmr", "ᴛɪᴍᴇʀ sᴇᴛ")
                 ]
             elif cat == "supreme":
                 b_list = [
-                    ("btn_sgbr", "🌍 GLOBAL BROADCAST"), ("btn_ssys", "🖥 SYSTEM ANALYTICS"),
-                    ("btn_snet", "🤖 BOT NETWORK"), ("btn_sadm", "👑 ADMIN MANAGER"),
-                    ("btn_smsg", "📢 SYSTEM MSG"), ("btn_smnt", "🛠 MAINT: ON/OFF"),
-                    ("btn_sbak", "💾 FULL BACKUP"), ("btn_spur", "🧹 PURGE CACHE"),
-                    ("btn_srbd", "🔄 SMART REBUILD"), ("btn_scus", "🎨 CUSTOMIZE BUTTONS"),
-                    ("btn_srst", "♻️ SYSTEM RESTART")
+                    ("btn_sgbr", "ɢʟᴏʙᴀʟ ʙʀᴏᴀᴅᴄᴀsᴛ"), ("btn_ssys", "sʏsᴛᴇᴍ ᴀɴᴀʟʏᴛɪᴄs"),
+                    ("btn_snet", "ʙᴏᴛ ɴᴇᴛᴡᴏʀᴋ"), ("btn_sadm", "ᴀᴅᴍɪɴ ᴍᴀɴᴀɢᴇʀ"),
+                    ("btn_smsg", "sʏsᴛᴇᴍ ᴍsɢ"), ("btn_smnt", "ᴍᴀɪɴᴛ: ᴏɴ/ᴏғғ"),
+                    ("btn_sbak", "ғᴜʟʟ ʙᴀᴄᴋᴜᴘ"), ("btn_spur", "ᴘᴜʀɢᴇ ᴄᴀᴄʜᴇ"),
+                    ("btn_srbd", "sᴍᴀʀᴛ ʀᴇʙᴜɪʟᴅ"), ("btn_scus", "ᴄᴜsᴛᴏᴍɪᴢᴇ ʙᴜᴛᴛᴏɴs"),
+                    ("btn_srst", "sʏsᴛᴇᴍ ʀᴇsᴛᴀʀᴛ")
                 ]
             else: # other
                 b_list = [
-                    ("btn_back", "🔙 BACK TO HOME"), ("btn_hdual", "🎭 DUAL POST GUIDE"),
-                    ("btn_hprem", "💎 PREMIUM INFO"), ("btn_pcon", "👑 CONTACT ADMIN"),
-                    ("btn_pqrs", "🖼 SHOW PAYMENT QR"), ("btn_invite", "📤 Invite Friends")
+                    ("btn_back", "ʙᴀᴄᴋ ᴛᴏ ʜᴏᴍᴇ"), ("btn_hdual", "ᴅᴜᴀʟ ᴘᴏsᴛ ɢᴜɪᴅᴇ"),
+                    ("btn_hprem", "ᴘʀᴇᴍɪᴜᴍ ɪɴғᴏ"), ("btn_pcon", "ᴄᴏɴᴛᴀᴄᴛ ᴀᴅᴍɪɴ"),
+                    ("btn_pqrs", "sʜᴏᴡ ᴘᴀʏᴍᴇɴᴛ ǫʀ"), ("btn_invite", "ɪɴᴠɪᴛᴇ ғʀɪᴇɴᴅs")
                 ]
 
             for i in range(0, len(b_list), 2):
@@ -4558,10 +4596,10 @@ def register_handlers(app: Client):
             if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
             msgs_config = get_global_config().get("custom_messages", {})
             m_list = [
-                ("msg_welcome", "👋 Welcome Message"), ("msg_help", "ℹ️ Help Message"),
-                ("msg_premium", "💎 Premium Message"), ("msg_referral", "👥 Referral Message"),
-                ("msg_search", "🔍 Search Message"), ("msg_admin", "⚡ Admin Panel"),
-                ("msg_supreme", "👑 Supreme Panel")
+                ("msg_welcome", "ᴡᴇʟᴄᴏᴍᴇ ᴍᴇssᴀɢᴇ"), ("msg_help", "ʜᴇʟᴘ ᴍᴇssᴀɢᴇ"),
+                ("msg_premium", "ᴘʀᴇᴍɪᴜᴍ ᴍᴇssᴀɢᴇ"), ("msg_referral", "ʀᴇғᴇʀʀᴀʟ ᴍᴇssᴀɢᴇ"),
+                ("msg_search", "sᴇᴀʀᴄʜ ᴍᴇssᴀɢᴇ"), ("msg_admin", "ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"),
+                ("msg_supreme", "sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ")
             ]
             keyboard = []
             for key, label in m_list:
