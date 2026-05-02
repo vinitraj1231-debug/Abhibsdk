@@ -442,9 +442,10 @@ def stylish(text):
     }
     def _rep(m):
         t = m.group(0)
-        if t.startswith('{') and t.endswith('}'): return t
+        if (t.startswith('{') and t.endswith('}')) or t.startswith('/'):
+            return t
         return "".join(mapping.get(c.lower(), c) if c.isalpha() else mapping.get(c, c) for c in t)
-    return re.sub(r'\{[^{}]+\}|[^{}]+', _rep, str(text))
+    return re.sub(r'\{[^{}]+\}|/\w+|[^{}/]+|/', _rep, str(text))
 
 def fmt_size(size) -> str:
     if not size: return "N/A"
@@ -1467,54 +1468,55 @@ def kb_start(bot_id, user_id):
         rows.append([InlineKeyboardButton(get_btn_name("btn_admin", "Admin Panel"), callback_data="admin_panel")])
 
     rows += [
-        [InlineKeyboardButton(get_btn_name("btn_batch", "Batch Mode"),   callback_data="start_batch"),
-         InlineKeyboardButton(get_btn_name("btn_clone", "Clone Bot"),    callback_data="clone_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_dual",  "Dual Post"),    callback_data="dual_post_menu"),
-         InlineKeyboardButton(get_btn_name("btn_refer", "Refer & Earn"), callback_data="referral_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_aapr",  "Auto Approve"),    callback_data="toggle_auto_approve"),
-         InlineKeyboardButton(get_btn_name("btn_help",  "Help"),         callback_data="help_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_prot",  "Protect"),     callback_data="plinks_admin"),
-         InlineKeyboardButton(get_btn_name("btn_srch",  "Search"),       callback_data="cb_search")],
-        [InlineKeyboardButton(get_btn_name("btn_prem",  "Buy Premium"),  callback_data="premium_menu"),
-         InlineKeyboardButton(get_btn_name("btn_mybt",  "My Bots"),      callback_data="my_bots_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_srch",  "🔍 SEARCH"),       callback_data="cb_search"),
+         InlineKeyboardButton(get_btn_name("btn_batch", "📦 BATCH"),        callback_data="start_batch")],
+        [InlineKeyboardButton(get_btn_name("btn_dual",  "🎭 DUAL POST"),    callback_data="dual_post_menu"),
+         InlineKeyboardButton(get_btn_name("btn_clone", "🤖 CLONE"),        callback_data="clone_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_refer", "👥 REFER"),        callback_data="referral_menu"),
+         InlineKeyboardButton(get_btn_name("btn_prem",  "💎 PREMIUM"),      callback_data="premium_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_mybt",  "🤖 MY BOTS"),      callback_data="my_bots_menu"),
+         InlineKeyboardButton(get_btn_name("btn_dash",  "📊 DASHBOARD"),    callback_data="user_dashboard")],
+        [InlineKeyboardButton(get_btn_name("btn_prot",  "🛡 PROTECT"),      callback_data="plinks_admin"),
+         InlineKeyboardButton(get_btn_name("btn_help",  "ℹ️ HELP"),         callback_data="help_menu")],
+        [InlineKeyboardButton(get_btn_name("btn_supp",  "💬 SUPPORT"),      url=f"https://t.me/{bi.get('premium_contact', 'zolvid') if bi else 'zolvid'}")]
     ]
     return InlineKeyboardMarkup(rows)
 
 def kb_admin():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(get_btn_name("btn_abrd", "Broadcast"),   callback_data="broadcast_menu"),
-         InlineKeyboardButton(get_btn_name("btn_asta", "Analytics"),   callback_data="admin_stats")],
-        [InlineKeyboardButton(get_btn_name("btn_ausr", "Users"),        callback_data="manage_users"),
-         InlineKeyboardButton(get_btn_name("btn_acln", "Clones"),       callback_data="my_bots_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aset", "Settings"),     callback_data="bot_settings_admin"),
-         InlineKeyboardButton(get_btn_name("btn_afsb", "Force Sub"),    callback_data="forcesub_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aver", "Verification"), callback_data="verify_admin"),
-         InlineKeyboardButton(get_btn_name("btn_ashr", "Shortener"),    callback_data="shortener_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aprt", "Protect Links"), callback_data="plinks_admin"),
-         InlineKeyboardButton(get_btn_name("btn_adul", "Dual Posts"),   callback_data="dual_posts_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_awlc", "Welcome Msg"),  callback_data="edit_welcome_msg"),
-         InlineKeyboardButton(get_btn_name("btn_aapr", "Auto Approve"), callback_data="toggle_auto_approve")],
-        [InlineKeyboardButton(get_btn_name("btn_acap", "Auto Caption"), callback_data="toggle_auto_caption"),
-         InlineKeyboardButton(get_btn_name("btn_atmr", "Timer Set"),    callback_data="edit_timer")],
-        [InlineKeyboardButton(stylish("➕ Create Post"), callback_data="cb_create_post")],
-        [InlineKeyboardButton(get_btn_name("btn_back", "Back to Home"), callback_data="back_to_start")],
+        [InlineKeyboardButton(get_btn_name("btn_abrd", "📢 BROADCAST"),   callback_data="broadcast_menu"),
+         InlineKeyboardButton(get_btn_name("btn_asta", "📊 ANALYTICS"),   callback_data="admin_stats")],
+        [InlineKeyboardButton(get_btn_name("btn_ausr", "👥 USERS"),        callback_data="manage_users"),
+         InlineKeyboardButton(get_btn_name("btn_acln", "🤖 CLONES"),       callback_data="my_bots_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aset", "⚙️ SETTINGS"),     callback_data="bot_settings_admin"),
+         InlineKeyboardButton(get_btn_name("btn_afsb", "🔒 FORCE SUB"),    callback_data="forcesub_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aver", "🛡 VERIFY"),       callback_data="verify_admin"),
+         InlineKeyboardButton(get_btn_name("btn_ashr", "🔗 SHORTENER"),    callback_data="shortener_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aprt", "🛡 PROTECT"),      callback_data="plinks_admin"),
+         InlineKeyboardButton(get_btn_name("btn_adul", "🎭 DUAL POSTS"),   callback_data="dual_posts_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_awlc", "👋 WELCOME"),      callback_data="edit_welcome_msg"),
+         InlineKeyboardButton(get_btn_name("btn_aapr", "✅ AUTO APP."),    callback_data="toggle_auto_approve")],
+        [InlineKeyboardButton(get_btn_name("btn_acap", "💬 AUTO CAP."),    callback_data="toggle_auto_caption"),
+         InlineKeyboardButton(get_btn_name("btn_atmr", "⏱ TIMER"),          callback_data="edit_timer")],
+        [InlineKeyboardButton(stylish("➕ CREATE POST"), callback_data="cb_create_post")],
+        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"), callback_data="back_to_start")],
     ])
 
 def kb_supreme():
     maint = get_global_config().get("maintenance", False)
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(get_btn_name("btn_sgbr", "Global Broadcast"), callback_data="global_broadcast")],
-        [InlineKeyboardButton(get_btn_name("btn_ssys", "System Analytics"), callback_data="system_stats"),
-         InlineKeyboardButton(get_btn_name("btn_snet", "Bot Network"),    callback_data="all_bots_list")],
-        [InlineKeyboardButton(get_btn_name("btn_sadm", "Admin Manager"),    callback_data="manage_admins"),
-         InlineKeyboardButton(get_btn_name("btn_smsg", "System Msg"),      callback_data="global_msg_set")],
-        [InlineKeyboardButton(get_btn_name("btn_smnt", f"Maint: {'ON' if maint else 'OFF'}"), callback_data="toggle_maintenance")],
-        [InlineKeyboardButton(get_btn_name("btn_sbak", "Full Backup"),    callback_data="manual_backup")],
-        [InlineKeyboardButton(get_btn_name("btn_spur", "Purge Cache"),      callback_data="manual_clean_cache"),
-         InlineKeyboardButton(get_btn_name("btn_srbd", "Smart Rebuild"),    callback_data="confirm_rebuild")],
-        [InlineKeyboardButton(get_btn_name("btn_scus", "Customize Buttons"), callback_data="supreme_customize")],
-        [InlineKeyboardButton(get_btn_name("btn_srst", "System Restart"),    callback_data="restart_all_bots")],
-        [InlineKeyboardButton(get_btn_name("btn_back", "Back to Home"),     callback_data="back_to_start")],
+        [InlineKeyboardButton(get_btn_name("btn_sgbr", "🌍 GLOBAL BROADCAST"), callback_data="global_broadcast")],
+        [InlineKeyboardButton(get_btn_name("btn_ssys", "🖥 SYSTEM STATS"),    callback_data="system_stats"),
+         InlineKeyboardButton(get_btn_name("btn_snet", "🤖 BOT NETWORK"),     callback_data="all_bots_list")],
+        [InlineKeyboardButton(get_btn_name("btn_sadm", "👑 ADMIN MANAGER"),    callback_data="manage_admins"),
+         InlineKeyboardButton(get_btn_name("btn_smsg", "📢 SYSTEM MSG"),      callback_data="global_msg_set")],
+        [InlineKeyboardButton(get_btn_name("btn_smnt", f"🚧 MAINT: {'ON' if maint else 'OFF'}"), callback_data="toggle_maintenance")],
+        [InlineKeyboardButton(get_btn_name("btn_sbak", "💾 FULL BACKUP"),      callback_data="manual_backup")],
+        [InlineKeyboardButton(get_btn_name("btn_spur", "🧹 PURGE CACHE"),      callback_data="manual_clean_cache"),
+         InlineKeyboardButton(get_btn_name("btn_srbd", "🔄 SMART REBUILD"),    callback_data="confirm_rebuild")],
+        [InlineKeyboardButton(get_btn_name("btn_scus", "🎨 CUSTOMIZE"),        callback_data="supreme_customize")],
+        [InlineKeyboardButton(get_btn_name("btn_srst", "♻️ SYSTEM RESTART"),   callback_data="restart_all_bots")],
+        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"),     callback_data="back_to_start")],
     ])
 
 def kb_dual_post_creator(stage: str, free_count: int, pro_count: int):
@@ -2409,9 +2411,15 @@ def register_handlers(app: Client):
 
         if not welcome_text:
             default_welcome = (
-                "ʜᴇʟʟᴏ {name}\n\n"
-                "ɪ ᴀᴍ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ, ɪ ᴄᴀɴ sᴛᴏʀᴇ ᴘʀɪᴠᴀᴛᴇ ғɪʟᴇs ɪɴ sᴘᴇᴄɪғɪᴇᴅ ᴄʜᴀɴɴᴇʟ ᴀɴᴅ ᴏᴛʜᴇʀ ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss ɪᴛ ғʀᴏᴍ sᴘᴇᴄɪᴀʟ ʟɪɴᴋ.\n\n"
-                "/help 𝚝𝚘 𝚔𝚗𝚘𝚠 𝚖𝚘𝚛𝚎 𝚊𝚋𝚘𝚞𝚝 𝚋𝚘𝚝"
+                "🚀 **WELCOME TO THE ULTRA FILESTORE BOT v7.0**\n\n"
+                "ʜᴇʟʟᴏ {name}!\n\n"
+                "ɪ ᴀᴍ ᴀɴ ᴀᴅᴠᴀɴᴄᴇᴅ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ ᴡɪᴛʜ ᴘᴏᴡᴇʀғᴜʟ ғᴇᴀᴛᴜʀᴇs ʟɪᴋᴇ:\n"
+                "├ 📦 **ʙᴀᴛᴄʜ ᴍᴏᴅᴇ** — sᴇɴᴅ ᴍᴜʟᴛɪᴘʟᴇ ғɪʟᴇs ɪɴ ᴏɴᴇ ʟɪɴᴋ\n"
+                "├ 🎭 **ᴅᴜᴀʟ ᴘᴏsᴛ** — ᴅɪғғᴇʀᴇɴᴛ ᴇxᴘᴇʀɪᴇɴᴄᴇ ғᴏʀ ғʀᴇᴇ & ᴘʀᴇᴍɪᴜᴍ\n"
+                "├ 🤖 **ʙᴏᴛ ᴄʟᴏɴɪɴɢ** — ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs\n"
+                "└ 🛡 **ʟɪɴᴋ ᴘʀᴏᴛᴇᴄᴛɪᴏɴ** — sᴇᴄᴜʀᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs\n\n"
+                "👉 ᴜsᴇ /help ᴛᴏ sᴇᴇ ᴀʟʟ ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅs!\n"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
             welcome_text = get_msg_text("msg_welcome", default_welcome).format_map(SafeDict(
                 name=message.from_user.first_name,
@@ -3127,18 +3135,41 @@ def register_handlers(app: Client):
                 f"🎭 Dual Posts: `{dp_count}`"
             )
         elif cmd == "help":
-            help_text = stylish("🚀 **FileStore v7.0 — Command List**\n\n")
-            for command in BOT_COMMANDS:
-                help_text += stylish(f"• ") + f"/{command.command}" + stylish(f" — {command.description}\n")
-
-            help_text += stylish("\n💡 Tip: You can use most commands by clicking the menu button or typing / followed by the command.")
+            help_text = stylish(
+                "🚀 **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
+                "Welcome to the most advanced FileStore bot! Here is a list of commands you can use:\n\n"
+                "📂 **GENERAL COMMANDS**\n"
+                "├ /start — Start the bot\n"
+                "├ /help — Show this guide\n"
+                "├ /search — Search for files\n"
+                "├ /stats — View your statistics\n"
+                "└ /premium — Premium membership info\n\n"
+                "📦 **FILE MANAGEMENT**\n"
+                "├ /batch — Start batch mode\n"
+                "├ /done — Finish batch/session\n"
+                "├ /cancel — Cancel current action\n"
+                "├ /listfiles — List your uploaded files\n"
+                "└ /myduals — Manage your dual posts\n\n"
+                "🤖 **ADVANCED FEATURES**\n"
+                "├ /clone — Create your own bot\n"
+                "├ /dualpost — Create a dual-tier post\n"
+                "├ /protect — Protect a channel link\n"
+                "└ /mybots — List your cloned bots\n\n"
+                "⚙️ **ADMIN TOOLS**\n"
+                "├ /admin — Open Admin Panel\n"
+                "├ /setfs — Configure Force Sub\n"
+                "├ /setwelcome — Set welcome message\n"
+                "└ /setlog — Set log channel\n\n"
+                "💡 **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            )
 
             await message.reply(
                 help_text,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(stylish("🎭 Dual Post Guide"), callback_data="dual_help"),
-                     InlineKeyboardButton(stylish("💎 Premium Info"), callback_data="premium_menu")],
-                    [InlineKeyboardButton(stylish("🔙 Back to Home"), callback_data="back_to_start")]
+                    [InlineKeyboardButton(get_btn_name("btn_hdual", "🎭 Dual Post Guide"), callback_data="dual_help"),
+                     InlineKeyboardButton(get_btn_name("btn_hprem", "💎 Premium Info"), callback_data="premium_menu")],
+                    [InlineKeyboardButton(get_btn_name("btn_back", "🔙 Back to Home"), callback_data="back_to_start")]
                 ])
             )
         elif cmd == "setglobal":
@@ -4389,9 +4420,32 @@ def register_handlers(app: Client):
             qr_id = bi_cb.get("premium_qr") if bi_cb else None
 
             default_help = (
-                stylish("🚀 **FileStore v7.0 — Command List**\n\n") +
-                "\n".join([stylish("• ") + f"/{c.command}" + stylish(f" — {c.description}") for c in BOT_COMMANDS[:15]]) +
-                stylish("\n\n*(Send /help for full list of all commands)*")
+                "🚀 **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
+                "Welcome to the most advanced FileStore bot! Here is a list of commands you can use:\n\n"
+                "📂 **GENERAL COMMANDS**\n"
+                "├ /start — Start the bot\n"
+                "├ /help — Show this guide\n"
+                "├ /search — Search for files\n"
+                "├ /stats — View your statistics\n"
+                "└ /premium — Premium membership info\n\n"
+                "📦 **FILE MANAGEMENT**\n"
+                "├ /batch — Start batch mode\n"
+                "├ /done — Finish batch/session\n"
+                "├ /cancel — Cancel current action\n"
+                "├ /listfiles — List your uploaded files\n"
+                "└ /myduals — Manage your dual posts\n\n"
+                "🤖 **ADVANCED FEATURES**\n"
+                "├ /clone — Create your own bot\n"
+                "├ /dualpost — Create a dual-tier post\n"
+                "├ /protect — Protect a channel link\n"
+                "└ /mybots — List your cloned bots\n\n"
+                "⚙️ **ADMIN TOOLS**\n"
+                "├ /admin — Open Admin Panel\n"
+                "├ /setfs — Configure Force Sub\n"
+                "├ /setwelcome — Set welcome message\n"
+                "└ /setlog — Set log channel\n\n"
+                "💡 **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
+                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
             default_prem = (
                 f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
@@ -4857,31 +4911,32 @@ def register_handlers(app: Client):
 
             if cat == "start":
                 b_list = [
-                    ("btn_supreme", "sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), ("btn_admin", "ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"),
-                    ("btn_batch", "ʙᴀᴛᴄʜ ᴍᴏᴅᴇ"), ("btn_clone", "ᴄʟᴏɴᴇ ʙᴏᴛ"),
-                    ("btn_dual", "ᴅᴜᴀʟ ᴘᴏsᴛ"), ("btn_refer", "ʀᴇғᴇʀ & ᴇᴀʀɴ"),
-                    ("btn_aapr", "ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ"), ("btn_help", "ʜᴇʟᴘ"),
-                    ("btn_prot", "ᴘʀᴏᴛᴇᴄᴛ"), ("btn_srch", "sᴇᴀʀᴄʜ"),
-                    ("btn_prem", "ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ"), ("btn_mybt", "ᴍʏ ʙᴏᴛs")
+                    ("btn_supreme", "Supreme Panel"), ("btn_admin", "Admin Panel"),
+                    ("btn_srch", "Search"), ("btn_batch", "Batch"),
+                    ("btn_dual", "Dual Post"), ("btn_clone", "Clone"),
+                    ("btn_refer", "Refer"), ("btn_prem", "Premium"),
+                    ("btn_mybt", "My Bots"), ("btn_dash", "Dashboard"),
+                    ("btn_prot", "Protect"), ("btn_help", "Help"),
+                    ("btn_supp", "Support")
                 ]
             elif cat == "admin":
                 b_list = [
-                    ("btn_abrd", "ʙʀᴏᴀᴅᴄᴀsᴛ"), ("btn_asta", "ᴀɴᴀʟʏᴛɪᴄs"),
-                    ("btn_ausr", "ᴜsᴇʀs"), ("btn_acln", "ᴄʟᴏɴᴇs"),
-                    ("btn_aset", "sᴇᴛᴛɪɴɢs"), ("btn_afsb", "ғᴏʀᴄᴇ sᴜʙ"),
-                    ("btn_aver", "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ"), ("btn_ashr", "sʜᴏʀᴛᴇɴᴇʀ"),
-                    ("btn_aprt", "ᴘʀᴏᴛᴇᴄᴛ ʟɪɴᴋs"), ("btn_adul", "ᴅᴜᴀʟ ᴘᴏsᴛs"),
-                    ("btn_awlc", "ᴡᴇʟᴄᴏᴍᴇ ᴍsɢ"), ("btn_aapr", "ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ"),
-                    ("btn_acap", "ᴀᴜᴛᴏ ᴄᴀᴘᴛɪᴏɴ"), ("btn_atmr", "ᴛɪᴍᴇʀ sᴇᴛ")
+                    ("btn_abrd", "Broadcast"), ("btn_asta", "Analytics"),
+                    ("btn_ausr", "Users"), ("btn_acln", "Clones"),
+                    ("btn_aset", "Settings"), ("btn_afsb", "Force Sub"),
+                    ("btn_aver", "Verification"), ("btn_ashr", "Shortener"),
+                    ("btn_aprt", "Protect Links"), ("btn_adul", "Dual Posts"),
+                    ("btn_awlc", "Welcome Msg"), ("btn_aapr", "Auto Approve"),
+                    ("btn_acap", "Auto Caption"), ("btn_atmr", "Timer Set")
                 ]
             elif cat == "supreme":
                 b_list = [
-                    ("btn_sgbr", "ɢʟᴏʙᴀʟ ʙʀᴏᴀᴅᴄᴀsᴛ"), ("btn_ssys", "sʏsᴛᴇᴍ ᴀɴᴀʟʏᴛɪᴄs"),
-                    ("btn_snet", "ʙᴏᴛ ɴᴇᴛᴡᴏʀᴋ"), ("btn_sadm", "ᴀᴅᴍɪɴ ᴍᴀɴᴀɢᴇʀ"),
-                    ("btn_smsg", "sʏsᴛᴇᴍ ᴍsɢ"), ("btn_smnt", "ᴍᴀɪɴᴛ: ᴏɴ/ᴏғғ"),
-                    ("btn_sbak", "ғᴜʟʟ ʙᴀᴄᴋᴜᴘ"), ("btn_spur", "ᴘᴜʀɢᴇ ᴄᴀᴄʜᴇ"),
-                    ("btn_srbd", "sᴍᴀʀᴛ ʀᴇʙᴜɪʟᴅ"), ("btn_scus", "ᴄᴜsᴛᴏᴍɪᴢᴇ ʙᴜᴛᴛᴏɴs"),
-                    ("btn_srst", "sʏsᴛᴇᴍ ʀᴇsᴛᴀʀᴛ")
+                    ("btn_sgbr", "Global Broadcast"), ("btn_ssys", "System Analytics"),
+                    ("btn_snet", "Bot Network"), ("btn_sadm", "Admin Manager"),
+                    ("btn_smsg", "System Msg"), ("btn_smnt", "Maint: ON/OFF"),
+                    ("btn_sbak", "Full Backup"), ("btn_spur", "Purge Cache"),
+                    ("btn_srbd", "Smart Rebuild"), ("btn_scus", "Customize Buttons"),
+                    ("btn_srst", "System Restart")
                 ]
             else: # other
                 b_list = [
