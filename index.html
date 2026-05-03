@@ -286,11 +286,11 @@
                 <h3 style="margin-top:0"><i class="fas fa-crown"></i> ELITE PREMIUM</h3>
                 <p style="font-size:14px">Unlock the ultimate power of FileStore with zero limits.</p>
                 <ul style="padding-left: 20px; font-size: 13px; line-height: 1.6;">
-                    <li>♾ <b>Permanent Storage:</b> No auto-delete timer!</li>
-                    <li>⚡ <b>Zero Ads:</b> Skip all shorteners instantly.</li>
-                    <li>🎭 <b>Elite Access:</b> Direct delivery for Dual Posts.</li>
-                    <li>📦 <b>Pro Batching:</b> Create unlimited file groups.</li>
-                    <li>🚀 <b>Priority:</b> Faster downloads and support.</li>
+                    <li> <b>Permanent Storage:</b> No auto-delete timer!</li>
+                    <li> <b>Zero Ads:</b> Skip all shorteners instantly.</li>
+                    <li> <b>Elite Access:</b> Direct delivery for Dual Posts.</li>
+                    <li> <b>Pro Batching:</b> Create unlimited file groups.</li>
+                    <li> <b>Priority:</b> Faster downloads and support.</li>
                 </ul>
             </div>
 
@@ -343,7 +343,7 @@
 
         <!-- ADMIN SECTION -->
         <div id="admin-section" class="section">
-            <h3>🛡 Admin Dashboard</h3>
+            <h3> Admin Dashboard</h3>
             <div class="stats-grid">
                 <div class="stat-box"><span class="stat-val" id="adm-users">0</span><span class="stat-lbl">Total Users</span></div>
                 <div class="stat-box"><span class="stat-val" id="adm-files">0</span><span class="stat-lbl">Total Files</span></div>
@@ -358,7 +358,7 @@
 
         <!-- HELP SECTION -->
         <div id="help-section" class="section">
-            <h3>ℹ️ Help Center</h3>
+            <h3> Help Center</h3>
             <div class="card">
                 <h4 style="margin-top:0">Quick Start</h4>
                 <ul style="font-size:13px; padding-left:15px; line-height:1.8">
@@ -460,7 +460,7 @@
                         <div class="item-icon">${f.icon}</div>
                         <div class="item-info">
                             <span class="item-name">${f.name}</span>
-                            <span class="item-meta">${f.size} • 👁 ${f.views} • ${f.date}</span>
+                            <span class="item-meta">${f.size} •  ${f.views} • ${f.date}</span>
                         </div>
                     </div>
                 `).join('');
@@ -490,7 +490,7 @@
                 badge.innerText = data.is_premium ? 'Premium Tier' : 'Free Tier';
                 badge.className = data.is_premium ? 'badge badge-premium' : 'badge badge-free';
 
-                document.getElementById('prem-status-val').innerText = data.is_premium ? 'Activated ✅' : 'Not Active ❌';
+                document.getElementById('prem-status-val').innerText = data.is_premium ? 'Activated ' : 'Not Active ';
                 document.getElementById('prem-price-val').innerText = data.price || '500';
 
                 document.getElementById('profile-name').innerText = data.name;
