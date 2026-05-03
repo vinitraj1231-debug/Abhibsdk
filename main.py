@@ -123,6 +123,8 @@ BOT_COMMANDS = [
     BotCommand("createpost",  " Create custom post"),
     BotCommand("addadmin",    " Add bot admin"),
     BotCommand("deladmin",    " Remove bot admin"),
+    BotCommand("font",        " Font Editor"),
+    BotCommand("requests",    " Manage join requests"),
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -286,10 +288,13 @@ def add_user(user_id, bot_id, username=None, name=None):
             "batches_created": 0, "bots_cloned": 0,
             "is_premium": False,
             "refer_count": 0, "refer_rewards": 0,
-            "last_active": str(datetime.now())
+            "last_active": str(datetime.now()),
+            "pref_font": "smallcaps"
         }
     else:
         users[key]["last_active"] = str(datetime.now())
+        if "pref_font" not in users[key]:
+            users[key]["pref_font"] = "smallcaps"
     save_db(USERS_DB, users)
     return users[key], is_new
 
@@ -460,18 +465,75 @@ def clean_expired_cache() -> int:
 
 # ─── UTILITIES ──────────────────────────────────────────────────
 
-def stylish(text):
-    if not text: return ""
-    mapping = {
+_FONTS = {
+    "smallcaps": {
         'a': 'ᴀ', 'b': 'ʙ', 'c': 'ᴄ', 'd': 'ᴅ', 'e': 'ᴇ', 'f': 'ғ', 'g': 'ɢ', 'h': 'ʜ', 'i': 'ɪ', 'j': 'ᴊ', 'k': 'ᴋ', 'l': 'ʟ', 'm': 'ᴍ', 'n': 'ɴ', 'o': 'ᴏ', 'p': 'ᴘ', 'q': 'ǫ', 'r': 'ʀ', 's': 's', 't': 'ᴛ', 'u': 'ᴜ', 'v': 'ᴠ', 'w': 'ᴡ', 'x': 'x', 'y': 'ʏ', 'z': 'ᴢ',
         '0': '𝟎', '1': '𝟏', '2': '𝟐', '3': '𝟑', '4': '𝟒', '5': '𝟓', '6': '𝟔', '7': '𝟕', '8': '𝟖', '9': '𝟗'
+    },
+    "monospace": {
+        'a': '𝚊', 'b': '𝚋', 'c': '𝚌', 'd': '𝚍', 'e': '𝚎', 'f': '𝚏', 'g': '𝚐', 'h': '𝚑', 'i': '𝚒', 'j': '𝚓', 'k': '𝚔', 'l': '𝚕', 'm': '𝚖', 'n': '𝚗', 'o': '𝚘', 'p': '𝚙', 'q': '𝚚', 'r': '𝚛', 's': '𝚜', 't': '𝚝', 'u': '𝚞', 'v': '𝚟', 'w': '𝚠', 'x': '𝚡', 'y': '𝚢', 'z': '𝚣',
+        'A': '𝙰', 'B': '𝙱', 'C': '𝙲', 'D': '𝙳', 'E': '𝙴', 'F': '𝙵', 'G': '𝙶', 'H': '𝙷', 'I': '𝙸', 'J': '𝙹', 'K': '𝙺', 'L': '𝙻', 'M': '𝙼', 'N': '𝙽', 'O': '𝙾', 'P': '𝙿', 'Q': '𝚀', 'R': '𝚁', 'S': '𝚂', 'T': '𝚃', 'U': '𝚄', 'V': '𝚅', 'W': '𝚆', 'X': '𝚇', 'Y': '𝚈', 'Z': '𝚉',
+        '0': '𝟶', '1': '𝟷', '2': '𝟸', '3': '𝟹', '4': '𝟺', '5': '𝟻', '6': '𝟼', '7': '𝟽', '8': '𝟾', '9': '𝟿'
+    },
+    "bold_serif": {
+        'a': '𝐚', 'b': '𝐛', 'c': '𝐜', 'd': '𝐝', 'e': '𝐞', 'f': '𝐟', 'g': '𝐠', 'h': '𝐡', 'i': '𝐢', 'j': '𝐣', 'k': '𝐤', 'l': '𝐥', 'm': '𝐦', 'n': '𝐧', 'o': '𝐨', 'p': '𝐩', 'q': '𝐪', 'r': '𝐫', 's': '𝐬', 't': '𝐭', 'u': '𝐮', 'v': '𝐯', 'w': '𝐰', 'x': '𝐱', 'y': '𝐲', 'z': '𝐳',
+        'A': '𝐀', 'B': '𝐁', 'C': '𝐂', 'D': '𝐃', 'E': '𝐄', 'F': '𝐅', 'G': '𝐆', 'H': '𝐇', 'I': '𝐈', 'J': '𝐉', 'K': '𝐊', 'L': '𝐋', 'M': '𝐌', 'N': '𝐍', 'O': '𝐎', 'P': '𝐏', 'Q': '𝐐', 'R': '𝐑', 'S': '𝐒', 'T': '𝐓', 'U': '𝐔', 'V': '𝐕', 'W': '𝐖', 'X': '𝐗', 'Y': '𝐘', 'Z': '𝐙'
+    },
+    "italic_serif": {
+        'a': '𝑎', 'b': '𝑏', 'c': '𝑐', 'd': '𝑑', 'e': '𝑒', 'f': '𝑓', 'g': '𝑔', 'h': 'ℎ', 'i': '𝑖', 'j': '𝑗', 'k': '𝑘', 'l': '𝑙', 'm': '𝑚', 'n': '𝑛', 'o': '𝑜', 'p': '𝑝', 'q': '𝑞', 'r': '𝑟', 's': '𝑠', 't': '𝑡', 'u': '𝑢', 'v': '𝑣', 'w': '𝑤', 'x': '𝑥', 'y': '𝑦', 'z': '𝑧',
+        'A': '𝐴', 'B': '𝐵', 'C': '𝐶', 'D': '𝐷', 'E': '𝐸', 'F': '𝐹', 'G': '𝐺', 'H': '𝐻', 'I': '𝐼', 'J': '𝐽', 'K': '𝐾', 'L': '𝐿', 'M': '𝑀', 'N': '𝑁', 'O': '𝑂', 'P': '𝑃', 'Q': '𝑄', 'R': '𝑅', 'S': '𝑆', 'T': '𝑇', 'U': '𝑈', 'V': '𝑉', 'W': '𝑊', 'X': '𝑋', 'Y': '𝑌', 'Z': '𝑍'
+    },
+    "script": {
+        'a': '𝒶', 'b': '𝒷', 'c': '𝒸', 'd': '𝒹', 'e': '𝑒', 'f': '𝒻', 'g': '𝑔', 'h': '𝒽', 'i': '𝒾', 'j': '𝒿', 'k': '𝓀', 'l': '𝓁', 'm': '𝓂', 'n': '𝓃', 'o': '𝑜', 'p': '𝓅', 'q': '𝓆', 'r': '𝓇', 's': '𝓈', 't': '𝓉', 'u': '𝓊', 'v': '𝓋', 'w': '𝓌', 'x': '𝓍', 'y': '𝓎', 'z': '𝓏',
+        'A': '𝒜', 'B': 'ℬ', 'C': '𝒞', 'D': '𝒟', 'E': 'ℰ', 'F': 'ℱ', 'G': '𝒢', 'H': 'ℋ', 'I': 'ℐ', 'J': '𝒥', 'K': '𝒦', 'L': 'ℒ', 'M': 'ℳ', 'N': '𝒩', 'O': '𝒪', 'P': '𝒫', 'Q': '𝒬', 'R': 'ℛ', 'S': '𝒮', 'T': '𝒯', 'U': '𝒰', 'V': '𝒱', 'W': '𝒲', 'X': '𝒳', 'Y': '𝒴', 'Z': '𝒵'
+    },
+    "double_struck": {
+        'a': '𝕒', 'b': '𝕓', 'c': '𝕔', 'd': '𝕕', 'e': '𝕖', 'f': '𝕗', 'g': '𝕘', 'h': '𝕙', 'i': '𝕚', 'j': '𝕛', 'k': '𝕜', 'l': '𝕝', 'm': '𝕞', 'n': '𝕟', 'o': '𝕠', 'p': '𝕡', 'q': '𝕢', 'r': '𝕣', 's': '𝕤', 't': '𝕥', 'u': '𝕦', 'v': '𝕧', 'w': '𝕨', 'x': '𝕩', 'y': '𝕪', 'z': '𝕫',
+        'A': '𝔸', 'B': '𝔹', 'C': 'ℂ', 'D': '𝔻', 'E': '𝔼', 'F': '𝔽', 'G': '𝔾', 'H': 'ℍ', 'I': '𝕀', 'J': '𝕁', 'K': '𝕂', 'L': '𝕃', 'M': '𝕄', 'N': 'ℕ', 'O': '𝕆', 'P': 'ℙ', 'Q': 'ℚ', 'R': 'ℝ', 'S': '𝕊', 'T': '𝕋', 'U': '𝕌', 'V': '𝕍', 'W': '𝕎', 'X': '𝕏', 'Y': '𝕐', 'Z': 'ℤ',
+        '0': '𝟘', '1': '𝟙', '2': '𝟚', '3': '𝟛', '4': '𝟜', '5': '𝟝', '6': '𝟞', '7': '𝟟', '8': '𝟠', '9': '𝟡'
+    },
+    "fraktur": {
+        'a': '𝔞', 'b': '𝔟', 'c': '𝔠', 'd': '𝔡', 'e': '𝔢', 'f': '𝔣', 'g': '𝔤', 'h': '𝔥', 'i': '𝔦', 'j': '𝔧', 'k': '𝔨', 'l': '𝔩', 'm': '𝔪', 'n': '𝔫', 'o': '𝔬', 'p': '𝔭', 'q': '𝔮', 'r': '𝔯', 's': '𝔰', 't': '𝔱', 'u': '𝔲', 'v': '𝔳', 'w': '𝔴', 'x': '𝔵', 'y': '𝔶', 'z': '𝔷',
+        'A': '𝔄', 'B': '𝔅', 'C': 'ℭ', 'D': '𝔇', 'E': '𝔈', 'F': '𝔉', 'G': '𝔊', 'H': 'ℌ', 'I': 'ℑ', 'J': '𝔍', 'K': '𝔎', 'L': '𝔏', 'M': '𝔐', 'N': '𝔑', 'O': '𝔒', 'P': '𝔓', 'Q': '𝔔', 'R': 'ℜ', 'S': '𝔖', 'T': '𝔗', 'U': '𝔘', 'V': '𝔙', 'W': '𝔚', 'X': '𝔛', 'Y': '𝔜', 'Z': 'ℨ'
+    },
+    "sans_bold": {
+        'a': '𝗮', 'b': '𝗯', 'c': '𝗰', 'd': '𝗱', 'e': '𝗲', 'f': '𝗳', 'g': '𝗴', 'h': '𝗵', 'i': '𝗶', 'j': '𝗷', 'k': '𝗸', 'l': '𝗹', 'm': '𝗺', 'n': '𝗻', 'o': '𝗼', 'p': '𝗽', 'q': '𝗾', 'r': '𝗿', 's': '𝘀', 't': '𝘁', 'u': '𝘂', 'v': '𝘃', 'w': '𝘄', 'x': '𝘅', 'y': '𝘆', 'z': '𝘇',
+        'A': '𝗔', 'B': '𝗕', 'C': '𝗖', 'D': '𝗗', 'E': '𝗘', 'F': '𝗙', 'G': '𝗚', 'H': '𝗛', 'I': '𝗜', 'J': '𝗝', 'K': '𝗞', 'L': '𝗟', 'M': '𝗠', 'N': '𝗡', 'O': '𝗢', 'P': '𝗣', 'Q': '𝗤', 'R': '𝗥', 'S': '𝗦', 'T': '𝗧', 'U': '𝗨', 'V': '𝗩', 'W': '𝗪', 'X': '𝗫', 'Y': '𝗬', 'Z': '𝗭'
+    },
+    "bold_italic": {
+        'a': '𝒂', 'b': '𝒃', 'c': '𝒄', 'd': '𝒅', 'e': '𝒆', 'f': '𝒇', 'g': '𝒈', 'h': '𝒉', 'i': '𝒊', 'j': '𝒋', 'k': '𝒌', 'l': '𝒍', 'm': '𝒎', 'n': '𝒏', 'o': '𝒐', 'p': '𝒑', 'q': '𝒒', 'r': '𝒓', 's': '𝒔', 't': '𝒕', 'u': '𝒖', 'v': '𝒗', 'w': '𝒘', 'x': '𝒙', 'y': '𝒚', 'z': '𝒛',
+        'A': '𝑨', 'B': '𝑩', 'C': '𝑪', 'D': '𝑫', 'E': '𝑬', 'F': '𝑭', 'G': '𝑮', 'H': '𝑯', 'I': '𝑰', 'J': '𝑱', 'K': '𝑲', 'L': '𝑳', 'M': '𝑴', 'N': '𝑵', 'O': '𝑶', 'P': '𝑷', 'Q': '𝑸', 'R': '𝑹', 'S': '𝑺', 'T': '𝑻', 'U': '𝑼', 'V': '𝑽', 'W': '𝑾', 'X': '𝑿', 'Y': '𝒀', 'Z': '𝒁'
+    },
+    "sans_italic": {
+        'a': '𝘢', 'b': '𝘣', 'c': '𝘤', 'd': '𝘥', 'e': '𝘦', 'f': '𝘧', 'g': '𝘨', 'h': '𝘩', 'i': '𝘪', 'j': '𝘫', 'k': '𝘬', 'l': '𝘭', 'm': '𝘮', 'n': '𝘯', 'o': '𝘰', 'p': '𝘱', 'q': '𝘲', 'r': '𝘳', 's': '𝘴', 't': '𝘵', 'u': '𝘶', 'v': '𝘷', 'w': '𝘸', 'x': '𝘹', 'y': '𝘺', 'z': '𝘻',
+        'A': '𝘈', 'B': '𝘉', 'C': '𝘊', 'D': '𝘋', 'E': '𝘌', 'F': '𝘍', 'G': '𝘎', 'H': '𝘏', 'I': '𝘐', 'J': '𝘑', 'K': '𝘒', 'L': '𝘓', 'M': '𝘔', 'N': '𝘕', 'O': '𝘖', 'P': '𝘗', 'Q': '𝘘', 'R': '𝘙', 'S': '𝘚', 'T': '𝘛', 'U': '𝘜', 'V': '𝘝', 'W': '𝘞', 'X': '𝘟', 'Y': '𝘠', 'Z': '𝘡'
+    },
+    "bubbles": {
+        'a': 'ⓐ', 'b': 'ⓑ', 'c': 'ⓒ', 'd': 'ⓓ', 'e': 'ⓔ', 'f': 'ⓕ', 'g': 'ⓖ', 'h': 'ⓗ', 'i': 'ⓘ', 'j': 'ⓙ', 'k': 'ⓚ', 'l': 'ⓛ', 'm': 'ⓜ', 'n': 'ⓝ', 'o': 'ⓞ', 'p': 'ⓟ', 'q': 'ⓠ', 'r': 'ⓡ', 's': 'ⓢ', 't': 'ⓣ', 'u': 'ⓤ', 'v': 'ⓥ', 'w': 'ⓦ', 'x': 'ⓧ', 'y': 'ⓨ', 'z': 'ⓩ',
+        'A': 'Ⓐ', 'B': 'Ⓑ', 'C': 'Ⓒ', 'D': 'Ⓓ', 'E': 'Ⓔ', 'F': 'Ⓕ', 'G': 'Ⓖ', 'H': 'Ⓗ', 'I': 'Ⓘ', 'J': 'Ⓙ', 'K': 'Ⓚ', 'L': 'Ⓛ', 'M': 'Ⓜ', 'N': 'Ⓝ', 'O': 'Ⓞ', 'P': 'Ⓟ', 'Q': 'Ⓠ', 'R': 'Ⓡ', 'S': 'Ⓢ', 'T': 'Ⓣ', 'U': 'Ⓤ', 'V': 'Ⓥ', 'W': 'Ⓦ', 'X': 'Ⓧ', 'Y': 'Ⓨ', 'Z': 'Ⓩ',
+        '0': '⓪', '1': '①', '2': '②', '3': '③', '4': '④', '5': '⑤', '6': '⑥', '7': '⑦', '8': '⑧', '9': '⑨'
+    },
+    "squares": {
+        'a': '🄰', 'b': '🄱', 'c': '🄲', 'd': '🄳', 'e': '🄴', 'f': '🄵', 'g': '🄶', 'h': '🄷', 'i': '🄸', 'j': '🄹', 'k': '🄺', 'l': '🄻', 'm': '🄼', 'n': '🄽', 'o': '🄾', 'p': '🄿', 'q': '🅀', 'r': '🅁', 's': '🅂', 't': '🅃', 'u': '🅄', 'v': '🅅', 'w': '🅆', 'x': '🅇', 'y': '🅈', 'z': '🅉',
+        'A': '🄰', 'B': '🄱', 'C': '🄲', 'D': '🄳', 'E': '🄴', 'F': '🄵', 'G': '🄶', 'H': '🄷', 'I': '🄸', 'J': '🄹', 'K': '🄺', 'L': '🄻', 'M': '🄼', 'N': '🄽', 'O': '🄾', 'P': '🄿', 'Q': '🅀', 'R': '🅁', 'S': '🅂', 'T': '🅃', 'U': '🅄', 'V': '🅅', 'W': '🅆', 'X': '🅇', 'Y': '🅈', 'Z': '🅉'
     }
+}
+
+def stylish(text, style="smallcaps"):
+    if not text or style == "none": return text or ""
+    mapping = _FONTS.get(style, _FONTS["smallcaps"])
     def _rep(m):
         t = m.group(0)
         if t.startswith('<') and t.endswith('>'): return t
         if (t.startswith('{') and t.endswith('}')) or t.startswith('/'):
             return t
-        return "".join(mapping.get(c.lower(), c) if c.isalpha() else mapping.get(c, c) for c in t)
+        res = []
+        for c in t:
+            r = mapping.get(c)
+            if r is None:
+                r = mapping.get(c.lower())
+            res.append(r if r is not None else c)
+        return "".join(res)
     return re.sub(r'<[^>]+>|\{[^{}]+\}|/\w+|[^<{}/]+|/', _rep, str(text))
 
 def fmt_size(size) -> str:
@@ -1539,8 +1601,8 @@ class SafeDict(dict):
 
 def kb_start(bot_id, user_id):
     rows = [
-        [InlineKeyboardButton(stylish("BATCH"), callback_data="start_batch")],
-        [InlineKeyboardButton(stylish("ABOUT"), callback_data="about_bot")],
+        [InlineKeyboardButton(stylish("BATCH"), callback_data="start_batch"),
+         InlineKeyboardButton(stylish("ABOUT"), callback_data="about_bot")],
         [InlineKeyboardButton(stylish("HELP"), callback_data="help_menu")]
     ]
     return InlineKeyboardMarkup(rows)
@@ -1559,6 +1621,7 @@ def kb_admin():
          InlineKeyboardButton(get_btn_name("btn_adul", " DUAL POSTS"),   callback_data="dual_posts_admin")],
         [InlineKeyboardButton(get_btn_name("btn_awlc", " WELCOME"),      callback_data="edit_welcome_msg"),
          InlineKeyboardButton(get_btn_name("btn_aapr", " AUTO APP."),    callback_data="toggle_auto_approve")],
+        [InlineKeyboardButton(stylish(" ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs "), callback_data="manage_requests")],
         [InlineKeyboardButton(get_btn_name("btn_acap", " AUTO CAP."),    callback_data="toggle_auto_caption"),
          InlineKeyboardButton(get_btn_name("btn_atmr", " TIMER"),          callback_data="edit_timer")],
         [InlineKeyboardButton(stylish(" CREATE POST"), callback_data="cb_create_post")],
@@ -2645,13 +2708,21 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("createpost") & filters.private, group=1)
     async def createpost_cmd(client, message):
         uid = message.from_user.id; bot_id = client.me.id; bi = get_bot_info(bot_id)
-        if not (is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
-            return await message.reply(stylish(" Access Denied! Only bot admins can create posts."))
 
         TEMP_POST[uid] = {"bot_id": bot_id, "step": "content"}
+        text = " **Post Creator — Step 1/3**\n\nSend the message you want to create (Text, Photo, Video, etc.).\n\nYou can use stylish fonts by selecting text and choosing a style (if supported)."
+
+        btns = [[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")]]
+
+        # Encourage cloning if not bot owner/admin
+        is_adm = is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)
+        if not is_adm:
+            text = "<b>WANT TO BECOME AN ADMIN?</b>\n\nCreate your own bot clone to get full admin features including post management and more!\n\n" + text
+            btns.insert(0, [InlineKeyboardButton(stylish(" ᴄʟᴏɴᴇ ᴛʜɪs ʙᴏᴛ "), callback_data="clone_menu")])
+
         await message.reply(
-            stylish(" **Post Creator — Step 1/3**\n\nSend the message you want to create (Text, Photo, Video, etc.).\n\nYou can use stylish fonts by selecting text and choosing a style (if supported)."),
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")]])
+            stylish(text),
+            reply_markup=InlineKeyboardMarkup(btns)
         )
 
     @app.on_message(filters.command("done") & filters.private, group=1)
@@ -3139,7 +3210,7 @@ def register_handlers(app: Client):
             return await message.reply(f" Removed! ({n} clones updated)")
 
     @app.on_message(filters.command(["premium","botinfo","help",
-                                      "setglobal","addadmin","deladmin","search"]) & filters.private, group=1)
+                                      "setglobal","addadmin","deladmin","search", "font", "requests"]) & filters.private, group=1)
     async def misc_commands(client, message):
         uid=message.from_user.id; bot_id=client.me.id; cmd=message.command[0]
         if cmd == "premium":
@@ -3311,6 +3382,48 @@ def register_handlers(app: Client):
                 text+=f"{icon} `{name[:40]}`   {fmt_size(f.get('file_size',0))}\n"
                 btns.append([InlineKeyboardButton(f"{icon} {name[:30]}",url=link)])
             await message.reply(text,reply_markup=InlineKeyboardMarkup(btns))
+        elif cmd == "font":
+            user = get_user(uid, bot_id)
+            curr = user.get("pref_font", "smallcaps")
+            text = stylish(f"<b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\nᴄᴜʀʀᴇɴᴛ ғᴏɴᴛ: <code>{curr}</code>\n\nsᴇʟᴇᴄᴛ ᴀ ɴᴇᴡ ғᴏɴᴛ sᴛʏʟᴇ ʙᴇʟᴏᴡ. ᴛʜɪs sᴛʏʟᴇ ᴡɪʟʟ ʙᴇ ᴀᴘᴘʟɪᴇᴅ ᴛᴏ ᴀʟʟ ʏᴏᴜʀ ᴄᴀᴘᴛɪᴏɴs ᴀɴᴅ ᴘᴏsᴛs.")
+            btns = []
+            font_keys = ["none"] + list(_FONTS.keys())
+            for i in range(0, len(font_keys), 2):
+                row = [InlineKeyboardButton(stylish(font_keys[i], font_keys[i]), callback_data=f"setfont_{font_keys[i]}")]
+                if i + 1 < len(font_keys):
+                    row.append(InlineKeyboardButton(stylish(font_keys[i+1], font_keys[i+1]), callback_data=f"setfont_{font_keys[i+1]}"))
+                btns.append(row)
+            btns.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_cat_fonts")])
+            await message.reply(text, reply_markup=InlineKeyboardMarkup(btns))
+        elif cmd == "requests":
+            bi = get_bot_info(bot_id)
+            if not (is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
+                return await message.reply(stylish(" Access Denied! Only bot admins can manage requests."))
+
+            pending = []
+            for cid, users in _PENDING.items():
+                for u_id, ts in users.items():
+                    pending.append((cid, u_id, ts))
+
+            if not pending:
+                return await message.reply(stylish(" No pending join requests!"))
+
+            text = stylish(f" **ᴘᴇɴᴅɪɴɢ ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs ({len(pending)})**\n\n")
+            btns = []
+            for cid, u_id, ts in pending[:10]:
+                try:
+                    chat = await client.get_chat(cid)
+                    c_title = chat.title
+                except: c_title = str(cid)
+
+                text += stylish(f"• ᴜsᴇʀ: <code>{u_id}</code>\n  ᴄʜᴀɴɴᴇʟ: {c_title}\n  ᴛɪᴍᴇ: {ts[:16]}\n\n")
+                btns.append([
+                    InlineKeyboardButton(stylish(f"✅ Approve {u_id}"), callback_data=f"req_approve_{cid}_{u_id}"),
+                    InlineKeyboardButton(stylish(f"❌ Decline {u_id}"), callback_data=f"req_decline_{cid}_{u_id}")
+                ])
+
+            btns.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="admin_panel")])
+            await message.reply(text, reply_markup=InlineKeyboardMarkup(btns))
 
     # ── INLINE SEARCH ─────────────────────────────────────────────
     @app.on_inline_query()
@@ -3402,10 +3515,16 @@ def register_handlers(app: Client):
                 return await message.reply(f" DB Channel error (Main Bot fallback): \n`{e}`")
 
         bi = get_bot_info(bot_id)
+        user_data_f = get_user(uid, bot_id)
+        user_font = user_data_f.get("pref_font", "smallcaps") if user_data_f else "smallcaps"
+
         original_caption = message.caption or message.text
-        if bi and bi.get("auto_caption") and not original_caption and (message.document or message.video or message.audio):
+        if original_caption:
+            original_caption = stylish(original_caption, user_font)
+
+        if bi and bi.get("auto_caption") and not (message.caption or message.text) and (message.document or message.video or message.audio):
             fname = (message.document or message.video or message.audio).file_name or "File"
-            original_caption = f" **File Name:** `{fname}`\n\n **Powered by:** @{client.me.username}"
+            original_caption = stylish(f" **File Name:** {fname}\n\n **Powered by:** @{client.me.username}", user_font)
         file_id = None
         file_name = "Message/Post"
         file_size = 0
@@ -3543,15 +3662,20 @@ def register_handlers(app: Client):
             if step == "content":
                 sess["content"] = message
                 sess["step"] = "style"
+
+                btns = []
+                font_keys = list(_FONTS.keys())
+                for i in range(0, len(font_keys), 2):
+                    row = [InlineKeyboardButton(stylish(font_keys[i], font_keys[i]), callback_data=f"pstyle_{font_keys[i]}")]
+                    if i + 1 < len(font_keys):
+                        row.append(InlineKeyboardButton(stylish(font_keys[i+1], font_keys[i+1]), callback_data=f"pstyle_{font_keys[i+1]}"))
+                    btns.append(row)
+                btns.append([InlineKeyboardButton("Normal", callback_data="pstyle_none")])
+                btns.append([InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")])
+
                 await message.reply(
                     stylish(" **Post content saved!**\n\nStep 2/3: Choose a font style for your text/caption:"),
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("Normal", callback_data="pstyle_none"),
-                         InlineKeyboardButton("Sᴍᴀʟʟ Cᴀᴘs", callback_data="pstyle_smallcaps")],
-                        [InlineKeyboardButton("Bold", callback_data="pstyle_bold"),
-                         InlineKeyboardButton("Italic", callback_data="pstyle_italic")],
-                        [InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")]
-                    ])
+                    reply_markup=InlineKeyboardMarkup(btns)
                 )
             elif step == "buttons":
                 txt = message.text or ""
@@ -3569,9 +3693,8 @@ def register_handlers(app: Client):
                 style = sess.get("style", "none")
 
                 text = content.text or content.caption or ""
-                if style == "smallcaps": text = stylish(text)
-                elif style == "bold": text = f"**{text}**"
-                elif style == "italic": text = f"__{text}__"
+                if style in _FONTS:
+                    text = stylish(text, style)
 
                 del TEMP_POST[uid]
 
@@ -3678,15 +3801,20 @@ def register_handlers(app: Client):
 
                 sess["temp_caption"] = txt
                 sess["mode"] = "caption_style"
+
+                btns = []
+                font_keys = list(_FONTS.keys())
+                for i in range(0, len(font_keys), 2):
+                    row = [InlineKeyboardButton(stylish(font_keys[i], font_keys[i]), callback_data=f"cstyle_{font_keys[i]}_{fuid}")]
+                    if i + 1 < len(font_keys):
+                        row.append(InlineKeyboardButton(stylish(font_keys[i+1], font_keys[i+1]), callback_data=f"cstyle_{font_keys[i+1]}_{fuid}"))
+                    btns.append(row)
+                btns.append([InlineKeyboardButton("Normal", callback_data=f"cstyle_none_{fuid}")])
+                btns.append([InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_edit")])
+
                 await message.reply(
                     stylish(" **Text received!**\n\nChoose a font style for the caption:"),
-                    reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("Normal", callback_data=f"cstyle_none_{fuid}"),
-                         InlineKeyboardButton("Sᴍᴀʟʟ Cᴀᴘs", callback_data=f"cstyle_smallcaps_{fuid}")],
-                        [InlineKeyboardButton("Bold", callback_data=f"cstyle_bold_{fuid}"),
-                         InlineKeyboardButton("Italic", callback_data=f"cstyle_italic_{fuid}")],
-                        [InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_edit")]
-                    ])
+                    reply_markup=InlineKeyboardMarkup(btns)
                 )
             elif mode == "thumbnail":
                 if not message.photo: return await message.reply(" Send a **photo** as thumbnail.")
@@ -3894,9 +4022,8 @@ def register_handlers(app: Client):
             txt = TEMP_EDIT[uid].get("temp_caption")
             if not txt: return await cb.answer("Error: Text missing!", show_alert=True)
 
-            if style == "smallcaps": txt = stylish(txt)
-            elif style == "bold": txt = f"**{txt}**"
-            elif style == "italic": txt = f"__{txt}__"
+            if style in _FONTS:
+                txt = stylish(txt, style)
 
             files = load_db(FILES_DB)
             if fuid in files:
@@ -4056,8 +4183,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "cb_create_post":
-            cb.data = "createpost"
-            # Manually trigger createpost_cmd if needed or just handle it here
+            # Manually trigger createpost_cmd
             await cb.message.delete()
             # Faking a message object for createpost_cmd
             class FakeMsg:
@@ -4065,6 +4191,7 @@ def register_handlers(app: Client):
                     self.from_user = from_user
                     self.chat = chat
                     self.text = text
+                    self.command = ["createpost"]
                 async def reply(self, text, reply_markup=None):
                     return await client.send_message(self.chat.id, text, reply_markup=reply_markup)
 
@@ -4128,6 +4255,27 @@ def register_handlers(app: Client):
                 " Use `/listfiles` to browse.",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Home", callback_data="back_to_start")]])
             )
+            await cb.answer()
+
+        elif data == "listfiles_cb":
+            files = load_db(FILES_DB); bi = get_bot_info(bot_id)
+            is_sup = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid)
+            all_f = [(k,f) for k,f in files.items()
+                     if f.get("bot_id")==bot_id and (is_sup or f.get("user_id")==uid)]
+            if not all_f: return await cb.answer(" No files found!", show_alert=True)
+            recent = sorted(all_f, key=lambda x: x[1].get("upload_date",""), reverse=True)[:10]
+            text = f" **{'All' if is_sup else 'Your'} Files** ({len(all_f)} total)\n\n"
+            btns = []
+            for k, f in recent:
+                icon = file_icon(f.get("file_name",""))
+                name = (f.get("file_name") or "?")[:35]
+                text += f"{icon} **{name}** |  {fmt_size(f.get('file_size',0))} |  {f.get('access_count',0)}\n`{k}`\n\n"
+                btns.append([
+                    InlineKeyboardButton(f"{icon} {name[:22]}", url=f"https://t.me/{client.me.username}?start=f_{k}"),
+                    InlineKeyboardButton(stylish(" EDIT"), callback_data=f"edit_file_{k}")
+                ])
+            btns.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_cat_files")])
+            await cb.message.edit(stylish(text), reply_markup=InlineKeyboardMarkup(btns))
             await cb.answer()
 
         # ── Dual post callbacks ───────────────────────────────────
@@ -4504,28 +4652,75 @@ def register_handlers(app: Client):
             await cb.message.edit(stylish(text), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("BACK"), callback_data="back_to_start")]]), disable_web_page_preview=True)
             await cb.answer()
 
+        elif data == "font_editor":
+            user = get_user(uid, bot_id)
+            curr = user.get("pref_font", "smallcaps") if user else "smallcaps"
+            text = stylish(f"<b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\nᴄᴜʀʀᴇɴᴛ ғᴏɴᴛ: <code>{curr}</code>\n\nsᴇʟᴇᴄᴛ ᴀ ɴᴇᴡ ғᴏɴᴛ sᴛʏʟᴇ ʙᴇʟᴏᴡ. ᴛʜɪs sᴛʏʟᴇ ᴡɪʟʟ ʙᴇ ᴀᴘᴘʟɪᴇᴅ ᴛᴏ ᴀʟʟ ʏᴏᴜʀ ᴄᴀᴘᴛɪᴏɴs ᴀɴᴅ ᴘᴏsᴛs.")
+            btns = []
+            font_keys = ["none"] + list(_FONTS.keys())
+            for i in range(0, len(font_keys), 2):
+                row = [InlineKeyboardButton(stylish(font_keys[i], font_keys[i]), callback_data=f"setfont_{font_keys[i]}")]
+                if i + 1 < len(font_keys):
+                    row.append(InlineKeyboardButton(stylish(font_keys[i+1], font_keys[i+1]), callback_data=f"setfont_{font_keys[i+1]}"))
+                btns.append(row)
+            btns.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_cat_fonts")])
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(btns))
+            await cb.answer()
+
+        elif data.startswith("setfont_"):
+            new_font = data[8:]
+            users = load_db(USERS_DB)
+            ukey = f"{bot_id}_{uid}"
+            if ukey in users:
+                users[ukey]["pref_font"] = new_font
+                save_db(USERS_DB, users)
+                await cb.answer(f"Font updated to {new_font}!", show_alert=True)
+                # Refresh editor
+                await cb_handler(client, type('CB', (), {'from_user': cb.from_user, 'data': 'font_editor', 'message': cb.message, 'answer': lambda *a, **k: asyncio.sleep(0)})())
+            else:
+                await cb.answer("User not found in DB!", show_alert=True)
+
         elif data == "help_menu":
-            text = stylish("<b>sᴇʟᴇᴄᴛ ᴄᴀᴛᴇɢᴏʀʏ:</b>")
+            text = stylish("<b>sᴇʟᴇᴄᴛ ʜᴇʟᴘ ᴄᴀᴛᴇɢᴏʀʏ:</b>")
+            bi_h = get_bot_info(bot_id)
+            is_adm = is_admin(uid, bot_id) or (bi_h and bi_h.get("owner_id") == uid)
+
             buttons = [
                 [InlineKeyboardButton(stylish("ɢᴇɴᴇʀᴀʟ"), callback_data="help_cat_general"),
                  InlineKeyboardButton(stylish("ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ"), callback_data="help_cat_files")],
                 [InlineKeyboardButton(stylish("ᴀᴅᴠᴀɴᴄᴇᴅ"), callback_data="help_cat_advanced"),
-                 InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ"), callback_data="help_cat_admin")],
-                [InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="back_to_start")]
+                 InlineKeyboardButton(stylish("ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="help_cat_fonts")]
             ]
+            if is_adm:
+                buttons.append([InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ғᴇᴀᴛᴜʀᴇs"), callback_data="help_cat_admin")])
+
+            buttons.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="back_to_start")])
             await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
             await cb.answer()
 
         elif data.startswith("help_cat_"):
             cat = data[9:]
             help_data = {
-                "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/search - Search for files\n/stats - View your statistics\n/premium - Premium membership info</blockquote>",
-                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/done - Finish batch/session\n/cancel - Cancel current action\n/listfiles - List your uploaded files\n/myduals - Manage your dual posts</blockquote>",
-                "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/dualpost - Create a dual-tier post\n/protect - Protect a channel link\n/mybots - List your cloned bots</blockquote>",
-                "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Open Admin Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome message\n/setlog - Set log channel</blockquote>"
+                "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/search - Search for files\n/stats - View your statistics\n/premium - Premium membership info\n/botinfo - View bot details\n/ping - Check bot speed</blockquote>",
+                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/done - Finish batch/session\n/cancel - Cancel current action\n/listfiles - List your uploaded files\n/editfile - Edit file metadata\n/delfile - Delete a file\n/dualpost - Create dual-tier link\n/myduals - Manage dual posts\n/createpost - Create custom post</blockquote>",
+                "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/mybots - List your cloned bots\n/protect - Protect channel link\n/myplinks - Manage protected links\n/addadmin - Add secondary admin\n/deladmin - Remove secondary admin</blockquote>",
+                "fonts": "<blockquote><b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\n/font - Open font editor\n\nChange your default font for captions and posts. Choose from over 10+ highly advanced stylish font designs.</blockquote>",
+                "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Admin Panel\n/supreme - Supreme Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome msg\n/setlog - Set log channel\n/broadcast - Send message to all\n/ban - Ban a user\n/unban - Unban a user\n/settimer - Auto-delete timer\n/setprice - Set premium price\n/rebuild - Rebuild database\n/backup - Manual backup\n/requests - Manage join requests</blockquote>"
             }
+
+            buttons = []
+            if cat == "admin":
+                buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"), callback_data="admin_panel")])
+            elif cat == "fonts":
+                buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="font_editor")])
+            elif cat == "files":
+                buttons.append([InlineKeyboardButton(stylish("ᴍʏ ғɪʟᴇs"), callback_data="listfiles_cb")])
+            elif cat == "general":
+                buttons.append([InlineKeyboardButton(stylish("ᴍʏ sᴛᴀᴛs"), callback_data="user_dashboard")])
+
+            buttons.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_menu")])
             text = stylish(help_data.get(cat, "No details found."))
-            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_menu")]]))
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
             await cb.answer()
         elif data in ("cb_search", "premium_menu", "referral_menu"):
             bi_cb = get_bot_info(bot_id)
@@ -4928,6 +5123,42 @@ def register_handlers(app: Client):
                 await cb.message.edit(cb.message.text, reply_markup=kb_start(bot_id, uid) if "ʜᴇʟʟᴏ" in cb.message.text else kb_admin())
             except: pass
 
+        elif data == "manage_requests":
+            bi = get_bot_info(bot_id)
+            if not (is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
+                return await cb.answer(" Access Denied!", show_alert=True)
+
+            pending = []
+            for cid, users in _PENDING.items():
+                # For clone bots, only show requests for channels they are managing if possible
+                # But _PENDING is global. Let's filter by connected channel if it's a clone.
+                conn_ch = bi.get("connected_channel")
+                if conn_ch and cid != conn_ch and uid != MAIN_ADMIN:
+                    continue
+                for u_id, ts in users.items():
+                    pending.append((cid, u_id, ts))
+
+            if not pending:
+                return await cb.answer(" No pending join requests!", show_alert=True)
+
+            text = f" **Pending Join Requests ({len(pending)})**\n\n"
+            btns = []
+            for cid, u_id, ts in pending[:10]:
+                try:
+                    chat = await client.get_chat(cid)
+                    c_title = chat.title
+                except: c_title = str(cid)
+
+                text += f"• User: `{u_id}`\n  Channel: {c_title}\n  Time: {ts[:16]}\n\n"
+                btns.append([
+                    InlineKeyboardButton(f"✅ Approve {u_id}", callback_data=f"req_approve_{cid}_{u_id}"),
+                    InlineKeyboardButton(f"❌ Decline {u_id}", callback_data=f"req_decline_{cid}_{u_id}")
+                ])
+
+            btns.append([InlineKeyboardButton(" Back", callback_data="admin_panel")])
+            await cb.message.edit(stylish(text), reply_markup=InlineKeyboardMarkup(btns))
+            await cb.answer()
+
         elif data == "toggle_auto_caption":
             bi = get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
@@ -5290,6 +5521,47 @@ def register_handlers(app: Client):
         elif data == "cancel_import":
             await cb.message.edit(" Import cancelled.")
             await cb.answer()
+
+        elif data.startswith("req_"):
+            parts = data.split("_")
+            action = parts[1] # approve or decline
+            cid = int(parts[2])
+            u_id = int(parts[3])
+
+            if action == "approve":
+                try:
+                    try:
+                        await client.approve_chat_join_request(cid, u_id)
+                    except Exception:
+                        main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
+                        if main_client: await main_client.approve_chat_join_request(cid, u_id)
+                        else: raise
+
+                    clear_join_request(cid, u_id)
+                    await cb.answer(f"User {u_id} approved!", show_alert=True)
+                    try: await client.send_message(u_id, stylish(" **Your request to join has been approved!**"))
+                    except: pass
+                except Exception as e:
+                    await cb.answer(f"Failed: {e}", show_alert=True)
+            else: # decline
+                try:
+                    # Pyrogram doesn't have decline_chat_join_request but we can just clear it from our list
+                    # and optionally kick the user if they were in a state that needed declining.
+                    # Usually, just clearing it from our tracker is enough if auto-approve is OFF.
+                    clear_join_request(cid, u_id)
+                    await cb.answer(f"User {u_id} request declined/cleared.", show_alert=True)
+                except Exception as e:
+                    await cb.answer(f"Failed: {e}", show_alert=True)
+
+            # Refresh requests list
+            class FakeCB:
+                def __init__(self, from_user, message):
+                    self.from_user = from_user
+                    self.message = message
+                    self.data = "manage_requests"
+                async def answer(self, *a, **k): pass
+
+            await cb_handler(client, FakeCB(cb.from_user, cb.message))
 
         elif data == "back_to_start":
             bi  = get_bot_info(bot_id)
