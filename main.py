@@ -110,6 +110,7 @@ BOT_COMMANDS = [
     BotCommand("restart",     " Restart (Supreme)"),
     BotCommand("ping",        " Ping"),
     BotCommand("listfiles",   " List files"),
+    BotCommand("mybatches",   " List your batches"),
     BotCommand("editfile",    " Edit file"),
     BotCommand("delfile",     " Delete file"),
     BotCommand("setwelcome",  " Set welcome message"),
@@ -1543,7 +1544,8 @@ async def check_force_sub(client, user_id: int):
         except UserNotParticipant:
             if has_pending_request(ch_id, user_id): continue
             must_join.append(fs)
-        except Exception:
+        except Exception as e:
+            logger.warning(f"FS Check error for {ch_id}: {e}")
             continue
     if not must_join: return True, []
     links = []
@@ -1680,6 +1682,18 @@ def kb_file_edit(uid: str):
         [InlineKeyboardButton(stylish(" Password"), callback_data=f"set_pass_{uid}"),
          InlineKeyboardButton(stylish("Back"),      callback_data="my_files_back")],
     ])
+
+def get_file_edit_text(client, fd, fuid):
+    icon = file_icon(fd.get("file_name",""))
+    cap = fd.get("caption") or "_(none)_"
+    thumb = " [Thumb Set]" if fd.get("custom_thumbnail") else ""
+    link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+    return (
+        f" **File Editor**\n\n{icon} **{fd.get('file_name','?')}**\n"
+        f" `{fuid}` |  {fmt_size(fd.get('file_size',0))}\n"
+        f" {cap}{thumb} |  `{fd.get('access_count',0)}` views\n\n"
+        f" **Link:** `{link}`"
+    )
 
 # ═══════════════════════════════════════════════════════════════
 #  HANDLERS
@@ -2172,7 +2186,7 @@ def register_handlers(app: Client):
                 url=f"https://t.me/{client.me.username}?start={deep}"
             )])
             return await message.reply(
-                "ᴍᴇᴍʙᴇʀsʜɪᴘ ʀᴇǫᴜɪʀᴇᴅ!\n\nᴊᴏɪɴ ᴄʜᴀɴɴᴇʟs ʙᴇʟᴏᴡ.",
+                stylish(" **Membership Required!**\n\nPlease join the channels below or send a join request to access the bot."),
                 reply_markup=InlineKeyboardMarkup(btns)
             )
 
@@ -2209,14 +2223,9 @@ def register_handlers(app: Client):
                 old_ts, old_link = user_links[ukey]
                 if now_ts - old_ts < 300: # 5 minutes
                     return await message.reply(
-                        f" **YOUR EXCLUSIVE LINK IS STILL ACTIVE** \n"
-                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        f" **Note:** This link will expire soon!\n\n"
-                        f" **Channel:** `{pdata.get('title', chid)}`\n"
-                        f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        f" **CLICK BELOW TO JOIN** ",
+                        stylish(" **Here is your link**"),
                         reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton(" JOIN CHANNEL NOW", url=old_link)]
+                            [InlineKeyboardButton(stylish(" JOIN NOW"), url=old_link)]
                         ])
                     )
 
@@ -2232,15 +2241,9 @@ def register_handlers(app: Client):
                 save_db(f"{DB_FOLDER}/user_links.json", user_links)
 
                 await message.reply(
-                    f" **THIS IS YOUR EXCLUSIVE LINK** \n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f" **Note:** This link is valid for **5 minutes** only. Join before it expires!\n\n"
-                    f" **Channel:** `{pdata.get('title', chid)}`\n"
-                    f" **Join Mode:** `{mode.upper()}`\n"
-                    f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f" **CLICK BELOW TO JOIN** ",
+                    stylish(" **Here is your link**"),
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(" JOIN CHANNEL NOW", url=invite.invite_link)]
+                        [InlineKeyboardButton(stylish(" JOIN NOW"), url=invite.invite_link)]
                     ])
                 )
                 return
@@ -2820,12 +2823,8 @@ def register_handlers(app: Client):
         bi  = get_bot_info(bot_id)
         can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
         if not can: return await message.reply(" Not your file!")
-        icon = file_icon(fd.get("file_name","")); cap = fd.get("caption") or "_(none)_"
-        thumb = "" if fd.get("custom_thumbnail") else ""
         await message.reply(
-            f" **File Editor**\n\n{icon} **{fd.get('file_name','?')}**\n"
-            f" `{fuid}` |  {fmt_size(fd.get('file_size',0))}\n"
-            f" {cap} |  {thumb} |  `{fd.get('access_count',0)}`",
+            get_file_edit_text(client, fd, fuid),
             reply_markup=kb_file_edit(fuid)
         )
 
@@ -3382,6 +3381,26 @@ def register_handlers(app: Client):
                 text+=f"{icon} `{name[:40]}`   {fmt_size(f.get('file_size',0))}\n"
                 btns.append([InlineKeyboardButton(f"{icon} {name[:30]}",url=link)])
             await message.reply(text,reply_markup=InlineKeyboardMarkup(btns))
+        elif cmd == "mybatches":
+            if is_user_banned(uid, bot_id): return await message.reply(" Banned!")
+            batches = load_db(BATCH_DB); bi = get_bot_info(bot_id)
+            is_sup = uid == MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id") == uid)
+            my_b = []
+            for bid, b in batches.items():
+                if b.get("bot_id") == bot_id and (is_sup or b.get("created_by") == uid):
+                    my_b.append((bid, b))
+
+            if not my_b: return await message.reply(" No batches found!")
+            recent = sorted(my_b, key=lambda x: x[1].get("date", ""), reverse=True)[:10]
+            text = f" **{'All' if is_sup else 'Your'} Batches ({len(my_b)} total)**\n\n"
+            btns = []
+            for bid, b in recent:
+                count = len(b.get("files", []))
+                date = b.get("date", "")[:16]
+                link = f"https://t.me/{client.me.username}?start=b_{bid}"
+                text += f"• **Batch:** `{bid}` ({count} files)\n  Link: `{link}`\n\n"
+                btns.append([InlineKeyboardButton(f" {bid}", url=f"https://t.me/share/url?url={link}")])
+            await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
         elif cmd == "font":
             user = get_user(uid, bot_id)
             curr = user.get("pref_font", "smallcaps")
@@ -3646,8 +3665,8 @@ def register_handlers(app: Client):
         "start","admin","supreme","clone","batch","done","cancel","setfs","mybots","stats",
         "help","broadcast","ban","unban","info","givepremium","removepremium","gban","ungban","botinfo",
         "settimer","search","premium","setprice","shortener","setlog",
-        "setchannel","setmode",
-        "rebuild","backup","restart","ping","listfiles","editfile","delfile",
+        "setchannel","setmode","protect","myplinks","requests","font",
+        "rebuild","backup","restart","ping","listfiles","mybatches","editfile","delfile",
         "setwelcome","setglobal","addadmin","deladmin",
         "dualpost","dpremium","dpdone","dpcancel","myduals","deldual","dpstats",
         "createpost"
@@ -3656,6 +3675,7 @@ def register_handlers(app: Client):
     @app.on_message(filters.private & ~filters.command(_CMD_LIST), group=2)
     async def fsm_responder(client, message):
         uid = message.from_user.id; bot_id = client.me.id
+        if message.text and message.text.startswith("/"): return
 
         if uid in TEMP_POST:
             sess = TEMP_POST[uid]; step = sess.get("step")
@@ -3797,7 +3817,10 @@ def register_handlers(app: Client):
                     main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                     asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                     del TEMP_EDIT[uid]
-                    return await message.reply(stylish(" Caption removed!"), reply_markup=kb_file_edit(fuid))
+                    return await message.reply(
+                        get_file_edit_text(client, files[fuid], fuid),
+                        reply_markup=kb_file_edit(fuid)
+                    )
 
                 sess["temp_caption"] = txt
                 sess["mode"] = "caption_style"
@@ -3823,7 +3846,10 @@ def register_handlers(app: Client):
                 main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
-                await message.reply(" Thumbnail updated!", reply_markup=kb_file_edit(fuid))
+                await message.reply(
+                    get_file_edit_text(client, files[fuid], fuid),
+                    reply_markup=kb_file_edit(fuid)
+                )
             elif mode == "qrename":
                 if not message.text: return await message.reply(" Send a **new file name**.")
                 new_name = message.text.strip()
@@ -3832,7 +3858,10 @@ def register_handlers(app: Client):
                 main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
-                await message.reply(f" **Quick Rename Complete!**\n\n `{new_name}`\n_Note: This only changes how the bot displays the name._", reply_markup=kb_file_edit(fuid))
+                await message.reply(
+                    get_file_edit_text(client, files[fuid], fuid),
+                    reply_markup=kb_file_edit(fuid)
+                )
 
             elif mode == "set_price":
                 update_bot_info(bot_id, "premium_price", message.text.strip())
@@ -3886,7 +3915,7 @@ def register_handlers(app: Client):
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
                 await message.reply(
-                    stylish(f" Password {'removed' if pw=='-clear' else 'set'}!"),
+                    get_file_edit_text(client, files[fuid], fuid),
                     reply_markup=kb_file_edit(fuid)
                 )
 
@@ -3969,7 +3998,10 @@ def register_handlers(app: Client):
                             main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                             asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
 
-                            await sm.edit(f" **File Renamed Successfully!**\n\n Name: `{new_name}`", reply_markup=kb_file_edit(fuid))
+                            await sm.edit(
+                                get_file_edit_text(client, fd, fuid),
+                                reply_markup=kb_file_edit(fuid)
+                            )
                         else:
                             await sm.edit(" Upload failed!")
 
@@ -3991,12 +4023,8 @@ def register_handlers(app: Client):
             bi = get_bot_info(bot_id)
             can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
             if not can: return await cb.answer(" Not your file!", show_alert=True)
-            icon = file_icon(fd.get("file_name","")); cap = fd.get("caption") or "_(none)_"
-            thumb = "" if fd.get("custom_thumbnail") else ""
             await cb.message.edit(
-                f" **File Editor**\n\n{icon} **{fd.get('file_name','?')}**\n"
-                f" `{fuid}` |  {fmt_size(fd.get('file_size',0))}\n"
-                f" {cap} |  {thumb} |  `{fd.get('access_count',0)}`",
+                get_file_edit_text(client, fd, fuid),
                 reply_markup=kb_file_edit(fuid)
             )
             await cb.answer()
@@ -4033,8 +4061,11 @@ def register_handlers(app: Client):
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
 
             del TEMP_EDIT[uid]
-            await cb.message.edit(stylish(f" Caption updated with style '{style}'!"), reply_markup=kb_file_edit(fuid))
-            await cb.answer()
+            await cb.message.edit(
+                get_file_edit_text(client, files[fuid], fuid),
+                reply_markup=kb_file_edit(fuid)
+            )
+            await cb.answer("Caption updated!")
 
         elif data.startswith("set_pass_"):
             fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
@@ -4089,7 +4120,10 @@ def register_handlers(app: Client):
                     main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                     asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
 
-                    await sm.edit(" **Thumbnail Hard-Fixed!**\n\nThe file has been re-uploaded with the thumbnail permanently attached.", reply_markup=kb_file_edit(fuid))
+                    await sm.edit(
+                        get_file_edit_text(client, fd, fuid),
+                        reply_markup=kb_file_edit(fuid)
+                    )
                 else:
                     await sm.edit(" Fix failed during upload!")
 
@@ -4126,7 +4160,10 @@ def register_handlers(app: Client):
                 main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 await cb.answer(" Thumbnail removed!", show_alert=True)
-                await cb.message.edit(" Thumbnail removed!", reply_markup=kb_file_edit(fuid))
+                await cb.message.edit(
+                    get_file_edit_text(client, files[fuid], fuid),
+                    reply_markup=kb_file_edit(fuid)
+                )
 
         elif data.startswith("del_file_"):
             fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
@@ -4682,27 +4719,17 @@ def register_handlers(app: Client):
 
         elif data == "help_menu":
             text = stylish("<b>sᴇʟᴇᴄᴛ ʜᴇʟᴘ ᴄᴀᴛᴇɢᴏʀʏ:</b>")
-            bi_h = get_bot_info(bot_id)
-            is_adm = is_admin(uid, bot_id) or (bi_h and bi_h.get("owner_id") == uid)
-            is_sup = uid == MAIN_ADMIN
 
             buttons = [
                 [InlineKeyboardButton(stylish("ɢᴇɴᴇʀᴀʟ"), callback_data="help_cat_general"),
                  InlineKeyboardButton(stylish("ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ"), callback_data="help_cat_files")],
                 [InlineKeyboardButton(stylish("ᴀᴅᴠᴀɴᴄᴇᴅ"), callback_data="help_cat_advanced"),
-                 InlineKeyboardButton(stylish("ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="help_cat_fonts")]
+                 InlineKeyboardButton(stylish("ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="help_cat_fonts")],
+                [InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ"), callback_data="help_cat_admin"),
+                 InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ"), callback_data="help_cat_supreme")],
+                [InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="back_to_start")]
             ]
 
-            row_adm = []
-            if is_adm:
-                row_adm.append(InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ"), callback_data="help_cat_admin"))
-            if is_sup:
-                row_adm.append(InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ"), callback_data="help_cat_supreme"))
-
-            if row_adm:
-                buttons.append(row_adm)
-
-            buttons.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="back_to_start")])
             await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
             await cb.answer()
 
@@ -4710,7 +4737,7 @@ def register_handlers(app: Client):
             cat = data[9:]
             help_data = {
                 "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/search - Search for files\n/stats - View your statistics\n/premium - Premium membership info\n/botinfo - View bot details\n/ping - Check bot speed\n/done - Finish session\n/cancel - Cancel current action</blockquote>",
-                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/listfiles - List your uploaded files\n/editfile - Edit file metadata\n/delfile - Delete a file\n/dualpost - Create dual-tier link\n/dpremium - Switch to premium tier\n/dpdone - Finish dual post\n/dpcancel - Cancel dual post\n/myduals - Manage dual posts\n/deldual - Delete dual post\n/dpstats - Dual post analytics\n/createpost - Create custom post</blockquote>",
+                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/listfiles - List your uploaded files\n/mybatches - List your batches\n/editfile - Edit file metadata\n/delfile - Delete a file\n/dualpost - Create dual-tier link\n/dpremium - Switch to premium tier\n/dpdone - Finish dual post\n/dpcancel - Cancel dual post\n/myduals - Manage dual posts\n/deldual - Delete dual post\n/dpstats - Dual post analytics\n/createpost - Create custom post</blockquote>",
                 "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/mybots - List your cloned bots\n/protect - Protect channel link\n/myplinks - Manage protected links\n/addadmin - Add secondary admin\n/deladmin - Remove secondary admin</blockquote>",
                 "fonts": "<blockquote><b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\n/font - Open font editor\n\nChange your default font for captions and posts. Choose from over 10+ highly advanced stylish font designs.</blockquote>",
                 "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Admin Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome msg\n/setlog - Set log channel\n/setchannel - Connect channel\n/setmode - Set join mode\n/broadcast - Send message to all\n/ban - Ban a user\n/unban - Unban a user\n/settimer - Auto-delete timer\n/setprice - Set premium price\n/setcontact - Set premium contact\n/setqr - Set premium QR code\n/givepremium - Give premium access\n/removepremium - Revoke premium access\n/shortener - Configure shortener\n/requests - Manage join requests</blockquote>",
