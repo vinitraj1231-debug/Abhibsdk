@@ -1,8 +1,8 @@
 """
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🚀 ULTRA ADVANCED FILESTORE BOT v7.0 — ELITE EDITION
+ ULTRA ADVANCED FILESTORE BOT v7.0 — ELITE EDITION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ DUAL TIER POST SYSTEM
+ DUAL TIER POST SYSTEM
    ├─ EK LINK → 2 experiences: FREE + PREMIUM
    ├─ FREE users  → shortener ads → free files (auto-delete)
    ├─ PREMIUM users → direct delivery → pro files (no delete)
@@ -10,18 +10,18 @@
    ├─ Dual post preview, analytics, delete
    └─ Token-secured shortener bypass
 
-✅ SHORTENER TOKEN SYSTEM  — 15min expiry, one-time use
-✅ SMART 2-PHASE REBUILD   — backup JSON restore + #FS_META scan
-✅ REBUILD NEVER HANGS     — manual pagination, FloodWait handled
-✅ RENDER READY            — aiohttp health-check on $PORT
-✅ BROADCAST               — stored in DB_CHANNEL, copy per-bot
-✅ THUMBNAIL               — BytesIO in_memory → thumb param
-✅ CAPTION EDITOR          — FSM, -clear support
-✅ WELCOME EDITOR          — /setwelcome interactive 2-step
-✅ JOIN REQUEST ACCESS     — pending = bot access
-✅ ADVANCED LINK PROTECT   — dynamic invite link with expiry
-✅ FILE RENAMER            — renaming with download & re-upload
-✅ CLONE + REFERRAL + PREMIUM + ANALYTICS
+ SHORTENER TOKEN SYSTEM  — 15min expiry, one-time use
+ SMART 2-PHASE REBUILD   — backup JSON restore + #FS_META scan
+ REBUILD NEVER HANGS     — manual pagination, FloodWait handled
+ RENDER READY            — aiohttp health-check on $PORT
+ BROADCAST               — stored in DB_CHANNEL, copy per-bot
+ THUMBNAIL               — BytesIO in_memory → thumb param
+ CAPTION EDITOR          — FSM, -clear support
+ WELCOME EDITOR          — /setwelcome interactive 2-step
+ JOIN REQUEST ACCESS     — pending = bot access
+ ADVANCED LINK PROTECT   — dynamic invite link with expiry
+ FILE RENAMER            — renaming with download & re-upload
+ CLONE + REFERRAL + PREMIUM + ANALYTICS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
@@ -38,7 +38,7 @@ from pyrogram.errors import FloodWait, UserNotParticipant, SlowmodeWait
 from pyrogram.enums import ChatMemberStatus
 
 # ═══════════════════════════════════════════════════════════════
-# 🔧 CONFIGURATION
+#  CONFIGURATION
 # ═══════════════════════════════════════════════════════════════
 
 API_ID         = int(os.environ.get("API_ID",         "23790796"))
@@ -76,57 +76,57 @@ DUAL_POST_DB    = f"{DB_FOLDER}/dual_posts.json"
 PLINKS_DB       = f"{DB_FOLDER}/protected_links.json"
 
 BOT_COMMANDS = [
-    BotCommand("start",       "🚀 Start the bot"),
-    BotCommand("admin",       "⚡ Admin Panel"),
-    BotCommand("supreme",     "👑 Supreme Panel"),
-    BotCommand("clone",       "🤖 Clone your bot"),
-    BotCommand("batch",       "📦 Batch mode"),
-    BotCommand("done",        "✅ Finish batch"),
-    BotCommand("cancel",      "❌ Cancel"),
-    BotCommand("setfs",       "⚙️ Force subscribe"),
-    BotCommand("mybots",      "🤖 Your cloned bots"),
-    BotCommand("stats",       "📊 Statistics"),
-    BotCommand("help",        "ℹ️ Help"),
-    BotCommand("broadcast",   "📢 Broadcast"),
-    BotCommand("ban",         "🚫 Ban user"),
-    BotCommand("unban",       "✅ Unban user"),
-    BotCommand("botinfo",     "ℹ️ Bot info"),
-    BotCommand("settimer",    "⏱ Auto-delete timer"),
-    BotCommand("search",      "🔍 Search files"),
-    BotCommand("premium",     "🌟 Premium"),
-    BotCommand("setprice",    "💰 Set Premium Price (Admin)"),
-    BotCommand("setcontact",  "📞 Set Premium Contact (Admin)"),
-    BotCommand("setqr",       "🖼 Set Premium QR Code (Admin)"),
-    BotCommand("givepremium", "💎 Give Premium (Admin)"),
-    BotCommand("removepremium", "❌ Remove Premium (Admin)"),
-    BotCommand("shortener",   "🔗 URL Shortener"),
-    BotCommand("setlog",      "📝 Log Channel"),
-    BotCommand("setchannel",  "📢 Connect Channel"),
-    BotCommand("setmode",     "⚙️ Set Join Mode"),
-    BotCommand("protect",     "🛡 Protect Channel Link"),
-    BotCommand("myplinks",    "📋 My Protected Links"),
-    BotCommand("rebuild",     "🔄 Rebuild DB from channel"),
-    BotCommand("backup",      "💾 Force backup now"),
-    BotCommand("restart",     "♻️ Restart (Supreme)"),
-    BotCommand("ping",        "🏓 Ping"),
-    BotCommand("listfiles",   "📋 List files"),
-    BotCommand("editfile",    "✏️ Edit file"),
-    BotCommand("delfile",     "🗑 Delete file"),
-    BotCommand("setwelcome",  "👋 Set welcome message"),
-    BotCommand("dualpost",    "🎭 Create dual-tier post"),
-    BotCommand("dpremium",    "💎 Switch to premium tier"),
-    BotCommand("dpdone",      "✅ Finish dual post"),
-    BotCommand("dpcancel",    "❌ Cancel dual post"),
-    BotCommand("myduals",     "📋 My dual posts"),
-    BotCommand("deldual",     "🗑 Delete dual post"),
-    BotCommand("dpstats",     "📊 Dual post analytics"),
-    BotCommand("createpost",  "📝 Create custom post"),
-    BotCommand("addadmin",    "➕ Add bot admin"),
-    BotCommand("deladmin",    "➖ Remove bot admin"),
+    BotCommand("start",       " Start the bot"),
+    BotCommand("admin",       " Admin Panel"),
+    BotCommand("supreme",     " Supreme Panel"),
+    BotCommand("clone",       " Clone your bot"),
+    BotCommand("batch",       " Batch mode"),
+    BotCommand("done",        " Finish batch"),
+    BotCommand("cancel",      " Cancel"),
+    BotCommand("setfs",       " Force subscribe"),
+    BotCommand("mybots",      " Your cloned bots"),
+    BotCommand("stats",       " Statistics"),
+    BotCommand("help",        " Help"),
+    BotCommand("broadcast",   " Broadcast"),
+    BotCommand("ban",         " Ban user"),
+    BotCommand("unban",       " Unban user"),
+    BotCommand("botinfo",     " Bot info"),
+    BotCommand("settimer",    " Auto-delete timer"),
+    BotCommand("search",      " Search files"),
+    BotCommand("premium",     " Premium"),
+    BotCommand("setprice",    " Set Premium Price (Admin)"),
+    BotCommand("setcontact",  " Set Premium Contact (Admin)"),
+    BotCommand("setqr",       " Set Premium QR Code (Admin)"),
+    BotCommand("givepremium", " Give Premium (Admin)"),
+    BotCommand("removepremium", " Remove Premium (Admin)"),
+    BotCommand("shortener",   " URL Shortener"),
+    BotCommand("setlog",      " Log Channel"),
+    BotCommand("setchannel",  " Connect Channel"),
+    BotCommand("setmode",     " Set Join Mode"),
+    BotCommand("protect",     " Protect Channel Link"),
+    BotCommand("myplinks",    " My Protected Links"),
+    BotCommand("rebuild",     " Rebuild DB from channel"),
+    BotCommand("backup",      " Force backup now"),
+    BotCommand("restart",     " Restart (Supreme)"),
+    BotCommand("ping",        " Ping"),
+    BotCommand("listfiles",   " List files"),
+    BotCommand("editfile",    " Edit file"),
+    BotCommand("delfile",     " Delete file"),
+    BotCommand("setwelcome",  " Set welcome message"),
+    BotCommand("dualpost",    " Create dual-tier post"),
+    BotCommand("dpremium",    " Switch to premium tier"),
+    BotCommand("dpdone",      " Finish dual post"),
+    BotCommand("dpcancel",    " Cancel dual post"),
+    BotCommand("myduals",     " My dual posts"),
+    BotCommand("deldual",     " Delete dual post"),
+    BotCommand("dpstats",     " Dual post analytics"),
+    BotCommand("createpost",  " Create custom post"),
+    BotCommand("addadmin",    " Add bot admin"),
+    BotCommand("deladmin",    " Remove bot admin"),
 ]
 
 # ═══════════════════════════════════════════════════════════════
-# 📝 LOGGING
+#  LOGGING
 # ═══════════════════════════════════════════════════════════════
 
 logging.basicConfig(
@@ -137,7 +137,7 @@ logging.basicConfig(
 logger = logging.getLogger("FS")
 
 # ═══════════════════════════════════════════════════════════════
-# 💾 DATABASE — Atomic JSON with in-memory cache
+#  DATABASE — Atomic JSON with in-memory cache
 # ═══════════════════════════════════════════════════════════════
 
 os.makedirs(DB_FOLDER, exist_ok=True)
@@ -468,10 +468,11 @@ def stylish(text):
     }
     def _rep(m):
         t = m.group(0)
+        if t.startswith('<') and t.endswith('>'): return t
         if (t.startswith('{') and t.endswith('}')) or t.startswith('/'):
             return t
         return "".join(mapping.get(c.lower(), c) if c.isalpha() else mapping.get(c, c) for c in t)
-    return re.sub(r'\{[^{}]+\}|/\w+|[^{}/]+|/', _rep, str(text))
+    return re.sub(r'<[^>]+>|\{[^{}]+\}|/\w+|[^<{}/]+|/', _rep, str(text))
 
 def fmt_size(size) -> str:
     if not size: return "N/A"
@@ -483,16 +484,16 @@ def unique_id() -> str:
     return hashlib.md5(str(time.time() + random.random()).encode()).hexdigest()[:12]
 
 def file_icon(name: str) -> str:
-    if not name or name == "Message/Post": return "✉️"
+    if not name or name == "Message/Post": return ""
     ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
     return {
-        "pdf":"📄","doc":"📝","docx":"📝","txt":"📃","xlsx":"📊","pptx":"📑","csv":"📊",
-        "mp4":"🎬","mkv":"🎬","avi":"🎬","mov":"🎬","webm":"🎬",
-        "mp3":"🎵","flac":"🎵","wav":"🎵","aac":"🎵","m4a":"🎵",
-        "jpg":"🖼","jpeg":"🖼","png":"🖼","gif":"🖼","webp":"🖼",
-        "zip":"🗜","rar":"🗜","7z":"🗜","tar":"🗜","gz":"🗜",
-        "apk":"📱","exe":"💻","py":"🐍","js":"🌐","html":"🌐",
-    }.get(ext, "📁")
+        "pdf":"","doc":"","docx":"","txt":"","xlsx":"","pptx":"","csv":"",
+        "mp4":"","mkv":"","avi":"","mov":"","webm":"",
+        "mp3":"","flac":"","wav":"","aac":"","m4a":"",
+        "jpg":"","jpeg":"","png":"","gif":"","webp":"",
+        "zip":"","rar":"","7z":"","tar":"","gz":"",
+        "apk":"","exe":"","py":"","js":"","html":"",
+    }.get(ext, "")
 
 async def get_short_link(bot_info, link: str) -> str:
     if not shortener_enabled_for_bot(bot_info):
@@ -531,7 +532,7 @@ def shortener_enabled_for_bot(bot_info: dict) -> bool:
     )
 
 # ═══════════════════════════════════════════════════════════════
-# 🎭 DUAL POST SYSTEM
+#  DUAL POST SYSTEM
 # ═══════════════════════════════════════════════════════════════
 
 class DualPostSession:
@@ -552,7 +553,7 @@ class DualPostSession:
         return len(self.free_files) + len(self.pro_files)
 
     def stage_display(self):
-        return "📂 FREE" if self.stage == "free" else "💎 PREMIUM"
+        return " FREE" if self.stage == "free" else " PREMIUM"
 
 
 def save_dual_post(post_id: str, session: DualPostSession) -> dict:
@@ -606,7 +607,7 @@ def bump_dual_access(post_id: str, tier: str):
 
 
 # ═══════════════════════════════════════════════════════════════
-# 🔑 SHORTENER TOKEN SYSTEM
+#  SHORTENER TOKEN SYSTEM
 # ═══════════════════════════════════════════════════════════════
 
 SHORTENER_TOKENS: dict = {}
@@ -662,7 +663,7 @@ async def make_shortener_link(client, bi: dict, uid: int, bot_id: int,
     return short
 
 # ═══════════════════════════════════════════════════════════════
-# 💾 BACKUP
+#  BACKUP
 # ═══════════════════════════════════════════════════════════════
 
 async def do_backup(bot_client=None) -> int:
@@ -671,7 +672,7 @@ async def do_backup(bot_client=None) -> int:
     client = main_client or bot_client
 
     if not client:
-        logger.error("💾 Backup failed: No active bot client found.")
+        logger.error(" Backup failed: No active bot client found.")
         return 0
 
     count = 0
@@ -681,10 +682,10 @@ async def do_backup(bot_client=None) -> int:
         shutil.make_archive(backup_zip.replace(".zip", ""), 'zip', DB_FOLDER)
         await client.send_document(
             DB_CHANNEL, document=backup_zip,
-            caption=f"📦 **FULL DB BUNDLE** | `{backup_zip}`\n📅 {datetime.now():%Y-%m-%d %H:%M:%S}"
+            caption=f" **FULL DB BUNDLE** | `{backup_zip}`\n {datetime.now():%Y-%m-%d %H:%M:%S}"
         )
         os.remove(backup_zip)
-        logger.info(f"💾 Zip backup sent to DB_CHANNEL")
+        logger.info(f" Zip backup sent to DB_CHANNEL")
     except Exception as e:
         logger.error(f"Zip backup failed: {e}")
 
@@ -694,7 +695,7 @@ async def do_backup(bot_client=None) -> int:
         try:
             await client.send_document(
                 DB_CHANNEL, document=path,
-                caption=f"📂 **DB Backup** | `{fname}` | {datetime.now():%Y-%m-%d %H:%M:%S}"
+                caption=f" **DB Backup** | `{fname}` | {datetime.now():%Y-%m-%d %H:%M:%S}"
             )
             count += 1
             await asyncio.sleep(0.5)
@@ -702,18 +703,18 @@ async def do_backup(bot_client=None) -> int:
             await asyncio.sleep(e.value + 1)
             try:
                 await client.send_document(DB_CHANNEL, document=path,
-                    caption=f"📂 **DB Backup** | `{fname}`")
+                    caption=f" **DB Backup** | `{fname}`")
                 count += 1
             except Exception as ex:
                 logger.error(f"Backup retry failed {fname}: {ex}")
         except Exception as e:
             logger.error(f"Backup failed {fname}: {e}")
 
-    logger.info(f"💾 Backup complete: {count} files")
+    logger.info(f" Backup complete: {count} files")
     return count
 
 # ═══════════════════════════════════════════════════════════════
-# 📤 DELIVER FILE
+#  DELIVER FILE
 # ═══════════════════════════════════════════════════════════════
 
 async def deliver_file(client, chat_id: int, file_data: dict):
@@ -801,7 +802,7 @@ async def deliver_file(client, chat_id: int, file_data: dict):
     if file_id:
         return await client.send_cached_media(
             chat_id=chat_id, file_id=file_id,
-            caption=caption or f"📁 {file_data.get('file_name', 'File')}",
+            caption=caption or f" {file_data.get('file_name', 'File')}",
             reply_markup=reply_markup
         )
     return None
@@ -829,7 +830,7 @@ async def deliver_batch_files(client, chat_id: int, file_ids: list,
     return sent_c, total
 
 # ═══════════════════════════════════════════════════════════════
-# 💾 METADATA
+#  METADATA
 # ═══════════════════════════════════════════════════════════════
 
 async def save_meta(client, meta: dict) -> bool:
@@ -852,7 +853,7 @@ async def save_meta(client, meta: dict) -> bool:
     return False
 
 # ═══════════════════════════════════════════════════════════════
-# 🔄 SMART 2-PHASE DB REBUILD
+#  SMART 2-PHASE DB REBUILD
 # ═══════════════════════════════════════════════════════════════
 
 BATCH_SIZE  = 100
@@ -949,7 +950,7 @@ async def fetch_remote_metadata(target_uid: str, target_type="file") -> dict | N
     return None
 
 async def rebuild_phase1(userbot, upd_fn) -> dict:
-    await upd_fn("📥 **Phase 1: Finding backup files...**")
+    await upd_fn(" **Phase 1: Finding backup files...**")
     latest_id = await _get_latest_msg_id(userbot, DB_CHANNEL)
     if not latest_id:
         latest_id = 99999
@@ -989,8 +990,8 @@ async def rebuild_phase1(userbot, upd_fn) -> dict:
 
         offset_id = batch[-1].id
         await upd_fn(
-            f"📥 **Phase 1** | Scanned: `{scanned}` | Found: `{len(found)}/{len(BACKUP_FILES)}`" +
-            (f" | 📦 ZIP Found" if zip_backup else "") +
+            f" **Phase 1** | Scanned: `{scanned}` | Found: `{len(found)}/{len(BACKUP_FILES)}`" +
+            (f" |  ZIP Found" if zip_backup else "") +
             f"\nCurrent ID: `{offset_id}`"
         )
         if len(found) == len(BACKUP_FILES): break
@@ -1001,7 +1002,7 @@ async def rebuild_phase1(userbot, upd_fn) -> dict:
     # Try restoring from ZIP first
     if zip_backup:
         try:
-            await upd_fn(f"📦 **Extracting ZIP Bundle:** `{zip_backup['name']}`...")
+            await upd_fn(f" **Extracting ZIP Bundle:** `{zip_backup['name']}`...")
             path = await asyncio.wait_for(userbot.download_media(zip_backup["file_id"]), timeout=120)
             if path:
                 import zipfile
@@ -1014,7 +1015,7 @@ async def rebuild_phase1(userbot, upd_fn) -> dict:
                     restored[fname] = zip_backup["date"]
                     invalidate_cache(f"{DB_FOLDER}/{fname}")
 
-                await upd_fn("✅ **ZIP Bundle Restored!** Checking for newer individual files...")
+                await upd_fn(" **ZIP Bundle Restored!** Checking for newer individual files...")
         except Exception as e:
             logger.error(f"ZIP restore failed: {e}")
 
@@ -1032,7 +1033,7 @@ async def rebuild_phase1(userbot, upd_fn) -> dict:
                 save_db(path, content)
                 invalidate_cache(path)
                 restored[fname] = info["date"]
-                await upd_fn(f"📥 **Phase 1** | ✅ `{i}/{len(found)}` restored | `{fname}`")
+                await upd_fn(f" **Phase 1** |  `{i}/{len(found)}` restored | `{fname}`")
             except Exception as e:
                 logger.error(f"Failed to restore {fname}: {e}")
 
@@ -1129,10 +1130,10 @@ async def rebuild_phase2(userbot, upd_fn, since_date=None, latest_id: int = 0) -
 
         offset_id = batch[-1].id
         await upd_fn(
-            f"🔍 **Phase 2** | `{scanned}` msgs\n"
-            f"📁 `{stats['files']}` Files | 📦 `{stats['batches']}` Batches\n"
-            f"🎭 `{stats['duals']}` Duals | 🤖 `{stats['bots']}` Bots\n"
-            f"⚙️ Config/Admins: `{stats['config'] + stats['admins']}`"
+            f" **Phase 2** | `{scanned}` msgs\n"
+            f" `{stats['files']}` Files |  `{stats['batches']}` Batches\n"
+            f" `{stats['duals']}` Duals |  `{stats['bots']}` Bots\n"
+            f" Config/Admins: `{stats['config'] + stats['admins']}`"
         )
         await asyncio.sleep(0.1)
 
@@ -1158,13 +1159,13 @@ async def smart_rebuild(status_msg=None) -> dict:
 
     if not SESSION_STRING:
         await upd(
-            "⚠️ **SESSION_STRING NOT CONFIGURED!** ⚠️\n\n"
+            " **SESSION_STRING NOT CONFIGURED!** \n\n"
             "Rebuilding the database and auto-restore features **REQUIRED** a Userbot Session.\n\n"
             "**How to fix:**\n"
-            "1️⃣ Run `python generate_session.py` locally.\n"
-            "2️⃣ Copy the session string.\n"
-            "3️⃣ Add it to your Environment Variables as `SESSION_STRING`.\n"
-            "4️⃣ Restart the bot.\n\n"
+            "1 Run `python generate_session.py` locally.\n"
+            "2 Copy the session string.\n"
+            "3 Add it to your Environment Variables as `SESSION_STRING`.\n"
+            "4 Restart the bot.\n\n"
             "Without this, your data is at risk if JSON files are deleted!"
         )
         raise ValueError("SESSION_STRING not set")
@@ -1177,7 +1178,7 @@ async def smart_rebuild(status_msg=None) -> dict:
             "userbot_rebuild", api_id=API_ID, api_hash=API_HASH,
             session_string=SESSION_STRING, in_memory=True
         ) as userbot:
-            await upd("✅ Userbot connected!\n\n📥 Starting Phase 1...")
+            await upd(" Userbot connected!\n\n Starting Phase 1...")
             latest_id = await _get_latest_msg_id(userbot, DB_CHANNEL)
 
             restored = await rebuild_phase1(userbot, upd)
@@ -1190,8 +1191,8 @@ async def smart_rebuild(status_msg=None) -> dict:
             combined["backup_date"] = str(backup_date) if backup_date else None
 
             await upd(
-                f"✅ **Phase 1 Done!** `{len(restored)}` files restored\n\n"
-                f"🔍 Phase 2: Scanning #FS_META..."
+                f" **Phase 1 Done!** `{len(restored)}` files restored\n\n"
+                f" Phase 2: Scanning #FS_META..."
             )
             await asyncio.sleep(1)
 
@@ -1206,13 +1207,13 @@ async def smart_rebuild(status_msg=None) -> dict:
         raise
     except Exception as e:
         logger.error(f"Rebuild error: {e}")
-        await upd(f"❌ **Rebuild failed!**\n\n`{e}`")
+        await upd(f" **Rebuild failed!**\n\n`{e}`")
         raise
 
     return combined
 
 # ═══════════════════════════════════════════════════════════════
-# 📢 BROADCAST
+#  BROADCAST
 # ═══════════════════════════════════════════════════════════════
 
 async def store_broadcast(client, original_msg) -> int | None:
@@ -1268,9 +1269,9 @@ async def do_broadcast(bot_ids: list, bc_msg_id: int, status_msg=None, reply_mar
                     pct = int((done / max(all_cnt, 1)) * 100)
                     bar = "█" * (pct // 10) + "░" * (10 - pct // 10)
                     await status_msg.edit(
-                        f"📢 **Broadcast**\n\n`[{bar}]` {pct}%\n"
-                        f"🤖 Bot {b_idx}/{len(bot_ids)}: @{uname}\n"
-                        f"✅ `{total_ok}` | ❌ `{total_fail}` | ⏱ `{elapsed}s`"
+                        f" **Broadcast**\n\n`[{bar}]` {pct}%\n"
+                        f" Bot {b_idx}/{len(bot_ids)}: @{uname}\n"
+                        f" `{total_ok}` |  `{total_fail}` |  `{elapsed}s`"
                     )
                 except Exception:
                     pass
@@ -1278,7 +1279,7 @@ async def do_broadcast(bot_ids: list, bc_msg_id: int, status_msg=None, reply_mar
     return total_ok, total_fail
 
 # ═══════════════════════════════════════════════════════════════
-# 🌐 HEALTH CHECK SERVER
+#  HEALTH CHECK SERVER
 # ═══════════════════════════════════════════════════════════════
 
 async def health_handler(request):
@@ -1432,10 +1433,10 @@ async def start_web_server():
     runner = web.AppRunner(app)
     await runner.setup()
     await web.TCPSite(runner, "0.0.0.0", PORT).start()
-    logger.info(f"🌐 Health-check on port {PORT}")
+    logger.info(f" Health-check on port {PORT}")
 
 # ═══════════════════════════════════════════════════════════════
-# 🤖 BOT MANAGEMENT
+#  BOT MANAGEMENT
 # ═══════════════════════════════════════════════════════════════
 
 START_TIME      = datetime.now()
@@ -1515,14 +1516,14 @@ async def start_bot(token: str, parent_bot_id=None):
             "started_at": datetime.now()
         }
         register_handlers(app)
-        logger.info(f"✅ {'[MAIN]' if is_main else '[CLONE]'} @{me.username}")
+        logger.info(f" {'[MAIN]' if is_main else '[CLONE]'} @{me.username}")
         return app
     except Exception as e:
         logger.error(f"Bot start [{token[:12]}...]: {e}")
         return None
 
 # ═══════════════════════════════════════════════════════════════
-# 🎨 KEYBOARDS
+#  KEYBOARDS
 # ═══════════════════════════════════════════════════════════════
 
 def get_btn_name(key: str, default: str) -> str:
@@ -1537,69 +1538,48 @@ class SafeDict(dict):
     def __missing__(self, key): return '{' + key + '}'
 
 def kb_start(bot_id, user_id):
-    bi = get_bot_info(bot_id)
-    is_owner = bi and bi.get("owner_id") == user_id
-    rows = []
-
-    if WEBAPP_URL:
-        url = f"{WEBAPP_URL}?bot_id={bot_id}" if "?" not in WEBAPP_URL else f"{WEBAPP_URL}&bot_id={bot_id}"
-        rows.append([InlineKeyboardButton(stylish("Open Mini App"), web_app=WebAppInfo(url=url))])
-
-    if user_id == MAIN_ADMIN:
-        rows.append([InlineKeyboardButton(get_btn_name("btn_supreme", "Supreme Panel"), callback_data="supreme_panel")])
-    if is_admin(user_id) or is_owner:
-        rows.append([InlineKeyboardButton(get_btn_name("btn_admin", "Admin Panel"), callback_data="admin_panel")])
-
-    rows += [
-        [InlineKeyboardButton(get_btn_name("btn_srch",  "🔍 SEARCH"),       callback_data="cb_search"),
-         InlineKeyboardButton(get_btn_name("btn_batch", "📦 BATCH"),        callback_data="start_batch")],
-        [InlineKeyboardButton(get_btn_name("btn_dual",  "🎭 DUAL POST"),    callback_data="dual_post_menu"),
-         InlineKeyboardButton(get_btn_name("btn_clone", "🤖 CLONE"),        callback_data="clone_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_refer", "👥 REFER"),        callback_data="referral_menu"),
-         InlineKeyboardButton(get_btn_name("btn_prem",  "💎 PREMIUM"),      callback_data="premium_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_mybt",  "🤖 MY BOTS"),      callback_data="my_bots_menu"),
-         InlineKeyboardButton(get_btn_name("btn_dash",  "📊 DASHBOARD"),    callback_data="user_dashboard")],
-        [InlineKeyboardButton(get_btn_name("btn_prot",  "🛡 PROTECT"),      callback_data="plinks_admin"),
-         InlineKeyboardButton(get_btn_name("btn_help",  "ℹ️ HELP"),         callback_data="help_menu")],
-        [InlineKeyboardButton(get_btn_name("btn_supp",  "💬 SUPPORT"),      url=f"https://t.me/{bi.get('premium_contact', 'zolvid') if bi else 'zolvid'}")]
+    rows = [
+        [InlineKeyboardButton(stylish("BATCH"), callback_data="start_batch")],
+        [InlineKeyboardButton(stylish("ABOUT"), callback_data="about_bot")],
+        [InlineKeyboardButton(stylish("HELP"), callback_data="help_menu")]
     ]
     return InlineKeyboardMarkup(rows)
 
 def kb_admin():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(get_btn_name("btn_abrd", "📢 BROADCAST"),   callback_data="broadcast_menu"),
-         InlineKeyboardButton(get_btn_name("btn_asta", "📊 ANALYTICS"),   callback_data="admin_stats")],
-        [InlineKeyboardButton(get_btn_name("btn_ausr", "👥 USERS"),        callback_data="manage_users"),
-         InlineKeyboardButton(get_btn_name("btn_acln", "🤖 CLONES"),       callback_data="my_bots_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aset", "⚙️ SETTINGS"),     callback_data="bot_settings_admin"),
-         InlineKeyboardButton(get_btn_name("btn_afsb", "🔒 FORCE SUB"),    callback_data="forcesub_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aver", "🛡 VERIFY"),       callback_data="verify_admin"),
-         InlineKeyboardButton(get_btn_name("btn_ashr", "🔗 SHORTENER"),    callback_data="shortener_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_aprt", "🛡 PROTECT"),      callback_data="plinks_admin"),
-         InlineKeyboardButton(get_btn_name("btn_adul", "🎭 DUAL POSTS"),   callback_data="dual_posts_admin")],
-        [InlineKeyboardButton(get_btn_name("btn_awlc", "👋 WELCOME"),      callback_data="edit_welcome_msg"),
-         InlineKeyboardButton(get_btn_name("btn_aapr", "✅ AUTO APP."),    callback_data="toggle_auto_approve")],
-        [InlineKeyboardButton(get_btn_name("btn_acap", "💬 AUTO CAP."),    callback_data="toggle_auto_caption"),
-         InlineKeyboardButton(get_btn_name("btn_atmr", "⏱ TIMER"),          callback_data="edit_timer")],
-        [InlineKeyboardButton(stylish("➕ CREATE POST"), callback_data="cb_create_post")],
-        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"), callback_data="back_to_start")],
+        [InlineKeyboardButton(get_btn_name("btn_abrd", " BROADCAST"),   callback_data="broadcast_menu"),
+         InlineKeyboardButton(get_btn_name("btn_asta", " ANALYTICS"),   callback_data="admin_stats")],
+        [InlineKeyboardButton(get_btn_name("btn_ausr", " USERS"),        callback_data="manage_users"),
+         InlineKeyboardButton(get_btn_name("btn_acln", " CLONES"),       callback_data="my_bots_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aset", " SETTINGS"),     callback_data="bot_settings_admin"),
+         InlineKeyboardButton(get_btn_name("btn_afsb", " FORCE SUB"),    callback_data="forcesub_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aver", " VERIFY"),       callback_data="verify_admin"),
+         InlineKeyboardButton(get_btn_name("btn_ashr", " SHORTENER"),    callback_data="shortener_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_aprt", " PROTECT"),      callback_data="plinks_admin"),
+         InlineKeyboardButton(get_btn_name("btn_adul", " DUAL POSTS"),   callback_data="dual_posts_admin")],
+        [InlineKeyboardButton(get_btn_name("btn_awlc", " WELCOME"),      callback_data="edit_welcome_msg"),
+         InlineKeyboardButton(get_btn_name("btn_aapr", " AUTO APP."),    callback_data="toggle_auto_approve")],
+        [InlineKeyboardButton(get_btn_name("btn_acap", " AUTO CAP."),    callback_data="toggle_auto_caption"),
+         InlineKeyboardButton(get_btn_name("btn_atmr", " TIMER"),          callback_data="edit_timer")],
+        [InlineKeyboardButton(stylish(" CREATE POST"), callback_data="cb_create_post")],
+        [InlineKeyboardButton(get_btn_name("btn_back", " BACK TO HOME"), callback_data="back_to_start")],
     ])
 
 def kb_supreme():
     maint = get_global_config().get("maintenance", False)
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(get_btn_name("btn_sgbr", "🌍 GLOBAL BROADCAST"), callback_data="global_broadcast")],
-        [InlineKeyboardButton(get_btn_name("btn_ssys", "🖥 SYSTEM STATS"),    callback_data="system_stats"),
-         InlineKeyboardButton(get_btn_name("btn_snet", "🤖 BOT NETWORK"),     callback_data="all_bots_list")],
-        [InlineKeyboardButton(get_btn_name("btn_sadm", "👑 ADMIN MANAGER"),    callback_data="manage_admins"),
-         InlineKeyboardButton(get_btn_name("btn_smsg", "📢 SYSTEM MSG"),      callback_data="global_msg_set")],
-        [InlineKeyboardButton(get_btn_name("btn_smnt", f"🚧 MAINT: {'ON' if maint else 'OFF'}"), callback_data="toggle_maintenance")],
-        [InlineKeyboardButton(get_btn_name("btn_sbak", "💾 FULL BACKUP"),      callback_data="manual_backup")],
-        [InlineKeyboardButton(get_btn_name("btn_spur", "🧹 PURGE CACHE"),      callback_data="manual_clean_cache"),
-         InlineKeyboardButton(get_btn_name("btn_srbd", "🔄 SMART REBUILD"),    callback_data="confirm_rebuild")],
-        [InlineKeyboardButton(get_btn_name("btn_scus", "🎨 CUSTOMIZE"),        callback_data="supreme_customize")],
-        [InlineKeyboardButton(get_btn_name("btn_srst", "♻️ SYSTEM RESTART"),   callback_data="restart_all_bots")],
-        [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"),     callback_data="back_to_start")],
+        [InlineKeyboardButton(get_btn_name("btn_sgbr", " GLOBAL BROADCAST"), callback_data="global_broadcast")],
+        [InlineKeyboardButton(get_btn_name("btn_ssys", " SYSTEM STATS"),    callback_data="system_stats"),
+         InlineKeyboardButton(get_btn_name("btn_snet", " BOT NETWORK"),     callback_data="all_bots_list")],
+        [InlineKeyboardButton(get_btn_name("btn_sadm", " ADMIN MANAGER"),    callback_data="manage_admins"),
+         InlineKeyboardButton(get_btn_name("btn_smsg", " SYSTEM MSG"),      callback_data="global_msg_set")],
+        [InlineKeyboardButton(get_btn_name("btn_smnt", f" MAINT: {'ON' if maint else 'OFF'}"), callback_data="toggle_maintenance")],
+        [InlineKeyboardButton(get_btn_name("btn_sbak", " FULL BACKUP"),      callback_data="manual_backup")],
+        [InlineKeyboardButton(get_btn_name("btn_spur", " PURGE CACHE"),      callback_data="manual_clean_cache"),
+         InlineKeyboardButton(get_btn_name("btn_srbd", " SMART REBUILD"),    callback_data="confirm_rebuild")],
+        [InlineKeyboardButton(get_btn_name("btn_scus", " CUSTOMIZE"),        callback_data="supreme_customize")],
+        [InlineKeyboardButton(get_btn_name("btn_srst", " SYSTEM RESTART"),   callback_data="restart_all_bots")],
+        [InlineKeyboardButton(get_btn_name("btn_back", " BACK TO HOME"),     callback_data="back_to_start")],
     ])
 
 def kb_dual_post_creator(stage: str, free_count: int, pro_count: int):
@@ -1634,12 +1614,12 @@ def kb_file_edit(uid: str):
          InlineKeyboardButton(stylish("Hard Rename"),  callback_data=f"rename_file_{uid}")],
         [InlineKeyboardButton(stylish("Get File"), callback_data=f"get_file_{uid}"),
          InlineKeyboardButton(stylish("Delete"),    callback_data=f"del_file_{uid}")],
-        [InlineKeyboardButton(stylish("🔐 Password"), callback_data=f"set_pass_{uid}"),
+        [InlineKeyboardButton(stylish(" Password"), callback_data=f"set_pass_{uid}"),
          InlineKeyboardButton(stylish("Back"),      callback_data="my_files_back")],
     ])
 
 # ═══════════════════════════════════════════════════════════════
-# 📝 HANDLERS
+#  HANDLERS
 # ═══════════════════════════════════════════════════════════════
 
 def register_handlers(app: Client):
@@ -1651,7 +1631,7 @@ def register_handlers(app: Client):
         USER_FLOOD[uid] = [t for t in USER_FLOOD.get(uid, []) if now - t < 5]
         USER_FLOOD[uid].append(now)
         if len(USER_FLOOD[uid]) > 5:
-            await message.reply(stylish("⚠️ Anti-Flood! Please slow down."))
+            await message.reply(stylish(" Anti-Flood! Please slow down."))
             message.stop_propagation()
 
     @app.on_chat_join_request()
@@ -1682,7 +1662,7 @@ def register_handlers(app: Client):
                     else: raise
                 clear_join_request(ch, uid)
                 try:
-                    await client.send_message(uid, stylish(f"✅ **Your request to join has been approved!**\n\nWelcome to our community."))
+                    await client.send_message(uid, stylish(f" **Your request to join has been approved!**\n\nWelcome to our community."))
                 except: pass
             except Exception as e:
                 logger.warning(f"Auto-approve: {e}")
@@ -1692,87 +1672,87 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("ping") & filters.private, group=1)
     async def ping_cmd(client, message):
         t0   = time.time()
-        sent = await message.reply("🏓 Pong...")
+        sent = await message.reply(" Pong...")
         ms   = round((time.time() - t0) * 1000, 2)
-        sess = "✅" if SESSION_STRING else "❌ (rebuild disabled)"
+        sess = "" if SESSION_STRING else " (rebuild disabled)"
         active_tokens = sum(1 for v in SHORTENER_TOKENS.values()
                             if not v["used"] and time.time() < v["expires_at"])
         await sent.edit(
-            f"🏓 **Pong!**\n\n"
-            f"⚡ `{ms}ms`\n"
-            f"⏳ Uptime: `{str(datetime.now() - START_TIME).split('.')[0]}`\n"
-            f"🤖 Bots: `{len(ACTIVE_CLIENTS)}`\n"
-            f"🎭 Dual Posts: `{len(load_db(DUAL_POST_DB))}`\n"
-            f"🔑 Session: {sess}\n"
-            f"🔐 Active tokens: `{active_tokens}`"
+            f" **Pong!**\n\n"
+            f" `{ms}ms`\n"
+            f" Uptime: `{str(datetime.now() - START_TIME).split('.')[0]}`\n"
+            f" Bots: `{len(ACTIVE_CLIENTS)}`\n"
+            f" Dual Posts: `{len(load_db(DUAL_POST_DB))}`\n"
+            f" Session: {sess}\n"
+            f" Active tokens: `{active_tokens}`"
         )
 
     @app.on_message(filters.command("restart") & filters.private, group=1)
     async def restart_cmd(client, message):
         if message.from_user.id != MAIN_ADMIN: return
-        await message.reply("♻️ Restarting...")
+        await message.reply(" Restarting...")
         os.execl(sys.executable, sys.executable, *sys.argv)
 
     @app.on_message(filters.command("backup") & filters.private, group=1)
     async def backup_cmd(client, message):
         uid = message.from_user.id
-        if not is_admin(uid): return await message.reply("❌ Admin only!")
+        if not is_admin(uid): return await message.reply(" Admin only!")
 
-        sm = await message.reply("💾 **Initializing backup process...**")
+        sm = await message.reply(" **Initializing backup process...**")
         try:
             count = await do_backup(client)
             if count > 0:
                 await sm.edit(
-                    f"✅ **Backup Successful!**\n\n"
-                    f"📦 Files backed up: `{count}`\n"
-                    f"📢 Target: `DB_CHANNEL`\n"
-                    f"📅 `{datetime.now():%Y-%m-%d %H:%M:%S}`\n\n"
+                    f" **Backup Successful!**\n\n"
+                    f" Files backed up: `{count}`\n"
+                    f" Target: `DB_CHANNEL`\n"
+                    f" `{datetime.now():%Y-%m-%d %H:%M:%S}`\n\n"
                     f"Tip: You can also send JSON database files directly to me to restore them!"
                 )
             else:
-                await sm.edit("❌ **Backup Failed!**\n\nCould not send files to DB_CHANNEL. Ensure the main bot is an admin in the channel.")
+                await sm.edit(" **Backup Failed!**\n\nCould not send files to DB_CHANNEL. Ensure the main bot is an admin in the channel.")
         except Exception as e:
-            await sm.edit(f"❌ **Backup Error:**\n`{e}`")
+            await sm.edit(f" **Backup Error:**\n`{e}`")
 
     @app.on_message(filters.command("rebuild") & filters.private, group=1)
     async def rebuild_cmd(client, message):
         uid = message.from_user.id
-        if not is_admin(uid): return await message.reply("❌ Admin only!")
+        if not is_admin(uid): return await message.reply(" Admin only!")
         if not SESSION_STRING:
             return await message.reply(
-                "❌ **SESSION_STRING not set!**\n\n"
-                "1️⃣ `pip install pyrogram TgCrypto`\n"
-                "2️⃣ `python generate_session.py`\n"
-                "3️⃣ Set `SESSION_STRING` env var\n"
-                "4️⃣ Restart → `/rebuild` will work"
+                " **SESSION_STRING not set!**\n\n"
+                "1 `pip install pyrogram TgCrypto`\n"
+                "2 `python generate_session.py`\n"
+                "3 Set `SESSION_STRING` env var\n"
+                "4 Restart → `/rebuild` will work"
             )
-        sm = await message.reply("🔄 **Smart DB Rebuild Starting...**")
+        sm = await message.reply(" **Smart DB Rebuild Starting...**")
         try:
             stats = await smart_rebuild(status_msg=sm)
             await sm.edit(
-                f"🎉 **Smart Rebuild Complete!**\n\n"
+                f" **Smart Rebuild Complete!**\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
                 f"**Phase 1 — Backup Restore:**\n"
-                f"📦 Restored: `{stats['phase1_restored']}/{len(BACKUP_FILES)}`\n"
-                f"📅 Backup date: `{stats.get('backup_date', 'N/A')}`\n\n"
+                f" Restored: `{stats['phase1_restored']}/{len(BACKUP_FILES)}`\n"
+                f" Backup date: `{stats.get('backup_date', 'N/A')}`\n\n"
                 f"**Phase 2 — Incremental Scan:**\n"
-                f"📁 Files: `{stats['phase2_files']}`\n"
-                f"📦 Batches: `{stats['phase2_batches']}`\n"
-                f"🎭 Dual Posts: `{stats['phase2_duals']}`\n"
-                f"❌ Errors: `{stats['phase2_errors']}`\n"
+                f" Files: `{stats['phase2_files']}`\n"
+                f" Batches: `{stats['phase2_batches']}`\n"
+                f" Dual Posts: `{stats['phase2_duals']}`\n"
+                f" Errors: `{stats['phase2_errors']}`\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"✅ Database fully restored!\n\n"
-                f"🔄 **Restarting system in 3s...**"
+                f" Database fully restored!\n\n"
+                f" **Restarting system in 3s...**"
             )
             await asyncio.sleep(3)
             os.execl(sys.executable, sys.executable, *sys.argv)
         except ValueError:
             pass
         except Exception as e:
-            await sm.edit(f"❌ Rebuild failed!\n\n`{e}`")
+            await sm.edit(f" Rebuild failed!\n\n`{e}`")
 
     # ═══════════════════════════════════════════════════════════
-    # 🎭 DUAL POST COMMANDS
+    #  DUAL POST COMMANDS
     # ═══════════════════════════════════════════════════════════
 
     @app.on_message(filters.command("dualpost") & filters.private, group=1)
@@ -1785,17 +1765,17 @@ def register_handlers(app: Client):
                       (bi and bi.get("owner_id") == uid))
         if not can_create:
             return await message.reply(
-                "❌ **Access Denied!**\n\nOnly bot owner and admins can create Dual Posts."
+                " **Access Denied!**\n\nOnly bot owner and admins can create Dual Posts."
             )
 
         if uid in TEMP_DUAL:
             sess = TEMP_DUAL[uid]
             return await message.reply(
-                f"⚠️ **Active Session Found!**\n\n"
-                f"📌 Title: **{sess.title or 'Untitled'}**\n"
-                f"📂 Free: `{len(sess.free_files)}` files\n"
-                f"💎 Pro: `{len(sess.pro_files)}` files\n"
-                f"🎯 Stage: `{sess.stage_display()}`\n\n"
+                f" **Active Session Found!**\n\n"
+                f" Title: **{sess.title or 'Untitled'}**\n"
+                f" Free: `{len(sess.free_files)}` files\n"
+                f" Pro: `{len(sess.pro_files)}` files\n"
+                f" Stage: `{sess.stage_display()}`\n\n"
                 f"Continue adding files, or use the buttons below.",
                 reply_markup=kb_dual_post_creator(
                     sess.stage, len(sess.free_files), len(sess.pro_files)
@@ -1807,10 +1787,10 @@ def register_handlers(app: Client):
         TEMP_DUAL[uid] = session
 
         await message.reply(
-            f"🎭 **Dual Post Creator — Started!**\n\n"
-            f"📌 **Title:** {title or '_(not set — use `/dualpost My Title` next time)_'}\n\n"
+            f" **Dual Post Creator — Started!**\n\n"
+            f" **Title:** {title or '_(not set — use `/dualpost My Title` next time)_'}\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-            f"📂 **Stage 1 of 2 — FREE TIER**\n\n"
+            f" **Stage 1 of 2 — FREE TIER**\n\n"
             f"Send files for **non-premium users**.\n"
             f"• These users see shortener ads (if configured)\n"
             f"• Files auto-delete after timer\n"
@@ -1819,9 +1799,9 @@ def register_handlers(app: Client):
             f"Cancel anytime → `/dpcancel`\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💎 Switch to Premium Tier", callback_data="dp_switch_pro")],
-                [InlineKeyboardButton("✅ Finish & Generate Link",  callback_data="dp_finish")],
-                [InlineKeyboardButton("❌ Cancel",                  callback_data="dp_cancel_session")]
+                [InlineKeyboardButton(" Switch to Premium Tier", callback_data="dp_switch_pro")],
+                [InlineKeyboardButton(" Finish & Generate Link",  callback_data="dp_finish")],
+                [InlineKeyboardButton(" Cancel",                  callback_data="dp_cancel_session")]
             ])
         )
 
@@ -1830,19 +1810,19 @@ def register_handlers(app: Client):
         uid = message.from_user.id
         if uid not in TEMP_DUAL:
             return await message.reply(
-                "❌ No active dual post session.\n\nUse `/dualpost` to start one."
+                " No active dual post session.\n\nUse `/dualpost` to start one."
             )
         sess = TEMP_DUAL[uid]
         if sess.stage == "pro":
             return await message.reply(
-                f"💎 **Already in Premium Tier!**\n\n"
+                f" **Already in Premium Tier!**\n\n"
                 f"Premium files added: `{len(sess.pro_files)}`\n\n"
                 f"Send more files, or `/dpdone` to finish."
             )
         sess.stage = "pro"
         await message.reply(
-            f"💎 **Stage 2 of 2 — PREMIUM TIER**\n\n"
-            f"✅ Free tier locked: `{len(sess.free_files)}` files\n\n"
+            f" **Stage 2 of 2 — PREMIUM TIER**\n\n"
+            f" Free tier locked: `{len(sess.free_files)}` files\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
             f"Now send files for **Premium users**.\n"
             f"• Delivered directly — no ads, no redirect\n"
@@ -1852,8 +1832,8 @@ def register_handlers(app: Client):
             f"Cancel → `/dpcancel`\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Finish & Generate Link", callback_data="dp_finish")],
-                [InlineKeyboardButton("❌ Cancel Session",         callback_data="dp_cancel_session")]
+                [InlineKeyboardButton(" Finish & Generate Link", callback_data="dp_finish")],
+                [InlineKeyboardButton(" Cancel Session",         callback_data="dp_cancel_session")]
             ])
         )
 
@@ -1864,12 +1844,12 @@ def register_handlers(app: Client):
         bi     = get_bot_info(bot_id)
 
         if uid not in TEMP_DUAL:
-            return await message.reply("❌ No active session. Use `/dualpost` to start.")
+            return await message.reply(" No active session. Use `/dualpost` to start.")
 
         sess = TEMP_DUAL[uid]
         if not sess.free_files and not sess.pro_files:
             return await message.reply(
-                "❌ **No files added!**\n\nSend at least one file before finishing."
+                " **No files added!**\n\nSend at least one file before finishing."
             )
 
         post_id   = unique_id()
@@ -1889,26 +1869,26 @@ def register_handlers(app: Client):
         title     = sess.title or "Dual Post"
 
         shortener_status = (
-            "🔗 _Free tier → Shortener (ads) → File delivery_"
+            " _Free tier → Shortener (ads) → File delivery_"
             if shortener_enabled_for_bot(bi)
-            else "📂 _Free tier → Direct delivery_"
+            else " _Free tier → Direct delivery_"
         )
 
         await message.reply(
-            f"🎉 **Dual Post Created Successfully!**\n\n"
-            f"📌 **{title}**\n"
-            f"🆔 `{post_id}`\n\n"
+            f" **Dual Post Created Successfully!**\n\n"
+            f" **{title}**\n"
+            f" `{post_id}`\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"📂 **FREE TIER** — `{free_c}` file(s)\n"
-            f"   👤 For: Non-premium users\n"
+            f" **FREE TIER** — `{free_c}` file(s)\n"
+            f"    For: Non-premium users\n"
             f"   {shortener_status}\n"
-            f"   ⏱ Auto-delete after timer\n\n"
-            f"💎 **PREMIUM TIER** — `{pro_c}` file(s)\n"
-            f"   👑 For: Premium users only\n"
-            f"   ⚡ _Direct delivery — no ads, no wait_\n"
-            f"   ♾ _No auto-delete_\n\n"
+            f"    Auto-delete after timer\n\n"
+            f" **PREMIUM TIER** — `{pro_c}` file(s)\n"
+            f"    For: Premium users only\n"
+            f"    _Direct delivery — no ads, no wait_\n"
+            f"    _No auto-delete_\n\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-            f"🔗 **Share This Link:**\n`{base_link}`",
+            f" **Share This Link:**\n`{base_link}`",
             reply_markup=kb_dual_post_done(post_id, base_link)
         )
 
@@ -1918,9 +1898,9 @@ def register_handlers(app: Client):
         if uid in TEMP_DUAL:
             sess = TEMP_DUAL.pop(uid)
             await message.reply(
-                f"❌ **Dual post session cancelled.**\n\n"
-                f"📂 Free files discarded: `{len(sess.free_files)}`\n"
-                f"💎 Pro files discarded: `{len(sess.pro_files)}`"
+                f" **Dual post session cancelled.**\n\n"
+                f" Free files discarded: `{len(sess.free_files)}`\n"
+                f" Pro files discarded: `{len(sess.pro_files)}`"
             )
         else:
             await message.reply("No active dual post session.")
@@ -1940,9 +1920,9 @@ def register_handlers(app: Client):
 
         if not all_posts:
             return await message.reply(
-                "📭 **No dual posts yet!**\n\n"
+                " **No dual posts yet!**\n\n"
                 "Use `/dualpost My Title` to create one.\n\n"
-                "📖 **How it works:**\n"
+                " **How it works:**\n"
                 "1. `/dualpost Title` → send free files\n"
                 "2. `/dpremium` → send premium files\n"
                 "3. `/dpdone` → get shareable link\n"
@@ -1955,8 +1935,8 @@ def register_handlers(app: Client):
 
         total_views = sum(p.get("access_total", 0) for p in all_posts)
         text = (
-            f"🎭 **{'All ' if is_sup else 'Your '}Dual Posts**\n"
-            f"📊 Total: `{len(all_posts)}` posts | 👁 `{total_views}` views\n\n"
+            f" **{'All ' if is_sup else 'Your '}Dual Posts**\n"
+            f" Total: `{len(all_posts)}` posts |  `{total_views}` views\n\n"
         )
         btns = []
 
@@ -1969,16 +1949,16 @@ def register_handlers(app: Client):
             ap    = p.get("access_pro", 0)
             at    = p.get("access_total", 0)
             text += (
-                f"📌 **{title}**\n"
-                f"   `{pid}` | 👁 `{at}` total\n"
-                f"   📂 `{fc}` free ({af} views) | "
-                f"💎 `{pc}` pro ({ap} views)\n\n"
+                f" **{title}**\n"
+                f"   `{pid}` |  `{at}` total\n"
+                f"    `{fc}` free ({af} views) | "
+                f" `{pc}` pro ({ap} views)\n\n"
             )
             link = f"https://t.me/{client.me.username}?start=dp_{pid}"
             btns.append([
-                InlineKeyboardButton(f"📤 {title[:22]}", url=f"https://t.me/share/url?url={link}"),
-                InlineKeyboardButton("📊", callback_data=f"dp_analytics_{pid}"),
-                InlineKeyboardButton("🗑",  callback_data=f"dp_delete_{pid}")
+                InlineKeyboardButton(f" {title[:22]}", url=f"https://t.me/share/url?url={link}"),
+                InlineKeyboardButton("", callback_data=f"dp_analytics_{pid}"),
+                InlineKeyboardButton("",  callback_data=f"dp_delete_{pid}")
             ])
 
         await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
@@ -1993,16 +1973,16 @@ def register_handlers(app: Client):
         pid  = message.command[1]
         post = get_dual_post(pid)
         if not post:
-            return await message.reply("❌ Post not found!")
+            return await message.reply(" Post not found!")
         can = (uid == MAIN_ADMIN or is_admin(uid) or
                (bi and bi.get("owner_id") == uid) or post.get("created_by") == uid)
         if not can:
-            return await message.reply("❌ Not your post!")
+            return await message.reply(" Not your post!")
         del_dual_post(pid)
         await message.reply(
-            f"🗑 **Deleted:** `{post.get('title', pid)}`\n"
-            f"📂 Free: `{len(post.get('free_files',[]))}` | "
-            f"💎 Pro: `{len(post.get('pro_files',[]))}` files removed."
+            f" **Deleted:** `{post.get('title', pid)}`\n"
+            f" Free: `{len(post.get('free_files',[]))}` | "
+            f" Pro: `{len(post.get('pro_files',[]))}` files removed."
         )
 
     @app.on_message(filters.command("dpstats") & filters.private, group=1)
@@ -2019,11 +1999,11 @@ def register_handlers(app: Client):
             pid  = message.command[1]
             post = get_dual_post(pid)
             if not post:
-                return await message.reply("❌ Post not found!")
+                return await message.reply(" Post not found!")
             can = (uid == MAIN_ADMIN or is_admin(uid) or
                    (bi and bi.get("owner_id") == uid) or post.get("created_by") == uid)
             if not can:
-                return await message.reply("❌ Not your post!")
+                return await message.reply(" Not your post!")
             fc   = len(post.get("free_files", []))
             pc   = len(post.get("pro_files", []))
             af   = post.get("access_free", 0)
@@ -2032,18 +2012,18 @@ def register_handlers(app: Client):
             last = post.get("last_accessed", "Never")
             prem_pct = round(ap / max(at, 1) * 100)
             return await message.reply(
-                f"📊 **Dual Post Analytics**\n\n"
-                f"📌 **{post.get('title','?')}**\n"
-                f"🆔 `{pid}`\n"
-                f"📅 Created: `{str(post.get('created_at','?'))[:16]}`\n"
+                f" **Dual Post Analytics**\n\n"
+                f" **{post.get('title','?')}**\n"
+                f" `{pid}`\n"
+                f" Created: `{str(post.get('created_at','?'))[:16]}`\n"
                 f"Last access: `{str(last)[:16]}`\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"👁 **Total views:** `{at}`\n\n"
-                f"📂 **FREE TIER**\n"
+                f" **Total views:** `{at}`\n\n"
+                f" **FREE TIER**\n"
                 f"   Files: `{fc}` | Views: `{af}` ({100-prem_pct}%)\n\n"
-                f"💎 **PREMIUM TIER**\n"
+                f" **PREMIUM TIER**\n"
                 f"   Files: `{pc}` | Views: `{ap}` ({prem_pct}%)\n\n"
-                f"📈 Premium conversion: `{prem_pct}%`"
+                f" Premium conversion: `{prem_pct}%`"
             )
 
         total_at = sum(p.get("access_total", 0) for p in posts)
@@ -2052,12 +2032,12 @@ def register_handlers(app: Client):
         prem_pct = round(total_ap / max(total_at, 1) * 100)
 
         await message.reply(
-            f"📊 **Dual Post Analytics Summary**\n\n"
-            f"🎭 Total posts: `{len(posts)}`\n"
-            f"👁 Total views: `{total_at}`\n\n"
-            f"📂 Free tier views: `{total_af}`\n"
-            f"💎 Premium tier views: `{total_ap}`\n"
-            f"📈 Premium conversion: `{prem_pct}%`\n\n"
+            f" **Dual Post Analytics Summary**\n\n"
+            f" Total posts: `{len(posts)}`\n"
+            f" Total views: `{total_at}`\n\n"
+            f" Free tier views: `{total_af}`\n"
+            f" Premium tier views: `{total_ap}`\n"
+            f" Premium conversion: `{prem_pct}%`\n\n"
             f"Use `/dpstats POST_ID` for details."
         )
 
@@ -2070,9 +2050,9 @@ def register_handlers(app: Client):
         bi     = get_bot_info(bot_id)
 
         if cfg.get("maintenance") and uid != MAIN_ADMIN:
-            return await message.reply("🚧 **Maintenance Mode** — Bot is temporarily down.")
+            return await message.reply(" **Maintenance Mode** — Bot is temporarily down.")
         if is_user_banned(uid, bot_id):
-            return await message.reply("🚫 You are banned!")
+            return await message.reply(" You are banned!")
 
         deep   = message.command[1] if len(message.command) > 1 else ""
 
@@ -2097,7 +2077,7 @@ def register_handlers(app: Client):
 
                         save_db(USERS_DB, users)
                         try:
-                            await client.send_message(ref_id, f"🎊 **New Referral!**\n\nUser `{uid}` joined via your link.\nTotal refers: `{users[ref_key]['refer_count']}`")
+                            await client.send_message(ref_id, f" **New Referral!**\n\nUser `{uid}` joined via your link.\nTotal refers: `{users[ref_key]['refer_count']}`")
                         except: pass
 
         # Verification System
@@ -2105,16 +2085,16 @@ def register_handlers(app: Client):
             if not deep.startswith("verify_"):
                 v_link = bi.get("verify_link")
                 u_link = bi.get("update_channel")
-                btns = [[InlineKeyboardButton("🔐 START VERIFICATION", url=v_link)]]
+                btns = [[InlineKeyboardButton(" START VERIFICATION", url=v_link)]]
                 if u_link:
-                    btns.append([InlineKeyboardButton("📢 UPDATE CHANNEL", url=u_link)])
+                    btns.append([InlineKeyboardButton(" UPDATE CHANNEL", url=u_link)])
 
                 return await message.reply(
-                    f"🛡 **Verification Required!**\n\n"
+                    f" **Verification Required!**\n\n"
                     f"To access the files in this bot, you must complete a quick verification.\n\n"
-                    f"1️⃣ Click the **Verification** button below.\n"
-                    f"2️⃣ Complete the process in the other bot.\n"
-                    f"3️⃣ Come back here and click `/start` again.",
+                    f"1 Click the **Verification** button below.\n"
+                    f"2 Complete the process in the other bot.\n"
+                    f"3 Come back here and click `/start` again.",
                     reply_markup=InlineKeyboardMarkup(btns)
                 )
 
@@ -2145,13 +2125,13 @@ def register_handlers(app: Client):
             if deep == "join":
                 chid = bi.get("connected_channel") if bi else None
                 if not chid:
-                    return await message.reply("❌ No channel connected to this bot!")
+                    return await message.reply(" No channel connected to this bot!")
                 mode = bi.get("join_method", "direct")
                 pdata = {"channel_id": chid, "mode": mode, "title": "Main Channel"}
             else:
                 pdata = plinks.get(lpid)
                 if not pdata or pdata.get("bot_id") != bot_id:
-                    return await message.reply("❌ Protected link not found or expired!")
+                    return await message.reply(" Protected link not found or expired!")
                 chid = pdata["channel_id"]
                 mode = pdata.get("mode", "direct")
 
@@ -2166,14 +2146,14 @@ def register_handlers(app: Client):
                 old_ts, old_link = user_links[ukey]
                 if now_ts - old_ts < 300: # 5 minutes
                     return await message.reply(
-                        f"✨ **YOUR EXCLUSIVE LINK IS STILL ACTIVE** ✨\n"
+                        f" **YOUR EXCLUSIVE LINK IS STILL ACTIVE** \n"
                         f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        f"⚠️ **Note:** This link will expire soon!\n\n"
-                        f"📢 **Channel:** `{pdata.get('title', chid)}`\n"
+                        f" **Note:** This link will expire soon!\n\n"
+                        f" **Channel:** `{pdata.get('title', chid)}`\n"
                         f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                        f"👇 **CLICK BELOW TO JOIN** 👇",
+                        f" **CLICK BELOW TO JOIN** ",
                         reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("🔗 JOIN CHANNEL NOW", url=old_link)]
+                            [InlineKeyboardButton(" JOIN CHANNEL NOW", url=old_link)]
                         ])
                     )
 
@@ -2189,20 +2169,20 @@ def register_handlers(app: Client):
                 save_db(f"{DB_FOLDER}/user_links.json", user_links)
 
                 await message.reply(
-                    f"✨ **THIS IS YOUR EXCLUSIVE LINK** ✨\n"
+                    f" **THIS IS YOUR EXCLUSIVE LINK** \n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"⚠️ **Note:** This link is valid for **5 minutes** only. Join before it expires!\n\n"
-                    f"📢 **Channel:** `{pdata.get('title', chid)}`\n"
-                    f"⚙️ **Join Mode:** `{mode.upper()}`\n"
+                    f" **Note:** This link is valid for **5 minutes** only. Join before it expires!\n\n"
+                    f" **Channel:** `{pdata.get('title', chid)}`\n"
+                    f" **Join Mode:** `{mode.upper()}`\n"
                     f"━━━━━━━━━━━━━━━━━━━━━━━\n"
-                    f"👇 **CLICK BELOW TO JOIN** 👇",
+                    f" **CLICK BELOW TO JOIN** ",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🔗 JOIN CHANNEL NOW", url=invite.invite_link)]
+                        [InlineKeyboardButton(" JOIN CHANNEL NOW", url=invite.invite_link)]
                     ])
                 )
                 return
             except Exception as e:
-                return await message.reply(f"❌ Failed to create link: `{e}`")
+                return await message.reply(f" Failed to create link: `{e}`")
 
         # ── Deep link: file with token ────────────────────────────
         if deep.startswith("f_") and "_t_" in deep:
@@ -2214,33 +2194,33 @@ def register_handlers(app: Client):
             if not fdata:
                 fdata = await fetch_remote_metadata(fuid, "file")
             if not fdata:
-                return await message.reply("❌ **File not found!**")
+                return await message.reply(" **File not found!**")
 
             # Check if password protected
             if fdata.get("password") and not is_admin(uid, bot_id):
                 TEMP_EDIT[uid] = {"mode": "verify_password", "uid": fuid, "password": fdata["password"], "fdata": fdata}
-                return await message.reply(stylish("🔐 **This file is password protected!**\n\nPlease send the password to access the file."))
+                return await message.reply(stylish(" **This file is password protected!**\n\nPlease send the password to access the file."))
             td = validate_token(token, uid, bot_id)
             if not td or td.get("resource_id") != fuid:
                 short_link = await make_shortener_link(client, bi, uid, bot_id, fuid, "file")
                 return await message.reply(
-                    "⏱ **Link Expired or Already Used!**\n\nGet a fresh link:",
+                    " **Link Expired or Already Used!**\n\nGet a fresh link:",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("🔗 Get Fresh Link", url=short_link)]
+                        [InlineKeyboardButton(" Get Fresh Link", url=short_link)]
                     ])
                 )
             consume_token(token)
             try:
                 sent = await deliver_file(client, message.chat.id, fdata)
             except Exception as e:
-                return await message.reply(f"❌ File unavailable!\n`{e}`")
+                return await message.reply(f" File unavailable!\n`{e}`")
             if sent and not is_premium:
                 asyncio.create_task(_auto_delete(sent, auto_del))
                 await message.reply(
-                    f"⏳ File auto-deletes in `{auto_del // 60}` min(s). Save it! 💾"
+                    f" File auto-deletes in `{auto_del // 60}` min(s). Save it! "
                 )
             elif sent:
-                await message.reply("🌟 **Premium:** No auto-delete for you!")
+                await message.reply(" **Premium:** No auto-delete for you!")
             return
 
         # ── Deep link: file without token ─────────────────────────
@@ -2251,19 +2231,19 @@ def register_handlers(app: Client):
             if not fdata:
                 fdata = await fetch_remote_metadata(fuid, "file")
             if not fdata:
-                return await message.reply("❌ **File not found!**")
+                return await message.reply(" **File not found!**")
 
             # Check if password protected
             if fdata.get("password") and not is_admin(uid, bot_id):
                 TEMP_EDIT[uid] = {"mode": "verify_password", "uid": fuid, "password": fdata["password"], "fdata": fdata}
-                return await message.reply(stylish("🔐 **This file is password protected!**\n\nPlease send the password to access the file."))
+                return await message.reply(stylish(" **This file is password protected!**\n\nPlease send the password to access the file."))
 
             if is_premium:
                 try:
                     sent = await deliver_file(client, message.chat.id, fdata)
-                    await message.reply("🌟 **Premium:** Direct delivery, no ads!")
+                    await message.reply(" **Premium:** Direct delivery, no ads!")
                 except Exception as e:
-                    await message.reply(f"❌ Error: `{e}`")
+                    await message.reply(f" Error: `{e}`")
                 return
 
             if shortener_enabled_for_bot(bi):
@@ -2271,26 +2251,26 @@ def register_handlers(app: Client):
                 fname = fdata.get("file_name", "File")
                 icon  = file_icon(fname)
                 return await message.reply(
-                    f"🔗 **Verification Required**\n\n"
+                    f" **Verification Required**\n\n"
                     f"{icon} **{fname}**\n"
-                    f"📊 {fmt_size(fdata.get('file_size', 0))}\n\n"
+                    f" {fmt_size(fdata.get('file_size', 0))}\n\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"⚠️ **Ladle, pehle shortener se jakar ads dekho, tab file milegi!** 😄\n\n"
-                    f"👇 Click karo → ads dekho → file pao 👇\n"
-                    f"🕐 Link 15 minute mein expire hoga.",
+                    f" **Ladle, pehle shortener se jakar ads dekho, tab file milegi!** \n\n"
+                    f" Click karo → ads dekho → file pao \n"
+                    f" Link 15 minute mein expire hoga.",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⚡ File Lo (Ad Dekho)", url=short_link)],
-                        [InlineKeyboardButton("💎 Premium Lo (No Ads!)", callback_data="premium_menu")]
+                        [InlineKeyboardButton(" File Lo (Ad Dekho)", url=short_link)],
+                        [InlineKeyboardButton(" Premium Lo (No Ads!)", callback_data="premium_menu")]
                     ])
                 )
 
             try:
                 sent = await deliver_file(client, message.chat.id, fdata)
             except Exception as e:
-                return await message.reply(f"❌ Error: `{e}`")
+                return await message.reply(f" Error: `{e}`")
             if sent and not is_premium:
                 asyncio.create_task(_auto_delete(sent, auto_del))
-                await message.reply(f"⏳ Auto-deletes in `{auto_del // 60}` min(s). 💾")
+                await message.reply(f" Auto-deletes in `{auto_del // 60}` min(s). ")
             return
 
         # ── Deep link: batch with token ───────────────────────────
@@ -2301,20 +2281,20 @@ def register_handlers(app: Client):
             bdata   = load_db(BATCH_DB).get(bid_key)
             if not bdata:
                 bdata = await fetch_remote_metadata(bid_key, "batch")
-            if not bdata: return await message.reply("❌ Batch not found.")
+            if not bdata: return await message.reply(" Batch not found.")
             td = validate_token(token, uid, bot_id)
             if not td or td.get("resource_id") != bid_key:
                 short_link = await make_shortener_link(client, bi, uid, bot_id, bid_key, "batch")
                 return await message.reply(
-                    "⏱ **Link Expired!** Get fresh link:",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔗 Fresh Link", url=short_link)]])
+                    " **Link Expired!** Get fresh link:",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Fresh Link", url=short_link)]])
                 )
             consume_token(token)
-            sm = await message.reply(f"📦 Sending batch ({len(bdata['files'])} files)...")
+            sm = await message.reply(f" Sending batch ({len(bdata['files'])} files)...")
             sc, tot = await deliver_batch_files(client, message.chat.id,
                                                  bdata["files"], bot_id, is_premium)
             await sm.delete()
-            await message.reply(f"✅ Delivered **{sc}/{tot}** files!")
+            await message.reply(f" Delivered **{sc}/{tot}** files!")
             return
 
         # ── Deep link: batch without token ────────────────────────
@@ -2323,35 +2303,35 @@ def register_handlers(app: Client):
             bdata   = load_db(BATCH_DB).get(bid_key)
             if not bdata:
                 bdata = await fetch_remote_metadata(bid_key, "batch")
-            if not bdata: return await message.reply("❌ Batch not found.")
+            if not bdata: return await message.reply(" Batch not found.")
             total = len(bdata["files"])
 
             if is_premium:
-                sm = await message.reply(f"📦 Premium Direct: Sending {total} files...")
+                sm = await message.reply(f" Premium Direct: Sending {total} files...")
                 sc, tot = await deliver_batch_files(client, message.chat.id,
                                                      bdata["files"], bot_id, True)
                 await sm.delete()
-                await message.reply(f"✅ Delivered **{sc}/{tot}** files! 🌟 Premium")
+                await message.reply(f" Delivered **{sc}/{tot}** files!  Premium")
                 return
 
             if shortener_enabled_for_bot(bi):
                 short_link = await make_shortener_link(client, bi, uid, bot_id, bid_key, "batch")
                 return await message.reply(
-                    f"🔗 **Verification Required**\n\n"
-                    f"📦 **{total} files** in this batch\n\n"
-                    f"⚠️ **Pehle ads dekho, phir sab files milenge!**\n"
-                    f"🕐 Link 15 min mein expire hoga.",
+                    f" **Verification Required**\n\n"
+                    f" **{total} files** in this batch\n\n"
+                    f" **Pehle ads dekho, phir sab files milenge!**\n"
+                    f" Link 15 min mein expire hoga.",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⚡ Files Lo (Ad Dekho)", url=short_link)],
-                        [InlineKeyboardButton("💎 Premium Lo (No Ads!)", callback_data="premium_menu")]
+                        [InlineKeyboardButton(" Files Lo (Ad Dekho)", url=short_link)],
+                        [InlineKeyboardButton(" Premium Lo (No Ads!)", callback_data="premium_menu")]
                     ])
                 )
 
-            sm = await message.reply(f"📦 Sending batch ({total} files)...")
+            sm = await message.reply(f" Sending batch ({total} files)...")
             sc, tot = await deliver_batch_files(client, message.chat.id,
                                                  bdata["files"], bot_id, is_premium)
             await sm.delete()
-            await message.reply(f"✅ Delivered **{sc}/{tot}** files!")
+            await message.reply(f" Delivered **{sc}/{tot}** files!")
             return
 
         # ── Deep link: DUAL POST ──────────────────────────────────
@@ -2369,7 +2349,7 @@ def register_handlers(app: Client):
                 post = await fetch_remote_metadata(actual_pid, "dual_post")
             if not post:
                 return await message.reply(
-                    "❌ **Dual Post not found!**\n\n"
+                    " **Dual Post not found!**\n\n"
                     "This post may have been deleted."
                 )
 
@@ -2383,26 +2363,26 @@ def register_handlers(app: Client):
             # Premium user → always gets PRO tier directly
             if is_premium:
                 tier_files = pro_files if pro_files else free_files
-                tier_label = "💎 PREMIUM" if pro_files else "📂 FREE (no pro files set)"
+                tier_label = " PREMIUM" if pro_files else " FREE (no pro files set)"
                 bump_dual_access(actual_pid, "pro" if pro_files else "free")
 
                 if not tier_files:
                     return await message.reply(
-                        f"💎 **{title}**\n\n_{desc_pro}_\n\n"
+                        f" **{title}**\n\n_{desc_pro}_\n\n"
                         f"_No files available yet._"
                     )
 
                 sm = await message.reply(
-                    f"💎 **{title}**\n\n"
+                    f" **{title}**\n\n"
                     f"_{desc_pro}_\n\n"
-                    f"📦 {tier_label}: Sending `{len(tier_files)}` file(s)..."
+                    f" {tier_label}: Sending `{len(tier_files)}` file(s)..."
                 )
                 sc, tot = await deliver_batch_files(client, message.chat.id,
                                                      tier_files, bot_id, True)
                 await sm.delete()
                 await message.reply(
-                    f"✅ **{sc}/{tot}** premium files delivered!\n\n"
-                    f"🌟 _Premium users get full content directly — no ads, no wait._"
+                    f" **{sc}/{tot}** premium files delivered!\n\n"
+                    f" _Premium users get full content directly — no ads, no wait._"
                 )
                 return
 
@@ -2411,11 +2391,11 @@ def register_handlers(app: Client):
 
             if not free_files:
                 return await message.reply(
-                    f"📦 **{title}**\n\n_{desc_free}_\n\n"
+                    f" **{title}**\n\n_{desc_free}_\n\n"
                     f"_No free files available._\n\n"
-                    f"💎 Upgrade to Premium for exclusive content!",
+                    f" Upgrade to Premium for exclusive content!",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("💎 Get Premium", callback_data="premium_menu")]
+                        [InlineKeyboardButton(" Get Premium", callback_data="premium_menu")]
                     ])
                 )
 
@@ -2425,28 +2405,28 @@ def register_handlers(app: Client):
                     if use_short:
                         short_link = await make_shortener_link(client, bi, uid, bot_id, actual_pid, "dual")
                         return await message.reply(
-                            "⏱ **Link Expired!** Get a fresh one:",
+                            " **Link Expired!** Get a fresh one:",
                             reply_markup=InlineKeyboardMarkup([
-                                [InlineKeyboardButton("🔗 Get Fresh Link", url=short_link)],
-                                [InlineKeyboardButton("💎 Get Premium (Skip Ads)", callback_data="premium_menu")]
+                                [InlineKeyboardButton(" Get Fresh Link", url=short_link)],
+                                [InlineKeyboardButton(" Get Premium (Skip Ads)", callback_data="premium_menu")]
                             ])
                         )
                 else:
                     consume_token(token_val)
                     sm = await message.reply(
-                        f"📂 **{title}**\n\n_{desc_free}_\n\n"
-                        f"📦 Sending `{len(free_files)}` file(s)..."
+                        f" **{title}**\n\n_{desc_free}_\n\n"
+                        f" Sending `{len(free_files)}` file(s)..."
                     )
                     sc, tot = await deliver_batch_files(client, message.chat.id,
                                                          free_files, bot_id, False)
                     await sm.delete()
 
                     notice = await message.reply(
-                        f"✅ **{sc}/{tot}** files delivered!\n\n"
-                        f"⏱ _Files will auto-delete in `{auto_del // 60}` min(s). Save them!_\n\n"
-                        f"💎 _Want premium content? Upgrade for full access!_",
+                        f" **{sc}/{tot}** files delivered!\n\n"
+                        f" _Files will auto-delete in `{auto_del // 60}` min(s). Save them!_\n\n"
+                        f" _Want premium content? Upgrade for full access!_",
                         reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("💎 Upgrade to Premium", callback_data="premium_menu")]
+                            [InlineKeyboardButton(" Upgrade to Premium", callback_data="premium_menu")]
                         ]) if pro_files else None
                     )
                     asyncio.create_task(_auto_delete(notice, auto_del))
@@ -2457,31 +2437,31 @@ def register_handlers(app: Client):
                 fc = len(free_files)
                 pc = len(pro_files)
                 return await message.reply(
-                    f"🔗 **{title}**\n\n"
+                    f" **{title}**\n\n"
                     f"_{desc_free}_\n\n"
                     f"━━━━━━━━━━━━━━━━━━━━\n"
-                    f"📂 **{fc}** free file(s) available\n"
-                    f"💎 **{pc}** premium file(s) (upgrade to access)\n\n"
-                    f"⚠️ **Pehle link visit karo, ads dekho, phir files milenge!**\n"
-                    f"🕐 Link 15 minute mein expire hoga.",
+                    f" **{fc}** free file(s) available\n"
+                    f" **{pc}** premium file(s) (upgrade to access)\n\n"
+                    f" **Pehle link visit karo, ads dekho, phir files milenge!**\n"
+                    f" Link 15 minute mein expire hoga.",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("⚡ Free Files Lo (Ad Dekho)", url=short_link)],
-                        [InlineKeyboardButton("💎 Premium Lo → Direct Files!", callback_data="premium_menu")]
+                        [InlineKeyboardButton(" Free Files Lo (Ad Dekho)", url=short_link)],
+                        [InlineKeyboardButton(" Premium Lo → Direct Files!", callback_data="premium_menu")]
                     ])
                 )
             else:
                 sm = await message.reply(
-                    f"📂 **{title}**\n\n_{desc_free}_\n\n"
-                    f"📦 Sending `{len(free_files)}` file(s)..."
+                    f" **{title}**\n\n_{desc_free}_\n\n"
+                    f" Sending `{len(free_files)}` file(s)..."
                 )
                 sc, tot = await deliver_batch_files(client, message.chat.id,
                                                      free_files, bot_id, False)
                 await sm.delete()
                 await message.reply(
-                    f"✅ **{sc}/{tot}** files delivered!\n\n"
-                    f"💎 _Premium users get exclusive content — upgrade to unlock!_",
+                    f" **{sc}/{tot}** files delivered!\n\n"
+                    f" _Premium users get exclusive content — upgrade to unlock!_",
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("💎 Get Premium", callback_data="premium_menu")]
+                        [InlineKeyboardButton(" Get Premium", callback_data="premium_menu")]
                     ]) if pro_files else None
                 )
                 return
@@ -2492,44 +2472,37 @@ def register_handlers(app: Client):
         welcome_img  = bi.get("welcome_image")  if bi else None
 
         if global_msg:
-            await message.reply(f"📢 **System Notice**\n\n{global_msg}")
+            await message.reply(f" **System Notice**\n\n{global_msg}")
 
         if not welcome_text:
             default_welcome = (
-                "🚀 **WELCOME TO THE ULTRA FILESTORE BOT v7.0**\n\n"
-                "ʜᴇʟʟᴏ {name}!\n\n"
-                "ɪ ᴀᴍ ᴀɴ ᴀᴅᴠᴀɴᴄᴇᴅ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ ᴡɪᴛʜ ᴘᴏᴡᴇʀғᴜʟ ғᴇᴀᴛᴜʀᴇs ʟɪᴋᴇ:\n"
-                "├ 📦 **ʙᴀᴛᴄʜ ᴍᴏᴅᴇ** — sᴇɴᴅ ᴍᴜʟᴛɪᴘʟᴇ ғɪʟᴇs ɪɴ ᴏɴᴇ ʟɪɴᴋ\n"
-                "├ 🎭 **ᴅᴜᴀʟ ᴘᴏsᴛ** — ᴅɪғғᴇʀᴇɴᴛ ᴇxᴘᴇʀɪᴇɴᴄᴇ ғᴏʀ ғʀᴇᴇ & ᴘʀᴇᴍɪᴜᴍ\n"
-                "├ 🤖 **ʙᴏᴛ ᴄʟᴏɴɪɴɢ** — ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ʙᴏᴛ ɪɴ sᴇᴄᴏɴᴅs\n"
-                "└ 🛡 **ʟɪɴᴋ ᴘʀᴏᴛᴇᴄᴛɪᴏɴ** — sᴇᴄᴜʀᴇ ʏᴏᴜʀ ᴄʜᴀɴɴᴇʟs\n\n"
-                "👉 ᴜsᴇ /help ᴛᴏ sᴇᴇ ᴀʟʟ ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅs!\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                "<blockquote>"
+                "ʜᴇʟʟᴏ {name}\n\n"
+                "ɪ ᴀᴍ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ, ɪ ᴄᴀɴ sᴛᴏʀᴇ ᴘʀɪᴠᴀᴛᴇ ғɪʟᴇs ɪɴ sᴘᴇᴄɪғɪᴇᴅ ᴄʜᴀɴɴᴇʟ ᴀɴᴅ ᴏᴛʜᴇʀ ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss ɪᴛ ғʀᴏᴍ sᴘᴇᴄɪᴀʟ ʟɪɴᴋ.\n\n"
+                "/help 𝚝𝚘 𝚔𝚗𝚘𝚠 𝚖𝚘𝚛𝚎 𝚊𝚋𝚘𝚞𝚝 𝚋𝚘𝚝"
+                "</blockquote>"
             )
-            welcome_text = get_msg_text("msg_welcome", default_welcome).format_map(SafeDict(
-                name=message.from_user.first_name,
-                username=f"@{client.me.username}"
-            ))
+            welcome_text = default_welcome.format(name=message.from_user.first_name)
 
         kbd = kb_start(bot_id, uid)
         if is_new and bi and bi.get("owner_id") == uid:
             await message.reply(
-                f"👋 **Hey Boss! Welcome to your cloned bot.**\n\n"
+                f" **Hey Boss! Welcome to your cloned bot.**\n\n"
                 f"I'm ready to work for you. Here are some quick setups:\n"
-                f"1️⃣ `/setlog -100xxxx` - Set a log channel to see uploads.\n"
-                f"2️⃣ `/setchannel -100xxxx` - Connect your channel for the `/start join` link.\n"
-                f"3️⃣ `/setmode requested` - If you want users to send join requests.\n"
-                f"4️⃣ `/setwelcome` - Customize this message.\n\n"
+                f"1 `/setlog -100xxxx` - Set a log channel to see uploads.\n"
+                f"2 `/setchannel -100xxxx` - Connect your channel for the `/start join` link.\n"
+                f"3 `/setmode requested` - If you want users to send join requests.\n"
+                f"4 `/setwelcome` - Customize this message.\n\n"
                 f"Use `/admin` to see all your controls!"
             )
 
         if welcome_img:
             try:
-                await message.reply_photo(welcome_img, caption=welcome_text, reply_markup=kbd)
+                await message.reply_photo(welcome_img, caption=stylish(welcome_text), reply_markup=kbd)
                 return
             except Exception:
                 pass
-        await message.reply(welcome_text, reply_markup=kbd)
+        await message.reply(stylish(welcome_text), reply_markup=kbd, quote=True)
 
     # ── /admin ────────────────────────────────────────────────────
     @app.on_message(filters.command("admin") & filters.private, group=1)
@@ -2537,19 +2510,19 @@ def register_handlers(app: Client):
         uid = message.from_user.id
         bi  = get_bot_info(client.me.id)
         if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
-        text = get_msg_text("msg_admin", "⚡ **Admin Panel**")
+        text = get_msg_text("msg_admin", " **Admin Panel**")
         await message.reply(text, reply_markup=kb_admin())
 
     # ── /supreme ──────────────────────────────────────────────────
     @app.on_message(filters.command("supreme") & filters.private, group=1)
     async def supreme_cmd(client, message):
         if message.from_user.id != MAIN_ADMIN: return
-        sess = "✅ Set" if SESSION_STRING else "❌ Not Set"
+        sess = " Set" if SESSION_STRING else " Not Set"
         default_supreme = (
-            f"👑 **Supreme Panel v7.0**\n\n"
-            f"🤖 Bots: `{{bots}}` | 👥 Users: `{{users}}`\n"
-            f"📁 Files: `{{files}}` | 🎭 Duals: `{{duals}}`\n"
-            f"🔑 Session: {{sess}}"
+            f" **Supreme Panel v7.0**\n\n"
+            f" Bots: `{{bots}}` |  Users: `{{users}}`\n"
+            f" Files: `{{files}}` |  Duals: `{{duals}}`\n"
+            f" Session: {{sess}}"
         )
         text = get_msg_text("msg_supreme", default_supreme).format_map(SafeDict(
             bots=len(ACTIVE_CLIENTS),
@@ -2568,23 +2541,23 @@ def register_handlers(app: Client):
             dual_posts = load_db(DUAL_POST_DB)
             total_dp_views = sum(p.get("access_total", 0) for p in dual_posts.values())
             await message.reply(
-                f"🌐 **Global Analytics**\n━━━━━━━━━━━━━━━━━━━━\n"
-                f"🤖 Bots: `{len(get_all_bots())}` | 🟢 Online: `{len(ACTIVE_CLIENTS)}`\n"
-                f"👥 Users: `{len(load_db(USERS_DB))}`\n"
-                f"📁 Files: `{len(load_db(FILES_DB))}`\n"
-                f"🎭 Dual Posts: `{len(dual_posts)}` | 👁 `{total_dp_views}` views\n"
-                f"⏳ Uptime: `{str(datetime.now() - START_TIME).split('.')[0]}`"
+                f" **Global Analytics**\n━━━━━━━━━━━━━━━━━━━━\n"
+                f" Bots: `{len(get_all_bots())}` |  Online: `{len(ACTIVE_CLIENTS)}`\n"
+                f" Users: `{len(load_db(USERS_DB))}`\n"
+                f" Files: `{len(load_db(FILES_DB))}`\n"
+                f" Dual Posts: `{len(dual_posts)}` |  `{total_dp_views}` views\n"
+                f" Uptime: `{str(datetime.now() - START_TIME).split('.')[0]}`"
             )
         else:
             ud   = get_user(uid, bot_id)
             ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             dps  = get_user_dual_posts(bot_id, uid)
             await message.reply(
-                f"📊 **Dashboard**\n━━━━━━━━━━━━━━━━━━━━\n"
-                f"📤 `{ud.get('files_uploaded',0) if ud else 0}` uploads | "
-                f"📦 `{ud.get('batches_created',0) if ud else 0}` batches\n"
-                f"🎭 `{len(dps)}` dual posts | 🤖 `{len(ubts)}` bots\n"
-                f"💎 {'Premium ✅' if ud and ud.get('is_premium') else 'Free'}"
+                f" **Dashboard**\n━━━━━━━━━━━━━━━━━━━━\n"
+                f" `{ud.get('files_uploaded',0) if ud else 0}` uploads | "
+                f" `{ud.get('batches_created',0) if ud else 0}` batches\n"
+                f" `{len(dps)}` dual posts |  `{len(ubts)}` bots\n"
+                f" {'Premium ' if ud and ud.get('is_premium') else 'Free'}"
             )
 
     # ── /setwelcome ───────────────────────────────────────────────
@@ -2593,16 +2566,16 @@ def register_handlers(app: Client):
         uid = message.from_user.id; bot_id = client.me.id
         bi  = get_bot_info(bot_id)
         if not bi or (bi.get("owner_id") != uid and uid != MAIN_ADMIN):
-            return await message.reply("❌ Only bot owner!")
+            return await message.reply(" Only bot owner!")
         TEMP_WELCOME[uid] = {"bot_id": bot_id, "step": "text"}
         curr_t = bi.get("custom_welcome") or "_(default)_"
-        curr_i = "✅ Set" if bi.get("welcome_image") else "❌ None"
+        curr_i = " Set" if bi.get("welcome_image") else " None"
         await message.reply(
-            f"👋 **Welcome Message Editor**\n\n"
+            f" **Welcome Message Editor**\n\n"
             f"Current text: {curr_t[:80]}\nCurrent image: {curr_i}\n\n"
             f"**Step 1/2:** Send new welcome text\n"
             f"`-skip` = keep | `-clear` = default\n/cancel to abort.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_welcome")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_welcome")]])
         )
 
     # ── /broadcast ────────────────────────────────────────────────
@@ -2617,26 +2590,26 @@ def register_handlers(app: Client):
             can_bc = True
             target_bots = [bot_id]
 
-        if not can_bc: return await message.reply(stylish("❌ No permission!"))
+        if not can_bc: return await message.reply(stylish(" No permission!"))
 
         if not message.reply_to_message:
             total = sum(len(get_all_users(bid)) for bid in target_bots)
             return await message.reply(
-                f"📢 **ULTRA BROADCAST SYSTEM**\n"
+                f" **ULTRA BROADCAST SYSTEM**\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"🤖 **Target Bots:** `{len(target_bots)}` bots\n"
-                f"👥 **Estimated Reach:** `{total}` users\n\n"
-                f"👉 **HOW TO USE:**\n"
-                f"1️⃣ Reply to any message with `/broadcast`.\n"
-                f"2️⃣ You can optionally add a button like this:\n"
+                f" **Target Bots:** `{len(target_bots)}` bots\n"
+                f" **Estimated Reach:** `{total}` users\n\n"
+                f" **HOW TO USE:**\n"
+                f"1 Reply to any message with `/broadcast`.\n"
+                f"2 You can optionally add a button like this:\n"
                 f"   `/broadcast | Button Text | https://link.com`\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
 
-        sm = await message.reply("⏳ **Processing broadcast payload...**")
+        sm = await message.reply(" **Processing broadcast payload...**")
         bc_msg_id = await store_broadcast(client, message.reply_to_message)
         if not bc_msg_id:
-            return await sm.edit("❌ **Error:** Failed to cache broadcast message. Please try again.")
+            return await sm.edit(" **Error:** Failed to cache broadcast message. Please try again.")
 
         btn_markup = None
         if "|" in message.text:
@@ -2649,15 +2622,15 @@ def register_handlers(app: Client):
         TEMP_BROADCAST[uid] = {"bc_msg_id": bc_msg_id, "bot_ids": target_bots, "markup": btn_markup}
         total = sum(len(get_all_users(bid)) for bid in target_bots)
         await sm.edit(
-            f"⚠️ **READY FOR BROADCAST?**\n\n"
-            f"🤖 Bots: `{len(target_bots)}` bots\n"
-            f"👥 Users: `{total}` total users\n"
-            f"📦 Payload ID: `{bc_msg_id}`\n"
-            f"🔘 Button: {'✅ Set' if btn_markup else '❌ None'}\n\n"
+            f" **READY FOR BROADCAST?**\n\n"
+            f" Bots: `{len(target_bots)}` bots\n"
+            f" Users: `{total}` total users\n"
+            f" Payload ID: `{bc_msg_id}`\n"
+            f" Button: {' Set' if btn_markup else ' None'}\n\n"
             f"**Note:** This will deliver a COPY of your message to all users.",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ CONFIRM & SEND", callback_data="confirm_broadcast")],
-                [InlineKeyboardButton("❌ ABORT",           callback_data="cancel_broadcast")]
+                [InlineKeyboardButton(" CONFIRM & SEND", callback_data="confirm_broadcast")],
+                [InlineKeyboardButton(" ABORT",           callback_data="cancel_broadcast")]
             ])
         )
 
@@ -2665,20 +2638,20 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("batch") & filters.private, group=1)
     async def batch_start(client, message):
         uid = message.from_user.id
-        if is_user_banned(uid, client.me.id): return await message.reply("🚫 Banned!")
+        if is_user_banned(uid, client.me.id): return await message.reply(" Banned!")
         TEMP_BATCH[uid] = []
-        await message.reply("📦 **Batch Mode ON!**\n\nSend files. `/done` to finish. `/cancel` to abort.")
+        await message.reply(" **Batch Mode ON!**\n\nSend files. `/done` to finish. `/cancel` to abort.")
 
     @app.on_message(filters.command("createpost") & filters.private, group=1)
     async def createpost_cmd(client, message):
         uid = message.from_user.id; bot_id = client.me.id; bi = get_bot_info(bot_id)
         if not (is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
-            return await message.reply(stylish("❌ Access Denied! Only bot admins can create posts."))
+            return await message.reply(stylish(" Access Denied! Only bot admins can create posts."))
 
         TEMP_POST[uid] = {"bot_id": bot_id, "step": "content"}
         await message.reply(
-            stylish("📝 **Post Creator — Step 1/3**\n\nSend the message you want to create (Text, Photo, Video, etc.).\n\nYou can use stylish fonts by selecting text and choosing a style (if supported)."),
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("❌ Cancel"), callback_data="cancel_post")]])
+            stylish(" **Post Creator — Step 1/3**\n\nSend the message you want to create (Text, Photo, Video, etc.).\n\nYou can use stylish fonts by selecting text and choosing a style (if supported)."),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")]])
         )
 
     @app.on_message(filters.command("done") & filters.private, group=1)
@@ -2686,7 +2659,7 @@ def register_handlers(app: Client):
         uid = message.from_user.id; bot_id = client.me.id
         bi  = get_bot_info(bot_id)
         if uid not in TEMP_BATCH or not TEMP_BATCH[uid]:
-            return await message.reply("❌ No files in batch!")
+            return await message.reply(" No files in batch!")
         fids = TEMP_BATCH.pop(uid)
         bid  = unique_id()
         batches = load_db(BATCH_DB)
@@ -2701,9 +2674,9 @@ def register_handlers(app: Client):
         link  = f"https://t.me/{client.me.username}?start=b_{bid}"
         short = await get_short_link(bi, link)
         await message.reply(
-            f"✅ **Batch Created!**\n\n📦 `{len(fids)}` files\n\n🔗 `{short}`",
+            f" **Batch Created!**\n\n `{len(fids)}` files\n\n `{short}`",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📤 Share", url=f"https://t.me/share/url?url={short}")]
+                [InlineKeyboardButton(" Share", url=f"https://t.me/share/url?url={short}")]
             ])
         )
 
@@ -2723,43 +2696,43 @@ def register_handlers(app: Client):
         if d is not None:
             cancelled.append(f"Dual Post ({len(d.free_files)}F+{len(d.pro_files)}P)")
         if cancelled:
-            await message.reply(f"❌ Cancelled: {', '.join(cancelled)}")
+            await message.reply(f" Cancelled: {', '.join(cancelled)}")
         else:
             await message.reply("Nothing to cancel.")
 
     @app.on_message(filters.command("protect") & filters.private, group=1)
     async def protect_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
 
         TEMP_PROTECT[uid] = {"bot_id": bot_id, "step": "channel"}
         await message.reply(
-            "🛡 **Advanced Link Protection Setup**\n\n"
+            " **Advanced Link Protection Setup**\n\n"
             "Step 1: Send the **Channel ID** (starting with -100) you want to protect.",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_protect")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_protect")]])
         )
 
     @app.on_message(filters.command("myplinks") & filters.private, group=1)
     async def myplinks_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
 
         plinks = load_db(PLINKS_DB)
         my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id and (v.get("created_by") == uid or is_admin(uid))]
 
         if not my_links:
-            return await message.reply("📭 **No protected links found!**\nUse `/protect` to create one.")
+            return await message.reply(" **No protected links found!**\nUse `/protect` to create one.")
 
-        text = f"📋 **Your Protected Links ({len(my_links)})**\n\n"
+        text = f" **Your Protected Links ({len(my_links)})**\n\n"
         btns = []
         for l in my_links[:15]:
             lpid = l["lpid"]
             title = l.get("title", "Unknown")[:25]
             link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
-            text += f"🛡 **{title}**\n`{lpid}` | {l.get('mode').upper()}\n🔗 `{link}`\n\n"
+            text += f" **{title}**\n`{lpid}` | {l.get('mode').upper()}\n `{link}`\n\n"
             btns.append([
-                InlineKeyboardButton(f"📤 {title}", url=f"https://t.me/share/url?url={link}"),
-                InlineKeyboardButton("🗑 Delete", callback_data=f"del_plink_{lpid}")
+                InlineKeyboardButton(f" {title}", url=f"https://t.me/share/url?url={link}"),
+                InlineKeyboardButton(" Delete", callback_data=f"del_plink_{lpid}")
             ])
 
         await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
@@ -2772,16 +2745,16 @@ def register_handlers(app: Client):
             return await message.reply("Usage: `/editfile FILE_ID`")
         fuid  = message.command[1]
         files = load_db(FILES_DB); fd = files.get(fuid)
-        if not fd: return await message.reply("❌ File not found!")
+        if not fd: return await message.reply(" File not found!")
         bi  = get_bot_info(bot_id)
         can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
-        if not can: return await message.reply("❌ Not your file!")
+        if not can: return await message.reply(" Not your file!")
         icon = file_icon(fd.get("file_name","")); cap = fd.get("caption") or "_(none)_"
-        thumb = "✅" if fd.get("custom_thumbnail") else "❌"
+        thumb = "" if fd.get("custom_thumbnail") else ""
         await message.reply(
-            f"✏️ **File Editor**\n\n{icon} **{fd.get('file_name','?')}**\n"
-            f"🆔 `{fuid}` | 📊 {fmt_size(fd.get('file_size',0))}\n"
-            f"💬 {cap} | 🖼 {thumb} | 👁 `{fd.get('access_count',0)}`",
+            f" **File Editor**\n\n{icon} **{fd.get('file_name','?')}**\n"
+            f" `{fuid}` |  {fmt_size(fd.get('file_size',0))}\n"
+            f" {cap} |  {thumb} |  `{fd.get('access_count',0)}`",
             reply_markup=kb_file_edit(fuid)
         )
 
@@ -2790,12 +2763,12 @@ def register_handlers(app: Client):
         uid = message.from_user.id; bot_id = client.me.id
         if len(message.command) < 2: return await message.reply("Usage: `/delfile FILE_ID`")
         fuid  = message.command[1]; files = load_db(FILES_DB); fd = files.get(fuid)
-        if not fd: return await message.reply("❌ Not found!")
+        if not fd: return await message.reply(" Not found!")
         bi  = get_bot_info(bot_id)
         can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
-        if not can: return await message.reply("❌ Not your file!")
+        if not can: return await message.reply(" Not your file!")
         del files[fuid]; save_db(FILES_DB, files)
-        await message.reply(f"🗑 **Deleted:** `{fd.get('file_name','?')}`")
+        await message.reply(f" **Deleted:** `{fd.get('file_name','?')}`")
 
     @app.on_message(filters.command("listfiles") & filters.private, group=1)
     async def listfiles_cmd(client, message):
@@ -2804,17 +2777,17 @@ def register_handlers(app: Client):
         is_sup = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid)
         all_f = [(k,f) for k,f in files.items()
                  if f.get("bot_id")==bot_id and (is_sup or f.get("user_id")==uid)]
-        if not all_f: return await message.reply("📭 No files found!")
+        if not all_f: return await message.reply(" No files found!")
         recent = sorted(all_f, key=lambda x: x[1].get("upload_date",""), reverse=True)[:10]
-        text = f"📋 **{'All' if is_sup else 'Your'} Files** ({len(all_f)} total)\n\n"
+        text = f" **{'All' if is_sup else 'Your'} Files** ({len(all_f)} total)\n\n"
         btns = []
         for k, f in recent:
             icon = file_icon(f.get("file_name",""))
             name = (f.get("file_name") or "?")[:35]
-            text += f"{icon} **{name}** | 📊 {fmt_size(f.get('file_size',0))} | 👁 {f.get('access_count',0)}\n`{k}`\n\n"
+            text += f"{icon} **{name}** |  {fmt_size(f.get('file_size',0))} |  {f.get('access_count',0)}\n`{k}`\n\n"
             btns.append([
                 InlineKeyboardButton(f"{icon} {name[:22]}", url=f"https://t.me/{client.me.username}?start=f_{k}"),
-                InlineKeyboardButton("✏️", callback_data=f"edit_file_{k}")
+                InlineKeyboardButton("", callback_data=f"edit_file_{k}")
             ])
         await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
 
@@ -2823,10 +2796,10 @@ def register_handlers(app: Client):
     async def mybots_cmd(client, message):
         uid  = message.from_user.id
         ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
-        if not ubts: return await message.reply("🤖 No bots yet! `/clone TOKEN`")
-        text = f"🤖 **Your Bots ({len(ubts)})**\n\n"
+        if not ubts: return await message.reply(" No bots yet! `/clone TOKEN`")
+        text = f" **Your Bots ({len(ubts)})**\n\n"
         for i, b in enumerate(ubts[:10],1):
-            text += f"{i}. {'🟢' if b['bot_id'] in ACTIVE_CLIENTS else '🔴'} @{b['bot_username']}\n"
+            text += f"{i}. {'' if b['bot_id'] in ACTIVE_CLIENTS else ''} @{b['bot_username']}\n"
         await message.reply(text)
 
     @app.on_message(filters.command(["ban","unban","info","givepremium","removepremium","gban","ungban"]) & filters.private, group=1)
@@ -2835,91 +2808,91 @@ def register_handlers(app: Client):
         if not (uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid)): return
         if len(message.command)<2: return await message.reply(f"Usage: `/{message.command[0]} USER_ID`")
         try: target = int(message.command[1])
-        except ValueError: return await message.reply("❌ Invalid ID!")
+        except ValueError: return await message.reply(" Invalid ID!")
         cmd = message.command[0]
         if cmd == "ban":
-            await message.reply("🚫 Banned!" if ban_user(target,bot_id) else "❌ Not found.")
+            await message.reply(" Banned!" if ban_user(target,bot_id) else " Not found.")
         elif cmd == "unban":
-            await message.reply("✅ Unbanned!" if unban_user(target,bot_id) else "❌ Not found.")
+            await message.reply(" Unbanned!" if unban_user(target,bot_id) else " Not found.")
         elif cmd == "givepremium":
             users = load_db(USERS_DB); k = f"{bot_id}_{target}"
             if k in users:
                 users[k]["is_premium"] = True; save_db(USERS_DB,users)
-                await message.reply(f"💎 `{target}` is now Premium!")
-            else: await message.reply("❌ Not found.")
+                await message.reply(f" `{target}` is now Premium!")
+            else: await message.reply(" Not found.")
         elif cmd == "removepremium":
             users = load_db(USERS_DB); k = f"{bot_id}_{target}"
             if k in users:
                 users[k]["is_premium"] = False; save_db(USERS_DB,users)
-                await message.reply(f"❌ Premium removed from `{target}`!")
-            else: await message.reply("❌ Not found.")
+                await message.reply(f" Premium removed from `{target}`!")
+            else: await message.reply(" Not found.")
         elif cmd == "gban":
             if uid!=MAIN_ADMIN: return
             cfg=get_global_config(); gb=cfg.get("global_bans",[])
             if target not in gb:
                 gb.append(target); update_global_config("global_bans",gb)
-                await message.reply(f"🌍 Globally banned `{target}`!")
+                await message.reply(f" Globally banned `{target}`!")
         elif cmd == "ungban":
             if uid!=MAIN_ADMIN: return
             cfg=get_global_config(); gb=cfg.get("global_bans",[])
             if target in gb:
                 gb.remove(target); update_global_config("global_bans",gb)
-                await message.reply(f"✅ Globally unbanned `{target}`!")
+                await message.reply(f" Globally unbanned `{target}`!")
         elif cmd == "info":
             u = get_user(target, bot_id)
-            if not u: return await message.reply("❌ Not found.")
+            if not u: return await message.reply(" Not found.")
             await message.reply(
-                f"👤 **User Info**\n"
-                f"🆔 `{u['user_id']}`\n"
-                f"🏷 {u.get('name','?')} | @{u.get('username') or 'None'}\n"
-                f"🚫 Banned: {u.get('is_banned',False)} | 💎 Premium: {u.get('is_premium',False)}\n"
-                f"📤 Uploaded: `{u.get('files_uploaded',0)}`"
+                f" **User Info**\n"
+                f" `{u['user_id']}`\n"
+                f" {u.get('name','?')} | @{u.get('username') or 'None'}\n"
+                f" Banned: {u.get('is_banned',False)} |  Premium: {u.get('is_premium',False)}\n"
+                f" Uploaded: `{u.get('files_uploaded',0)}`"
             )
 
     @app.on_message(filters.command("setprice") & filters.private, group=1)
     async def setprice_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             curr=bi.get("premium_price","500")
-            return await message.reply(f"💰 Current Price: `{curr}`\n`/setprice AMOUNT` (e.g. 500 or 5$)")
+            return await message.reply(f" Current Price: `{curr}`\n`/setprice AMOUNT` (e.g. 500 or 5$)")
         price = message.text.split(None, 1)[1].strip()
         update_bot_info(bot_id, "premium_price", price)
-        await message.reply(f"✅ Premium price set to: `{price}`")
+        await message.reply(f" Premium price set to: `{price}`")
 
     @app.on_message(filters.command("setcontact") & filters.private, group=1)
     async def setcontact_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             curr=bi.get("premium_contact","zolvid")
-            return await message.reply(f"📞 Current Contact: `@{curr}`\n`/setcontact USERNAME` (without @)")
+            return await message.reply(f" Current Contact: `@{curr}`\n`/setcontact USERNAME` (without @)")
         contact = message.command[1].replace("@", "").strip()
         update_bot_info(bot_id, "premium_contact", contact)
-        await message.reply(f"✅ Premium contact set to: `@{contact}`")
+        await message.reply(f" Premium contact set to: `@{contact}`")
 
     @app.on_message(filters.command("setqr") & filters.private, group=1)
     async def setqr_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if not message.reply_to_message or not message.reply_to_message.photo:
-            return await message.reply("🖼 Reply to a QR code image with `/setqr` to set it.\nUse `/setqr off` to remove.")
+            return await message.reply(" Reply to a QR code image with `/setqr` to set it.\nUse `/setqr off` to remove.")
 
         if len(message.command) > 1 and message.command[1].lower() == "off":
             update_bot_info(bot_id, "premium_qr", None)
-            return await message.reply("✅ Premium QR code removed!")
+            return await message.reply(" Premium QR code removed!")
 
         qr_id = message.reply_to_message.photo.file_id
         update_bot_info(bot_id, "premium_qr", qr_id)
-        await message.reply("✅ Premium QR code updated successfully!")
+        await message.reply(" Premium QR code updated successfully!")
 
     @app.on_message(filters.command("setchannel") & filters.private, group=1)
     async def setchannel_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             return await message.reply(
-                f"📢 **Channel Connection**\n\n"
+                f" **Channel Connection**\n\n"
                 f"Connected: `{bi.get('connected_channel') or 'None'}`\n\n"
                 f"Usage:\n"
                 f"├ `/setchannel -100xxxxxxx` - Connect channel\n"
@@ -2927,22 +2900,22 @@ def register_handlers(app: Client):
                 f"Note: Users can use `/start join` to get an expiring link to this channel."
             )
         if message.command[1].lower()=="off":
-            update_bot_info(bot_id,"connected_channel",None); return await message.reply("✅ Disabled!")
+            update_bot_info(bot_id,"connected_channel",None); return await message.reply(" Disabled!")
         try:
             chid = int(message.command[1])
             await client.get_chat(chid)
             update_bot_info(bot_id,"connected_channel",chid)
-            await message.reply(f"✅ Channel connected successfully: `{chid}`")
-        except Exception as e: await message.reply(f"❌ Error: Make sure bot is admin in channel!\n`{e}`")
+            await message.reply(f" Channel connected successfully: `{chid}`")
+        except Exception as e: await message.reply(f" Error: Make sure bot is admin in channel!\n`{e}`")
 
     @app.on_message(filters.command("setmode") & filters.private, group=1)
     async def setmode_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         modes = ["direct", "requested", "approval"]
         if len(message.command)<2:
             return await message.reply(
-                f"⚙️ **Join Mode Selection**\n\n"
+                f" **Join Mode Selection**\n\n"
                 f"Current Mode: `{bi.get('join_method','direct').upper()}`\n\n"
                 f"Available Modes:\n"
                 f"├ `direct` - Regular join link\n"
@@ -2952,43 +2925,43 @@ def register_handlers(app: Client):
             )
         mode = message.command[1].lower()
         if mode not in modes:
-            return await message.reply(f"❌ Invalid mode! Use: {', '.join(modes)}")
+            return await message.reply(f" Invalid mode! Use: {', '.join(modes)}")
         update_bot_info(bot_id, "join_method", mode)
-        await message.reply(f"✅ Join mode set to: `{mode.upper()}`")
+        await message.reply(f" Join mode set to: `{mode.upper()}`")
 
     @app.on_message(filters.command("settimer") & filters.private, group=1)
     async def settimer_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
+        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             curr=bi.get("auto_delete_time",600)
-            return await message.reply(f"⏱ Current: `{curr}s` ({curr//60}min)\n`/settimer SECONDS`")
+            return await message.reply(f" Current: `{curr}s` ({curr//60}min)\n`/settimer SECONDS`")
         try:
             secs=int(message.command[1])
-            if secs<60: return await message.reply("❌ Min 60s!")
+            if secs<60: return await message.reply(" Min 60s!")
             update_bot_info(bot_id,"auto_delete_time",secs)
-            await message.reply(f"✅ Set to `{secs}s` ({secs//60}min).")
-        except ValueError: await message.reply("❌ Invalid!")
+            await message.reply(f" Set to `{secs}s` ({secs//60}min).")
+        except ValueError: await message.reply(" Invalid!")
 
     @app.on_message(filters.command("setlog") & filters.private, group=1)
     async def setlog_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
-        if len(message.command)<2: return await message.reply(f"📝 Log: `{bi.get('log_channel') or 'None'}`\n`/setlog ID` or off")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        if len(message.command)<2: return await message.reply(f" Log: `{bi.get('log_channel') or 'None'}`\n`/setlog ID` or off")
         if message.command[1].lower()=="off":
-            update_bot_info(bot_id,"log_channel",None); return await message.reply("✅ Disabled!")
+            update_bot_info(bot_id,"log_channel",None); return await message.reply(" Disabled!")
         try:
             update_bot_info(bot_id,"log_channel",int(message.command[1]))
-            await message.reply("✅ Log channel set!")
-        except ValueError: await message.reply("❌ Invalid ID!")
+            await message.reply(" Log channel set!")
+        except ValueError: await message.reply(" Invalid ID!")
 
     @app.on_message(filters.command("setverify") & filters.private, group=1)
     async def setverify_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             return await message.reply(
-                f"🛡 **Verification System**\n\n"
+                f" **Verification System**\n\n"
                 f"Link: `{bi.get('verify_link') or 'None'}`\n"
                 f"Update: `{bi.get('update_channel') or 'None'}`\n\n"
                 f"Usage:\n"
@@ -2999,48 +2972,48 @@ def register_handlers(app: Client):
         val = message.command[1]
         if val.lower() == "off":
             update_bot_info(bot_id, "verify_link", None)
-            return await message.reply("✅ Verification disabled!")
+            return await message.reply(" Verification disabled!")
 
         update_bot_info(bot_id, "verify_link", val)
-        await message.reply(f"✅ Verification link set to: `{val}`")
+        await message.reply(f" Verification link set to: `{val}`")
 
     @app.on_message(filters.command("setupdates") & filters.private, group=1)
     async def setupdates_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply("❌ Access Denied!")
+        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
-            return await message.reply(f"📢 Update Channel: `{bi.get('update_channel') or 'None'}`\n`/setupdates LINK` or off")
+            return await message.reply(f" Update Channel: `{bi.get('update_channel') or 'None'}`\n`/setupdates LINK` or off")
         val = message.command[1]
         if val.lower() == "off":
             update_bot_info(bot_id, "update_channel", None)
-            return await message.reply("✅ Update channel disabled!")
+            return await message.reply(" Update channel disabled!")
 
         update_bot_info(bot_id, "update_channel", val)
-        await message.reply(f"✅ Update channel link set to: `{val}`")
+        await message.reply(f" Update channel link set to: `{val}`")
 
     @app.on_message(filters.command("shortener") & filters.private, group=1)
     async def shortener_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply("❌ Access Denied!")
+        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(" Access Denied!")
         if len(message.command)<2:
-            st="✅ ON" if bi.get("is_shortener_enabled") else "❌ OFF"
-            return await message.reply(f"🔗 Shortener {st}\nURL: `{bi.get('shortener_url') or 'Not set'}`\nCmds: `on`, `off`, `set URL APIKEY`")
+            st=" ON" if bi.get("is_shortener_enabled") else " OFF"
+            return await message.reply(f" Shortener {st}\nURL: `{bi.get('shortener_url') or 'Not set'}`\nCmds: `on`, `off`, `set URL APIKEY`")
         cmd=message.command[1].lower()
         if cmd=="on":
-            if not bi.get("shortener_url"): return await message.reply("❌ Set URL first!")
-            update_bot_info(bot_id,"is_shortener_enabled",True); await message.reply("✅ Enabled!")
+            if not bi.get("shortener_url"): return await message.reply(" Set URL first!")
+            update_bot_info(bot_id,"is_shortener_enabled",True); await message.reply(" Enabled!")
         elif cmd=="off":
-            update_bot_info(bot_id,"is_shortener_enabled",False); await message.reply("✅ Disabled!")
+            update_bot_info(bot_id,"is_shortener_enabled",False); await message.reply(" Disabled!")
         elif cmd=="set":
             if len(message.command)<4: return await message.reply("Usage: `/shortener set URL APIKEY`")
             update_bot_info(bot_id,"shortener_url",message.command[2])
             update_bot_info(bot_id,"shortener_api",message.command[3])
-            await message.reply(f"✅ Configured: `{message.command[2]}`")
+            await message.reply(f" Configured: `{message.command[2]}`")
 
     @app.on_message(filters.command("clone") & filters.private, group=1)
     async def clone_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id
-        if is_user_banned(uid,bot_id): return await message.reply("🚫 Banned!")
+        if is_user_banned(uid,bot_id): return await message.reply(" Banned!")
 
         # Restriction: Must join Update Channel
         bi_main = get_bot_info(bot_id)
@@ -3063,51 +3036,51 @@ def register_handlers(app: Client):
 
                 if not is_ok:
                     return await message.reply(
-                        stylish("⚠️ **Cloning Restricted!**\n\nYou must join our Update Channel before you can clone a bot."),
-                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("📢 Join Update Channel"), url=update_ch)]])
+                        stylish(" **Cloning Restricted!**\n\nYou must join our Update Channel before you can clone a bot."),
+                        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Join Update Channel"), url=update_ch)]])
                     )
             except: pass
 
         if len(message.command)<2:
             ubts=[b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             return await message.reply(
-                f"🤖 **Bot Cloning System** 🤖\n\n"
+                f" **Bot Cloning System** \n\n"
                 f"Create your own version of this bot in seconds!\n\n"
-                f"1️⃣ Go to @BotFather and create a `/newbot`.\n"
-                f"2️⃣ Copy the **API TOKEN** they give you.\n"
-                f"3️⃣ Send it here: `/clone YOUR_TOKEN`.\n\n"
-                f"✅ Your bots: `{len(ubts)}`",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🤖 BotFather",url="https://t.me/BotFather")]]))
+                f"1 Go to @BotFather and create a `/newbot`.\n"
+                f"2 Copy the **API TOKEN** they give you.\n"
+                f"3 Send it here: `/clone YOUR_TOKEN`.\n\n"
+                f" Your bots: `{len(ubts)}`",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" BotFather",url="https://t.me/BotFather")]]))
         token=message.command[1]
         for b in get_all_bots().values():
-            if isinstance(b,dict) and b.get("token")==token: return await message.reply("❌ Already registered!")
-        sm=await message.reply("🔄 **Establishing connection to Telegram...**")
+            if isinstance(b,dict) and b.get("token")==token: return await message.reply(" Already registered!")
+        sm=await message.reply(" **Establishing connection to Telegram...**")
         try:
             na=await start_bot(token,parent_bot_id=bot_id)
             if na:
                 me=await na.get_me()
                 save_bot_info(token,me.id,me.username,uid,message.from_user.first_name,bot_id)
                 await sm.edit(
-                    f"🎊 **CONGRATULATIONS! YOUR BOT IS READY!** 🎊\n\n"
-                    f"🤖 **Username:** @{me.username}\n"
-                    f"🆔 **Bot ID:** `{me.id}`\n\n"
-                    f"🚀 **NEXT STEPS (IMPORTANT):**\n"
-                    f"1️⃣ Open your new bot: @{me.username}\n"
-                    f"2️⃣ Send `/start` to activate it.\n"
-                    f"3️⃣ Use `/setlog -100xxxx` to set a log channel.\n"
-                    f"4️⃣ Use `/setchannel` to connect your main channel.\n\n"
+                    f" **CONGRATULATIONS! YOUR BOT IS READY!** \n\n"
+                    f" **Username:** @{me.username}\n"
+                    f" **Bot ID:** `{me.id}`\n\n"
+                    f" **NEXT STEPS (IMPORTANT):**\n"
+                    f"1 Open your new bot: @{me.username}\n"
+                    f"2 Send `/start` to activate it.\n"
+                    f"3 Use `/setlog -100xxxx` to set a log channel.\n"
+                    f"4 Use `/setchannel` to connect your main channel.\n\n"
                     f"Enjoy your personal FileStore bot!",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 OPEN CLONED BOT", url=f"https://t.me/{me.username}")]]))
-            else: await sm.edit("❌ Failed! Make sure the token is correct and bot is not already running.")
-        except Exception as e: await sm.edit(f"❌ Error: `{e}`")
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" OPEN CLONED BOT", url=f"https://t.me/{me.username}")]]))
+            else: await sm.edit(" Failed! Make sure the token is correct and bot is not already running.")
+        except Exception as e: await sm.edit(f" Error: `{e}`")
 
     @app.on_message(filters.command("setfs") & filters.private, group=1)
     async def setfs_cmd(client, message):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(stylish("❌ Only owner!"))
+        if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(stylish(" Only owner!"))
         fs=bi.get("force_subs",[])
         if len(message.command)<2:
-            text=stylish(f"⚙️ **Force Subscribe** ({len(fs)}/{MAX_FORCE_SUB_CHANNELS})\n\n")
+            text=stylish(f" **Force Subscribe** ({len(fs)}/{MAX_FORCE_SUB_CHANNELS})\n\n")
             for i,f in enumerate(fs,1):
                 cid=f["channel_id"] if isinstance(f,dict) else f
                 lnk=f["invite_link"] if isinstance(f,dict) else None
@@ -3118,9 +3091,9 @@ def register_handlers(app: Client):
         cmd=message.command[1].lower()
         if cmd in ("clear","off"):
             update_bot_info(bot_id,"force_subs",[]); n=cascade_force_subs(bot_id,[])
-            return await message.reply(f"✅ Cleared! ({n} clones updated)")
+            return await message.reply(f" Cleared! ({n} clones updated)")
         if cmd=="add":
-            if len(fs)>=MAX_FORCE_SUB_CHANNELS: return await message.reply(stylish(f"❌ Max {MAX_FORCE_SUB_CHANNELS}!"))
+            if len(fs)>=MAX_FORCE_SUB_CHANNELS: return await message.reply(stylish(f" Max {MAX_FORCE_SUB_CHANNELS}!"))
             if len(message.command)<3: return await message.reply(stylish("Usage: /setfs add -100xxx [link]"))
 
             target_cid = message.command[2]
@@ -3134,7 +3107,7 @@ def register_handlers(app: Client):
                 else:
                     cid = int(target_cid)
             except Exception as e:
-                return await message.reply(stylish(f"❌ Invalid ID or Link: {e}"))
+                return await message.reply(stylish(f" Invalid ID or Link: {e}"))
 
             try:
                 try:
@@ -3147,23 +3120,23 @@ def register_handlers(app: Client):
                     else:
                         raise
             except Exception:
-                return await message.reply(stylish("❌ I don't have access to this channel! Make sure the main bot or this bot is an admin there."))
+                return await message.reply(stylish(" I don't have access to this channel! Make sure the main bot or this bot is an admin there."))
 
             if any((f["channel_id"] if isinstance(f, dict) else f) == cid for f in fs):
-                return await message.reply(stylish("❌ Channel already in Force Sub list!"))
+                return await message.reply(stylish(" Channel already in Force Sub list!"))
 
             fs.append({"channel_id": cid, "invite_link": lnk})
             update_bot_info(bot_id, "force_subs", fs)
             n = cascade_force_subs(bot_id, fs)
-            return await message.reply(stylish(f"✅ Added! ({n} clones updated)"))
+            return await message.reply(stylish(f" Added! ({n} clones updated)"))
         if cmd=="del":
             if len(message.command)<3: return await message.reply("Usage: `/setfs del -100xxx`")
             try: cid=int(message.command[2])
-            except ValueError: return await message.reply("❌ Invalid ID!")
+            except ValueError: return await message.reply(" Invalid ID!")
             new_fs=[f for f in fs if (f["channel_id"] if isinstance(f,dict) else f)!=cid]
-            if len(new_fs)==len(fs): return await message.reply("❌ Not in list!")
+            if len(new_fs)==len(fs): return await message.reply(" Not in list!")
             update_bot_info(bot_id,"force_subs",new_fs); n=cascade_force_subs(bot_id,new_fs)
-            return await message.reply(f"✅ Removed! ({n} clones updated)")
+            return await message.reply(f" Removed! ({n} clones updated)")
 
     @app.on_message(filters.command(["premium","botinfo","help",
                                       "setglobal","addadmin","deladmin","search"]) & filters.private, group=1)
@@ -3176,31 +3149,31 @@ def register_handlers(app: Client):
             qr_id = bi.get("premium_qr") if bi else None
 
             default_prem = (
-                f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
+                f" **ELITE PREMIUM MEMBERSHIP** \n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"✨ **Status:** {{status}}\n\n"
-                f"🚀 **UNLOCK THE POWER:**\n"
-                f" ├ ♾ **PERMANENT STORAGE:** No auto-delete timer!\n"
-                f" ├ 🎭 **DUAL-TIER UNLOCK:** Get PRO files instantly!\n"
-                f" ├ ⚡ **ZERO ADS:** Skip all shortener links!\n"
-                f" ├ 📦 **PRO BATCHING:** No limits on creation!\n"
-                f" └ 💎 **PRIORITY:** Faster delivery & support!\n\n"
-                f"💰 **Subscription Fee:** `{{price}}`\n"
+                f" **Status:** {{status}}\n\n"
+                f" **UNLOCK THE POWER:**\n"
+                f" ├  **PERMANENT STORAGE:** No auto-delete timer!\n"
+                f" ├  **DUAL-TIER UNLOCK:** Get PRO files instantly!\n"
+                f" ├  **ZERO ADS:** Skip all shortener links!\n"
+                f" ├  **PRO BATCHING:** No limits on creation!\n"
+                f" └  **PRIORITY:** Faster delivery & support!\n\n"
+                f" **Subscription Fee:** `{{price}}`\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"👇 **WANT TO UPGRADE? CONTACT ADMIN!** 👇"
+                f" **WANT TO UPGRADE? CONTACT ADMIN!** "
             )
             text = get_msg_text("msg_premium", default_prem).format_map(SafeDict(
-                status='✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`',
+                status=' `ACTIVATED`' if is_p else ' `NOT ACTIVE`',
                 price=price,
                 contact=f"@{contact}"
             ))
 
             kb = [
-                [InlineKeyboardButton(get_btn_name("btn_pcon", "👑 CONTACT ADMIN"), url=f"https://t.me/{contact}")],
-                [InlineKeyboardButton(get_btn_name("btn_back", "🔙 BACK TO HOME"), callback_data="back_to_start")]
+                [InlineKeyboardButton(get_btn_name("btn_pcon", " CONTACT ADMIN"), url=f"https://t.me/{contact}")],
+                [InlineKeyboardButton(get_btn_name("btn_back", " BACK TO HOME"), callback_data="back_to_start")]
             ]
             if qr_id:
-                kb.insert(1, [InlineKeyboardButton(get_btn_name("btn_pqrs", "🖼 SHOW PAYMENT QR"), callback_data="show_premium_qr")])
+                kb.insert(1, [InlineKeyboardButton(get_btn_name("btn_pqrs", " SHOW PAYMENT QR"), callback_data="show_premium_qr")])
 
             if qr_id and not is_p:
                 await message.reply_photo(qr_id, caption=text, reply_markup=InlineKeyboardMarkup(kb))
@@ -3211,50 +3184,50 @@ def register_handlers(app: Client):
             if not bi: return await message.reply("Not in DB.")
             dp_count = len(get_bot_dual_posts(bot_id))
             await message.reply(
-                f"ℹ️ @{client.me.username}\n"
-                f"👤 {bi.get('owner_name','?')}\n"
-                f"🌳 Clones: `{len(get_child_bots(bot_id))}`\n"
-                f"📢 Force Sub: `{len(bi.get('force_subs',[]))}` ch\n"
-                f"⏱ Timer: `{bi.get('auto_delete_time',600)}s` | "
+                f" @{client.me.username}\n"
+                f" {bi.get('owner_name','?')}\n"
+                f" Clones: `{len(get_child_bots(bot_id))}`\n"
+                f" Force Sub: `{len(bi.get('force_subs',[]))}` ch\n"
+                f" Timer: `{bi.get('auto_delete_time',600)}s` | "
                 f"AA: `{'ON' if bi.get('auto_approve') else 'OFF'}`\n"
-                f"🎭 Dual Posts: `{dp_count}`"
+                f" Dual Posts: `{dp_count}`"
             )
         elif cmd == "help":
             help_text = stylish(
-                "🚀 **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
+                " **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
                 "Welcome to the most advanced FileStore bot! Here is a list of commands you can use:\n\n"
-                "📂 **GENERAL COMMANDS**\n"
+                " **GENERAL COMMANDS**\n"
                 "├ /start — Start the bot\n"
                 "├ /help — Show this guide\n"
                 "├ /search — Search for files\n"
                 "├ /stats — View your statistics\n"
                 "└ /premium — Premium membership info\n\n"
-                "📦 **FILE MANAGEMENT**\n"
+                " **FILE MANAGEMENT**\n"
                 "├ /batch — Start batch mode\n"
                 "├ /done — Finish batch/session\n"
                 "├ /cancel — Cancel current action\n"
                 "├ /listfiles — List your uploaded files\n"
                 "└ /myduals — Manage your dual posts\n\n"
-                "🤖 **ADVANCED FEATURES**\n"
+                " **ADVANCED FEATURES**\n"
                 "├ /clone — Create your own bot\n"
                 "├ /dualpost — Create a dual-tier post\n"
                 "├ /protect — Protect a channel link\n"
                 "└ /mybots — List your cloned bots\n\n"
-                "⚙️ **ADMIN TOOLS**\n"
+                " **ADMIN TOOLS**\n"
                 "├ /admin — Open Admin Panel\n"
                 "├ /setfs — Configure Force Sub\n"
                 "├ /setwelcome — Set welcome message\n"
                 "└ /setlog — Set log channel\n\n"
-                "💡 **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
+                " **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
 
             await message.reply(
                 help_text,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(get_btn_name("btn_hdual", "🎭 Dual Post Guide"), callback_data="dual_help"),
-                     InlineKeyboardButton(get_btn_name("btn_hprem", "💎 Premium Info"), callback_data="premium_menu")],
-                    [InlineKeyboardButton(get_btn_name("btn_back", "🔙 Back to Home"), callback_data="back_to_start")]
+                    [InlineKeyboardButton(get_btn_name("btn_hdual", " Dual Post Guide"), callback_data="dual_help"),
+                     InlineKeyboardButton(get_btn_name("btn_hprem", " Premium Info"), callback_data="premium_menu")],
+                    [InlineKeyboardButton(get_btn_name("btn_back", " Back to Home"), callback_data="back_to_start")]
                 ])
             )
         elif cmd == "setglobal":
@@ -3262,11 +3235,11 @@ def register_handlers(app: Client):
             if len(message.command)<2: return await message.reply("Usage: `/setglobal MSG` or off")
             txt=message.text.split(None,1)[1]
             update_global_config("global_msg","" if txt.lower()=="off" else txt)
-            await message.reply("✅ Updated!")
+            await message.reply(" Updated!")
         elif cmd == "addadmin":
             if len(message.command) < 2: return await message.reply(stylish("Usage: /addadmin USER_ID"))
             try: target = int(message.command[1])
-            except: return await message.reply(stylish("❌ Invalid ID!"))
+            except: return await message.reply(stylish(" Invalid ID!"))
 
             if uid == MAIN_ADMIN:
                 admins = load_db(ADMINS_DB)
@@ -3280,22 +3253,22 @@ def register_handlers(app: Client):
                 # Immediate Backup
                 asyncio.create_task(do_backup())
 
-                await message.reply(stylish(f"✅ `{target}` added as Global Admin."))
+                await message.reply(stylish(f" `{target}` added as Global Admin."))
             elif bi and bi.get("owner_id") == uid:
                 sec_admins = bi.get("secondary_admins", [])
                 if target not in sec_admins:
                     sec_admins.append(target)
                     update_bot_info(bot_id, "secondary_admins", sec_admins)
-                    await message.reply(stylish(f"✅ `{target}` added as Bot Admin."))
+                    await message.reply(stylish(f" `{target}` added as Bot Admin."))
                 else:
-                    await message.reply(stylish("❌ User is already an admin of this bot."))
+                    await message.reply(stylish(" User is already an admin of this bot."))
             else:
-                await message.reply(stylish("❌ Only bot owner or Supreme Admin can add admins."))
+                await message.reply(stylish(" Only bot owner or Supreme Admin can add admins."))
 
         elif cmd == "deladmin":
             if len(message.command) < 2: return await message.reply(stylish("Usage: /deladmin USER_ID"))
             try: target = int(message.command[1])
-            except: return await message.reply(stylish("❌ Invalid ID!"))
+            except: return await message.reply(stylish(" Invalid ID!"))
 
             if uid == MAIN_ADMIN:
                 admins = load_db(ADMINS_DB)
@@ -3311,31 +3284,31 @@ def register_handlers(app: Client):
                     # Immediate Backup
                     asyncio.create_task(do_backup())
 
-                    await message.reply(stylish(f"✅ `{target}` removed from Global Admins."))
+                    await message.reply(stylish(f" `{target}` removed from Global Admins."))
                 else:
-                    await message.reply(stylish("❌ Not a Global Admin."))
+                    await message.reply(stylish(" Not a Global Admin."))
             elif bi and bi.get("owner_id") == uid:
                 sec_admins = bi.get("secondary_admins", [])
                 if target in sec_admins:
                     sec_admins.remove(target)
                     update_bot_info(bot_id, "secondary_admins", sec_admins)
-                    await message.reply(stylish(f"✅ `{target}` removed from Bot Admins."))
+                    await message.reply(stylish(f" `{target}` removed from Bot Admins."))
                 else:
-                    await message.reply(stylish("❌ User is not an admin of this bot."))
+                    await message.reply(stylish(" User is not an admin of this bot."))
             else:
-                await message.reply(stylish("❌ Only bot owner or Supreme Admin can remove admins."))
+                await message.reply(stylish(" Only bot owner or Supreme Admin can remove admins."))
         elif cmd == "search":
-            if is_user_banned(uid,bot_id): return await message.reply("🚫 Banned!")
-            if len(message.command)<2: return await message.reply("🔍 Usage: `/search FILENAME`")
+            if is_user_banned(uid,bot_id): return await message.reply(" Banned!")
+            if len(message.command)<2: return await message.reply(" Usage: `/search FILENAME`")
             q=message.text.split(None,1)[1].lower(); files=load_db(FILES_DB)
             results=[(k,f) for k,f in files.items()
                      if f.get("bot_id")==bot_id and q in f.get("file_name","").lower()][:10]
-            if not results: return await message.reply(f"❌ No files for `{q}`")
-            text=f"🔍 **Results ({len(results)})**\n\n"; btns=[]
+            if not results: return await message.reply(f" No files for `{q}`")
+            text=f" **Results ({len(results)})**\n\n"; btns=[]
             for k,f in results:
                 icon=file_icon(f.get("file_name","")); name=f.get("file_name","?")
                 link=f"https://t.me/{client.me.username}?start=f_{k}"
-                text+=f"{icon} `{name[:40]}`  📊 {fmt_size(f.get('file_size',0))}\n"
+                text+=f"{icon} `{name[:40]}`   {fmt_size(f.get('file_size',0))}\n"
                 btns.append([InlineKeyboardButton(f"{icon} {name[:30]}",url=link)])
             await message.reply(text,reply_markup=InlineKeyboardMarkup(btns))
 
@@ -3350,12 +3323,12 @@ def register_handlers(app: Client):
                 icon=file_icon(f.get("file_name","")); link=f"https://t.me/{client.me.username}?start=f_{k}"
                 results.append(InlineQueryResultArticle(
                     title=f"{icon} {f.get('file_name','?')}",
-                    description=f"📊 {fmt_size(f.get('file_size',0))} | 👁 {f.get('access_count',0)}",
+                    description=f" {fmt_size(f.get('file_size',0))} |  {f.get('access_count',0)}",
                     input_message_content=InputTextMessageContent(
                         f"{icon} **{f.get('file_name')}**\n"
-                        f"📊 `{fmt_size(f.get('file_size',0))}`\n🔗 {link}"
+                        f" `{fmt_size(f.get('file_size',0))}`\n {link}"
                     ),
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🚀 Get File",url=link)]])
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Get File",url=link)]])
                 ))
                 if len(results)>=20: break
         await query.answer(results,cache_time=1)
@@ -3370,11 +3343,11 @@ def register_handlers(app: Client):
         if uid == MAIN_ADMIN and message.document and message.document.file_name in BACKUP_FILES:
             fname = message.document.file_name
             await message.reply(
-                f"📂 **Database File Detected:** `{fname}`\n\n"
+                f" **Database File Detected:** `{fname}`\n\n"
                 f"Do you want to restore/overwrite the current `{fname}` with this one?",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✅ YES, RESTORE", callback_data=f"confirm_import_{fname}"),
-                     InlineKeyboardButton("❌ NO",           callback_data="cancel_import")]
+                    [InlineKeyboardButton(" YES, RESTORE", callback_data=f"confirm_import_{fname}"),
+                     InlineKeyboardButton(" NO",           callback_data="cancel_import")]
                 ])
             )
             return
@@ -3407,7 +3380,7 @@ def register_handlers(app: Client):
         except Exception:
             # Fallback: Re-upload using main bot if clone is not in channel
             try:
-                sm = await message.reply("🔄 **Forwarding to DB via Main Bot...**")
+                sm = await message.reply(" **Forwarding to DB via Main Bot...**")
                 # Since bots have different file_ids, we download and upload.
                 path = await message.download()
                 if path:
@@ -3424,15 +3397,15 @@ def register_handlers(app: Client):
                     os.remove(path)
                     await sm.delete()
                 else:
-                    return await message.reply("❌ Failed to process file for DB.")
+                    return await message.reply(" Failed to process file for DB.")
             except Exception as e:
-                return await message.reply(f"❌ DB Channel error (Main Bot fallback): \n`{e}`")
+                return await message.reply(f" DB Channel error (Main Bot fallback): \n`{e}`")
 
         bi = get_bot_info(bot_id)
         original_caption = message.caption or message.text
         if bi and bi.get("auto_caption") and not original_caption and (message.document or message.video or message.audio):
             fname = (message.document or message.video or message.audio).file_name or "File"
-            original_caption = f"📁 **File Name:** `{fname}`\n\n⚡ **Powered by:** @{client.me.username}"
+            original_caption = f" **File Name:** `{fname}`\n\n **Powered by:** @{client.me.username}"
         file_id = None
         file_name = "Message/Post"
         file_size = 0
@@ -3481,7 +3454,7 @@ def register_handlers(app: Client):
 
         bi=get_bot_info(bot_id)
         if bi and bi.get("log_channel"):
-            log_text = f"📤 Upload | {file_icon(file_name)} `{file_name}`\n📊 {fmt_size(file_size)} | 👤 `{uid}` | 🆔 `{fuid}`"
+            log_text = f" Upload | {file_icon(file_name)} `{file_name}`\n {fmt_size(file_size)} |  `{uid}` |  `{fuid}`"
             try:
                 await client.copy_message(bi["log_channel"], message.chat.id, message.id, caption=log_text)
             except Exception:
@@ -3498,11 +3471,11 @@ def register_handlers(app: Client):
                 sess.free_files.append(fuid)
                 count = len(sess.free_files)
                 await message.reply(
-                    f"📂 **Added to FREE Tier!**\n\n"
+                    f" **Added to FREE Tier!**\n\n"
                     f"{file_icon(file_name)} `{file_name}`\n"
-                    f"📊 {fmt_size(file_size)}\n\n"
-                    f"📂 Free tier total: `{count}` file(s)\n"
-                    f"💎 Premium tier: `{len(sess.pro_files)}` file(s)\n\n"
+                    f" {fmt_size(file_size)}\n\n"
+                    f" Free tier total: `{count}` file(s)\n"
+                    f" Premium tier: `{len(sess.pro_files)}` file(s)\n\n"
                     f"Send more FREE files, or switch to Premium stage.",
                     quote=True,
                     reply_markup=kb_dual_post_creator(stage, count, len(sess.pro_files))
@@ -3511,11 +3484,11 @@ def register_handlers(app: Client):
                 sess.pro_files.append(fuid)
                 count = len(sess.pro_files)
                 await message.reply(
-                    f"💎 **Added to PREMIUM Tier!**\n\n"
+                    f" **Added to PREMIUM Tier!**\n\n"
                     f"{file_icon(file_name)} `{file_name}`\n"
-                    f"📊 {fmt_size(file_size)}\n\n"
-                    f"📂 Free tier: `{len(sess.free_files)}` file(s)\n"
-                    f"💎 Premium tier total: `{count}` file(s)\n\n"
+                    f" {fmt_size(file_size)}\n\n"
+                    f" Free tier: `{len(sess.free_files)}` file(s)\n"
+                    f" Premium tier total: `{count}` file(s)\n\n"
                     f"Send more PREMIUM files, or finish.",
                     quote=True,
                     reply_markup=kb_dual_post_creator(stage, len(sess.free_files), count)
@@ -3526,8 +3499,8 @@ def register_handlers(app: Client):
         elif uid in TEMP_BATCH:
             TEMP_BATCH[uid].append(fuid)
             await message.reply(
-                f"✅ **Added!**\n{file_icon(file_name)} `{file_name}`\n"
-                f"📦 Total: `{len(TEMP_BATCH[uid])}`",
+                f" **Added!**\n{file_icon(file_name)} `{file_name}`\n"
+                f" Total: `{len(TEMP_BATCH[uid])}`",
                 quote=True
             )
 
@@ -3537,15 +3510,15 @@ def register_handlers(app: Client):
                 return
             direct_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
             await message.reply(
-                f"✅ **File Saved!**\n\n"
+                f" **File Saved!**\n\n"
                 f"{file_icon(file_name)} `{file_name}`\n"
-                f"📊 {fmt_size(file_size)} | 🆔 `{fuid}`\n\n"
-                f"🔗 **Share Link:**\n`{direct_link}`\n\n"
-                + (f"_ℹ️ Recipients go through shortener ads to get file._"
+                f" {fmt_size(file_size)} |  `{fuid}`\n\n"
+                f" **Share Link:**\n`{direct_link}`\n\n"
+                + (f"_ Recipients go through shortener ads to get file._"
                    if shortener_enabled_for_bot(bi) else ""),
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📤 Share", url=f"https://t.me/share/url?url={direct_link}"),
-                     InlineKeyboardButton("✏️ Edit",  callback_data=f"edit_file_{fuid}")]
+                    [InlineKeyboardButton(" Share", url=f"https://t.me/share/url?url={direct_link}"),
+                     InlineKeyboardButton(" Edit",  callback_data=f"edit_file_{fuid}")]
                 ])
             )
 
@@ -3571,13 +3544,13 @@ def register_handlers(app: Client):
                 sess["content"] = message
                 sess["step"] = "style"
                 await message.reply(
-                    stylish("✅ **Post content saved!**\n\nStep 2/3: Choose a font style for your text/caption:"),
+                    stylish(" **Post content saved!**\n\nStep 2/3: Choose a font style for your text/caption:"),
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("Normal", callback_data="pstyle_none"),
                          InlineKeyboardButton("Sᴍᴀʟʟ Cᴀᴘs", callback_data="pstyle_smallcaps")],
                         [InlineKeyboardButton("Bold", callback_data="pstyle_bold"),
                          InlineKeyboardButton("Italic", callback_data="pstyle_italic")],
-                        [InlineKeyboardButton(stylish("❌ Cancel"), callback_data="cancel_post")]
+                        [InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")]
                     ])
                 )
             elif step == "buttons":
@@ -3602,7 +3575,7 @@ def register_handlers(app: Client):
 
                 del TEMP_POST[uid]
 
-                await message.reply(stylish("🚀 **Post Ready!** Here is a preview:"), reply_markup=markup)
+                await message.reply(stylish(" **Post Ready!** Here is a preview:"), reply_markup=markup)
 
                 # Send the actual post content
                 if content.photo:
@@ -3615,10 +3588,10 @@ def register_handlers(app: Client):
                     sent = await client.send_message(message.chat.id, text=text, reply_markup=markup)
 
                 await message.reply(
-                    stylish(f"✅ **Post Created!**\n\nYou can now forward the preview message above to any channel where this bot is an admin or use buttons below."),
+                    stylish(f" **Post Created!**\n\nYou can now forward the preview message above to any channel where this bot is an admin or use buttons below."),
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton(stylish("📢 Send to Channel"), callback_data=f"psend_chan_{sent.id}")],
-                        [InlineKeyboardButton(stylish("➕ Create Another"), callback_data="cb_create_post")]
+                        [InlineKeyboardButton(stylish(" Send to Channel"), callback_data=f"psend_chan_{sent.id}")],
+                        [InlineKeyboardButton(stylish(" Create Another"), callback_data="cb_create_post")]
                     ])
                 )
             return
@@ -3633,26 +3606,26 @@ def register_handlers(app: Client):
                     sess["title"] = chat.title
                     sess["step"] = "mode"
                     await message.reply(
-                        f"✅ Channel found: **{chat.title}**\n\n"
+                        f" Channel found: **{chat.title}**\n\n"
                         f"Step 2: Choose **Join Mode**:\n"
                         f"├ `direct` - Regular join link\n"
                         f"├ `requested` - Join request (admin approval)\n"
                         f"└ `normal` - Public channel (no special link needed, but we provide one anyway)",
                         reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("🔗 Direct",    callback_data="pm_direct"),
-                             InlineKeyboardButton("📩 Requested", callback_data="pm_requested")],
-                            [InlineKeyboardButton("📢 Normal",    callback_data="pm_normal")],
-                            [InlineKeyboardButton("❌ Cancel",    callback_data="cancel_protect")]
+                            [InlineKeyboardButton(" Direct",    callback_data="pm_direct"),
+                             InlineKeyboardButton(" Requested", callback_data="pm_requested")],
+                            [InlineKeyboardButton(" Normal",    callback_data="pm_normal")],
+                            [InlineKeyboardButton(" Cancel",    callback_data="cancel_protect")]
                         ])
                     )
                 except Exception as e:
-                    await message.reply(f"❌ Invalid Channel ID or Bot is not admin there!\n`{e}`")
+                    await message.reply(f" Invalid Channel ID or Bot is not admin there!\n`{e}`")
             return
 
         if uid in TEMP_WELCOME:
             sess = TEMP_WELCOME[uid]; step = sess.get("step")
             if step == "text":
-                if not message.text: return await message.reply("❌ Send text or `-skip`.")
+                if not message.text: return await message.reply(" Send text or `-skip`.")
                 txt = message.text.strip()
                 if txt not in ("-skip", "-clear"):
                     update_bot_info(bot_id, "custom_welcome", txt)
@@ -3660,40 +3633,40 @@ def register_handlers(app: Client):
                     update_bot_info(bot_id, "custom_welcome", None)
                 sess["step"] = "image"
                 await message.reply(
-                    f"✅ {'Updated!' if txt not in ('-skip','-clear') else 'Unchanged!' if txt=='-skip' else 'Reset!'}\n\n"
-                    f"🖼 **Step 2/2:** Send photo for welcome image.\n`-skip` = keep | `-clear` = remove",
-                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel",callback_data="cancel_welcome")]])
+                    f" {'Updated!' if txt not in ('-skip','-clear') else 'Unchanged!' if txt=='-skip' else 'Reset!'}\n\n"
+                    f" **Step 2/2:** Send photo for welcome image.\n`-skip` = keep | `-clear` = remove",
+                    reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel",callback_data="cancel_welcome")]])
                 )
             elif step == "image":
                 if message.photo:
                     update_bot_info(bot_id, "welcome_image", message.photo.file_id)
                     del TEMP_WELCOME[uid]
                     await message.reply(
-                        "✅ **Welcome fully updated!**",
+                        " **Welcome fully updated!**",
                         reply_markup=InlineKeyboardMarkup([
-                            [InlineKeyboardButton("👀 Preview", callback_data="preview_welcome")],
-                            [InlineKeyboardButton("🔙 Admin",   callback_data="admin_panel")]
+                            [InlineKeyboardButton(" Preview", callback_data="preview_welcome")],
+                            [InlineKeyboardButton(" Admin",   callback_data="admin_panel")]
                         ])
                     )
                 elif message.text:
                     txt = message.text.strip()
                     if txt == "-skip":
                         del TEMP_WELCOME[uid]
-                        await message.reply("✅ Image unchanged.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Admin",callback_data="admin_panel")]]))
+                        await message.reply(" Image unchanged.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Admin",callback_data="admin_panel")]]))
                     elif txt == "-clear":
                         update_bot_info(bot_id, "welcome_image", None)
                         del TEMP_WELCOME[uid]
-                        await message.reply("✅ Image removed.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Admin",callback_data="admin_panel")]]))
-                    else: await message.reply("❌ Send a **photo**, `-skip`, or `-clear`.")
+                        await message.reply(" Image removed.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Admin",callback_data="admin_panel")]]))
+                    else: await message.reply(" Send a **photo**, `-skip`, or `-clear`.")
             return
 
         if uid in TEMP_EDIT:
             sess = TEMP_EDIT[uid]; mode = sess["mode"]; fuid = sess["uid"]
             files = load_db(FILES_DB)
             if fuid not in files:
-                del TEMP_EDIT[uid]; return await message.reply("❌ File no longer exists.")
+                del TEMP_EDIT[uid]; return await message.reply(" File no longer exists.")
             if mode == "caption":
-                if not message.text: return await message.reply(stylish("❌ Send text for caption."))
+                if not message.text: return await message.reply(stylish(" Send text for caption."))
                 txt = message.text.strip()
                 if txt == "-clear":
                     files[fuid]["caption"] = None
@@ -3701,70 +3674,70 @@ def register_handlers(app: Client):
                     main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                     asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                     del TEMP_EDIT[uid]
-                    return await message.reply(stylish("✅ Caption removed!"), reply_markup=kb_file_edit(fuid))
+                    return await message.reply(stylish(" Caption removed!"), reply_markup=kb_file_edit(fuid))
 
                 sess["temp_caption"] = txt
                 sess["mode"] = "caption_style"
                 await message.reply(
-                    stylish("✅ **Text received!**\n\nChoose a font style for the caption:"),
+                    stylish(" **Text received!**\n\nChoose a font style for the caption:"),
                     reply_markup=InlineKeyboardMarkup([
                         [InlineKeyboardButton("Normal", callback_data=f"cstyle_none_{fuid}"),
                          InlineKeyboardButton("Sᴍᴀʟʟ Cᴀᴘs", callback_data=f"cstyle_smallcaps_{fuid}")],
                         [InlineKeyboardButton("Bold", callback_data=f"cstyle_bold_{fuid}"),
                          InlineKeyboardButton("Italic", callback_data=f"cstyle_italic_{fuid}")],
-                        [InlineKeyboardButton(stylish("❌ Cancel"), callback_data="cancel_edit")]
+                        [InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_edit")]
                     ])
                 )
             elif mode == "thumbnail":
-                if not message.photo: return await message.reply("❌ Send a **photo** as thumbnail.")
+                if not message.photo: return await message.reply(" Send a **photo** as thumbnail.")
                 files[fuid]["custom_thumbnail"] = message.photo.file_id
                 save_db(FILES_DB, files)
                 main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
-                await message.reply("✅ Thumbnail updated!", reply_markup=kb_file_edit(fuid))
+                await message.reply(" Thumbnail updated!", reply_markup=kb_file_edit(fuid))
             elif mode == "qrename":
-                if not message.text: return await message.reply("❌ Send a **new file name**.")
+                if not message.text: return await message.reply(" Send a **new file name**.")
                 new_name = message.text.strip()
                 files[fuid]["file_name"] = new_name
                 save_db(FILES_DB, files)
                 main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
-                await message.reply(f"✅ **Quick Rename Complete!**\n\n🆕 `{new_name}`\n_Note: This only changes how the bot displays the name._", reply_markup=kb_file_edit(fuid))
+                await message.reply(f" **Quick Rename Complete!**\n\n `{new_name}`\n_Note: This only changes how the bot displays the name._", reply_markup=kb_file_edit(fuid))
 
             elif mode == "set_price":
                 update_bot_info(bot_id, "premium_price", message.text.strip())
                 del TEMP_EDIT[uid]
-                await message.reply(f"✅ Premium price set to: `{message.text.strip()}`", reply_markup=kb_admin())
+                await message.reply(f" Premium price set to: `{message.text.strip()}`", reply_markup=kb_admin())
 
             elif mode == "set_contact":
                 contact = message.text.replace("@", "").strip()
                 update_bot_info(bot_id, "premium_contact", contact)
                 del TEMP_EDIT[uid]
-                await message.reply(f"✅ Premium contact set to: `@{contact}`", reply_markup=kb_admin())
+                await message.reply(f" Premium contact set to: `@{contact}`", reply_markup=kb_admin())
 
             elif mode == "set_timer_custom":
                 try:
                     secs = int(message.text)
-                    if secs < 30: return await message.reply("❌ Min 30s!")
+                    if secs < 30: return await message.reply(" Min 30s!")
                     update_bot_info(bot_id, "auto_delete_time", secs)
                     del TEMP_EDIT[uid]
-                    await message.reply(f"✅ Timer set to `{secs}s`!", reply_markup=kb_admin())
-                except: await message.reply("❌ Send a valid number of seconds.")
+                    await message.reply(f" Timer set to `{secs}s`!", reply_markup=kb_admin())
+                except: await message.reply(" Send a valid number of seconds.")
 
             elif mode == "customize_button":
-                if not message.text: return await message.reply("❌ Send a **name**.")
+                if not message.text: return await message.reply(" Send a **name**.")
                 new_name = message.text.strip()
                 key = sess["key"]
                 btns = get_global_config().get("custom_buttons", {})
                 btns[key] = new_name
                 update_global_config("custom_buttons", btns)
                 del TEMP_EDIT[uid]
-                await message.reply(f"✅ Button `{key}` updated to: `{new_name}`", reply_markup=kb_supreme())
+                await message.reply(f" Button `{key}` updated to: `{new_name}`", reply_markup=kb_supreme())
 
             elif mode == "customize_message":
-                if not message.text: return await message.reply("❌ Send **text**.")
+                if not message.text: return await message.reply(" Send **text**.")
                 txt = message.text.strip()
                 key = sess["key"]
                 msgs = get_global_config().get("custom_messages", {})
@@ -3774,10 +3747,10 @@ def register_handlers(app: Client):
                     msgs[key] = txt
                 update_global_config("custom_messages", msgs)
                 del TEMP_EDIT[uid]
-                await message.reply(f"✅ Message `{key}` updated!", reply_markup=kb_supreme())
+                await message.reply(f" Message `{key}` updated!", reply_markup=kb_supreme())
 
             elif mode == "set_password":
-                if not message.text: return await message.reply(stylish("❌ Send a password."))
+                if not message.text: return await message.reply(stylish(" Send a password."))
                 pw = message.text.strip()
                 files[fuid]["password"] = None if pw == "-clear" else pw
                 save_db(FILES_DB, files)
@@ -3785,17 +3758,17 @@ def register_handlers(app: Client):
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
                 await message.reply(
-                    stylish(f"✅ Password {'removed' if pw=='-clear' else 'set'}!"),
+                    stylish(f" Password {'removed' if pw=='-clear' else 'set'}!"),
                     reply_markup=kb_file_edit(fuid)
                 )
 
             elif mode == "verify_password":
-                if not message.text: return await message.reply(stylish("❌ Send the password."))
+                if not message.text: return await message.reply(stylish(" Send the password."))
                 expected = sess["password"]
                 if message.text.strip() == expected:
                     fdata = sess["fdata"]
                     del TEMP_EDIT[uid]
-                    await message.reply(stylish("✅ Correct Password! Sending file..."))
+                    await message.reply(stylish(" Correct Password! Sending file..."))
                     sent = await deliver_file(client, message.chat.id, fdata)
                     bi = get_bot_info(bot_id); ud = get_user(uid, bot_id)
                     is_p = ud and ud.get("is_premium")
@@ -3803,14 +3776,14 @@ def register_handlers(app: Client):
                         auto_del = bi.get("auto_delete_time", 600) if bi else 600
                         asyncio.create_task(_auto_delete(sent, auto_del))
                 else:
-                    await message.reply(stylish("❌ Wrong Password! Try again or /cancel."))
+                    await message.reply(stylish(" Wrong Password! Try again or /cancel."))
 
             elif mode == "rename":
-                if not message.text: return await message.reply("❌ Send a **new file name**.")
+                if not message.text: return await message.reply(" Send a **new file name**.")
                 new_name = message.text.strip()
                 fd = files[fuid]
                 del TEMP_EDIT[uid]
-                sm = await message.reply(f"⏳ **Hard Renaming file...**\n\n`{fd.get('file_name')}` ➡️ `{new_name}`\n\n_Please wait, this involves downloading and re-uploading._")
+                sm = await message.reply(f" **Hard Renaming file...**\n\n`{fd.get('file_name')}`  `{new_name}`\n\n_Please wait, this involves downloading and re-uploading._")
 
                 try:
                     # Download
@@ -3819,12 +3792,12 @@ def register_handlers(app: Client):
                         pct = current * 100 / total
                         if time.time() - t0 > 3:
                             bar = "█" * (int(pct) // 10) + "░" * (10 - int(pct) // 10)
-                            try: await sm.edit(f"⏳ **Hard Renaming...**\n\n📥 Downloading: `[{bar}]` {pct:.1f}%")
+                            try: await sm.edit(f" **Hard Renaming...**\n\n Downloading: `[{bar}]` {pct:.1f}%")
                             except: pass
 
                     path = await client.download_media(fd['file_id'], progress=progress)
                     if not path:
-                        return await sm.edit("❌ Download failed! File might be too large or deleted.")
+                        return await sm.edit(" Download failed! File might be too large or deleted.")
 
                     # Use temp dir to avoid conflicts
                     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -3832,13 +3805,13 @@ def register_handlers(app: Client):
                         shutil.move(path, new_path)
 
                         # Upload
-                        await sm.edit(f"⏳ **Hard Renaming...**\n\n📤 Uploading: `0%`")
+                        await sm.edit(f" **Hard Renaming...**\n\n Uploading: `0%`")
                         t1 = time.time()
                         async def up_progress(current, total):
                             pct = current * 100 / total
                             if time.time() - t1 > 3:
                                 bar = "█" * (int(pct) // 10) + "░" * (10 - int(pct) // 10)
-                                try: await sm.edit(f"⏳ **Hard Renaming...**\n\n📤 Uploading: `[{bar}]` {pct:.1f}%")
+                                try: await sm.edit(f" **Hard Renaming...**\n\n Uploading: `[{bar}]` {pct:.1f}%")
                                 except: pass
 
                         thumb = fd.get('custom_thumbnail')
@@ -3868,45 +3841,45 @@ def register_handlers(app: Client):
                             main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                             asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
 
-                            await sm.edit(f"✅ **File Renamed Successfully!**\n\n🆕 Name: `{new_name}`", reply_markup=kb_file_edit(fuid))
+                            await sm.edit(f" **File Renamed Successfully!**\n\n Name: `{new_name}`", reply_markup=kb_file_edit(fuid))
                         else:
-                            await sm.edit("❌ Upload failed!")
+                            await sm.edit(" Upload failed!")
 
                         if thumb_path and os.path.exists(thumb_path): os.remove(thumb_path)
 
                 except Exception as e:
                     logger.error(f"Rename error: {e}")
-                    await sm.edit(f"❌ **Rename Error:** `{e}`")
+                    await sm.edit(f" **Rename Error:** `{e}`")
 
     # ── CALLBACK HANDLER ──────────────────────────────────────────
     @app.on_callback_query(group=1)
     async def cb_handler(client, cb):
         uid = cb.from_user.id; data = cb.data; bot_id = client.me.id
-        if is_user_banned(uid, bot_id): return await cb.answer("🚫 Banned!", show_alert=True)
+        if is_user_banned(uid, bot_id): return await cb.answer(" Banned!", show_alert=True)
 
         if data.startswith("edit_file_"):
             fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
-            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
+            if not fd: return await cb.answer(" Not found!", show_alert=True)
             bi = get_bot_info(bot_id)
             can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
-            if not can: return await cb.answer("❌ Not your file!", show_alert=True)
+            if not can: return await cb.answer(" Not your file!", show_alert=True)
             icon = file_icon(fd.get("file_name","")); cap = fd.get("caption") or "_(none)_"
-            thumb = "✅" if fd.get("custom_thumbnail") else "❌"
+            thumb = "" if fd.get("custom_thumbnail") else ""
             await cb.message.edit(
-                f"✏️ **File Editor**\n\n{icon} **{fd.get('file_name','?')}**\n"
-                f"🆔 `{fuid}` | 📊 {fmt_size(fd.get('file_size',0))}\n"
-                f"💬 {cap} | 🖼 {thumb} | 👁 `{fd.get('access_count',0)}`",
+                f" **File Editor**\n\n{icon} **{fd.get('file_name','?')}**\n"
+                f" `{fuid}` |  {fmt_size(fd.get('file_size',0))}\n"
+                f" {cap} |  {thumb} |  `{fd.get('access_count',0)}`",
                 reply_markup=kb_file_edit(fuid)
             )
             await cb.answer()
 
         elif data.startswith("edit_caption_"):
             fuid = data[13:]; files = load_db(FILES_DB)
-            if fuid not in files: return await cb.answer(stylish("❌ Not found!"), show_alert=True)
+            if fuid not in files: return await cb.answer(stylish(" Not found!"), show_alert=True)
             TEMP_EDIT[uid] = {"mode": "caption", "uid": fuid}
             await cb.message.edit(
-                stylish(f"✏️ **Edit Caption**\n\nFile: `{files[fuid].get('file_name','?')}`\n\nSend new caption text.\n`-clear` to remove."),
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("❌ Cancel"), callback_data="cancel_edit")]])
+                stylish(f" **Edit Caption**\n\nFile: `{files[fuid].get('file_name','?')}`\n\nSend new caption text.\n`-clear` to remove."),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_edit")]])
             )
             await cb.answer("Send caption text")
 
@@ -3933,44 +3906,44 @@ def register_handlers(app: Client):
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
 
             del TEMP_EDIT[uid]
-            await cb.message.edit(stylish(f"✅ Caption updated with style '{style}'!"), reply_markup=kb_file_edit(fuid))
+            await cb.message.edit(stylish(f" Caption updated with style '{style}'!"), reply_markup=kb_file_edit(fuid))
             await cb.answer()
 
         elif data.startswith("set_pass_"):
             fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
-            if not fd: return await cb.answer(stylish("❌ Not found!"), show_alert=True)
+            if not fd: return await cb.answer(stylish(" Not found!"), show_alert=True)
             TEMP_EDIT[uid] = {"mode": "set_password", "uid": fuid}
             curr_pw = fd.get("password", "None")
             await cb.message.edit(
-                stylish(f"🔐 **Set File Password**\n\nFile: `{fd.get('file_name','?')}`\n\nCurrent Password: `{curr_pw}`\n\nSend a new password for this file.\nUsers will need this password to access the file via link.\n`-clear` to remove."),
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("❌ Cancel"), callback_data="cancel_edit")]])
+                stylish(f" **Set File Password**\n\nFile: `{fd.get('file_name','?')}`\n\nCurrent Password: `{curr_pw}`\n\nSend a new password for this file.\nUsers will need this password to access the file via link.\n`-clear` to remove."),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_edit")]])
             )
             await cb.answer("Send password")
 
         elif data.startswith("edit_thumb_"):
             fuid = data[11:]; files = load_db(FILES_DB); fd = files.get(fuid)
-            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
+            if not fd: return await cb.answer(" Not found!", show_alert=True)
             if fd.get("media_type") == "photo":
-                return await cb.answer("❌ Photos can't have thumbnails!", show_alert=True)
+                return await cb.answer(" Photos can't have thumbnails!", show_alert=True)
             TEMP_EDIT[uid] = {"mode": "thumbnail", "uid": fuid}
             await cb.message.edit(
-                f"🖼 **Edit Thumbnail**\n\nFile: `{fd.get('file_name','?')}`\n\nSend a **photo** as thumbnail.",
+                f" **Edit Thumbnail**\n\nFile: `{fd.get('file_name','?')}`\n\nSend a **photo** as thumbnail.",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("⚡ Hard Fix Thumbnail", callback_data=f"fix_thumb_{fuid}")],
-                    [InlineKeyboardButton("🗑 Remove Thumb", callback_data=f"remove_thumb_{fuid}")],
-                    [InlineKeyboardButton("❌ Cancel",       callback_data="cancel_edit")]
+                    [InlineKeyboardButton(" Hard Fix Thumbnail", callback_data=f"fix_thumb_{fuid}")],
+                    [InlineKeyboardButton(" Remove Thumb", callback_data=f"remove_thumb_{fuid}")],
+                    [InlineKeyboardButton(" Cancel",       callback_data="cancel_edit")]
                 ])
             )
             await cb.answer("Send a photo")
 
         elif data.startswith("fix_thumb_"):
             fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
-            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
+            if not fd: return await cb.answer(" Not found!", show_alert=True)
             if not fd.get("custom_thumbnail"):
-                return await cb.answer("❌ Set a thumbnail first!", show_alert=True)
+                return await cb.answer(" Set a thumbnail first!", show_alert=True)
 
-            await cb.answer("⏳ Hard fixing thumbnail...")
-            sm = await cb.message.edit(f"⏳ **Hard Fixing Thumbnail...**\n\nFile: `{fd.get('file_name')}`\n\n_Downloading and re-uploading with thumbnail..._")
+            await cb.answer(" Hard fixing thumbnail...")
+            sm = await cb.message.edit(f" **Hard Fixing Thumbnail...**\n\nFile: `{fd.get('file_name')}`\n\n_Downloading and re-uploading with thumbnail..._")
 
             try:
                 # Download
@@ -3989,32 +3962,32 @@ def register_handlers(app: Client):
                     main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                     asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
 
-                    await sm.edit("✅ **Thumbnail Hard-Fixed!**\n\nThe file has been re-uploaded with the thumbnail permanently attached.", reply_markup=kb_file_edit(fuid))
+                    await sm.edit(" **Thumbnail Hard-Fixed!**\n\nThe file has been re-uploaded with the thumbnail permanently attached.", reply_markup=kb_file_edit(fuid))
                 else:
-                    await sm.edit("❌ Fix failed during upload!")
+                    await sm.edit(" Fix failed during upload!")
 
                 if path and os.path.exists(path): os.remove(path)
                 if thumb_path and os.path.exists(thumb_path): os.remove(thumb_path)
             except Exception as e:
-                await sm.edit(f"❌ **Fix Error:** `{e}`")
+                await sm.edit(f" **Fix Error:** `{e}`")
 
         elif data.startswith("qrename_"):
             fuid = data[8:]; files = load_db(FILES_DB); fd = files.get(fuid)
-            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
+            if not fd: return await cb.answer(" Not found!", show_alert=True)
             TEMP_EDIT[uid] = {"mode": "qrename", "uid": fuid}
             await cb.message.edit(
-                f"📝 **Quick Rename**\n\nCurrent: `{fd.get('file_name','?')}`\n\nSend new name for the bot to display.\n_Note: Original file remains unchanged._",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_edit")]])
+                f" **Quick Rename**\n\nCurrent: `{fd.get('file_name','?')}`\n\nSend new name for the bot to display.\n_Note: Original file remains unchanged._",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_edit")]])
             )
             await cb.answer("Send new name")
 
         elif data.startswith("rename_file_"):
             fuid = data[12:]; files = load_db(FILES_DB); fd = files.get(fuid)
-            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
+            if not fd: return await cb.answer(" Not found!", show_alert=True)
             TEMP_EDIT[uid] = {"mode": "rename", "uid": fuid}
             await cb.message.edit(
-                f"🚀 **Hard Rename (Re-upload)**\n\nCurrent: `{fd.get('file_name','?')}`\n\nSend new name for the file (including extension).\n_This will re-upload the file to Telegram._",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_edit")]])
+                f" **Hard Rename (Re-upload)**\n\nCurrent: `{fd.get('file_name','?')}`\n\nSend new name for the file (including extension).\n_This will re-upload the file to Telegram._",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_edit")]])
             )
             await cb.answer("Send new name")
 
@@ -4025,33 +3998,33 @@ def register_handlers(app: Client):
                 TEMP_EDIT.pop(uid, None)
                 main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
                 asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
-                await cb.answer("✅ Thumbnail removed!", show_alert=True)
-                await cb.message.edit("✅ Thumbnail removed!", reply_markup=kb_file_edit(fuid))
+                await cb.answer(" Thumbnail removed!", show_alert=True)
+                await cb.message.edit(" Thumbnail removed!", reply_markup=kb_file_edit(fuid))
 
         elif data.startswith("del_file_"):
             fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
             if not fd: return await cb.answer("Already deleted!", show_alert=True)
             bi = get_bot_info(bot_id)
             can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
-            if not can: return await cb.answer("❌ Not your file!", show_alert=True)
+            if not can: return await cb.answer(" Not your file!", show_alert=True)
             del files[fuid]; save_db(FILES_DB, files)
-            await cb.answer("🗑 Deleted!", show_alert=True)
-            await cb.message.edit(f"🗑 **Deleted:** `{fd.get('file_name','?')}`")
+            await cb.answer(" Deleted!", show_alert=True)
+            await cb.message.edit(f" **Deleted:** `{fd.get('file_name','?')}`")
 
         elif data.startswith("del_plink_"):
             lpid = data[10:]; plinks = load_db(PLINKS_DB); p = plinks.get(lpid)
             if not p: return await cb.answer("Already deleted!", show_alert=True)
             bi = get_bot_info(bot_id)
             can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or p.get("created_by")==uid
-            if not can: return await cb.answer("❌ Access denied!", show_alert=True)
+            if not can: return await cb.answer(" Access denied!", show_alert=True)
             del plinks[lpid]; save_db(PLINKS_DB, plinks)
-            await cb.answer("🗑 Protected link deleted!", show_alert=True)
-            await cb.message.edit(f"🗑 **Deleted Protected Link:** `{p.get('title','?')}`")
+            await cb.answer(" Protected link deleted!", show_alert=True)
+            await cb.message.edit(f" **Deleted Protected Link:** `{p.get('title','?')}`")
 
         elif data.startswith("get_file_"):
             fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
-            if not fd: return await cb.answer("❌ Not found!", show_alert=True)
-            await cb.answer("📤 Sending...")
+            if not fd: return await cb.answer(" Not found!", show_alert=True)
+            await cb.answer(" Sending...")
             try:
                 bi = get_bot_info(bot_id); ud = get_user(uid, bot_id)
                 is_prem = ud and ud.get("is_premium", False)
@@ -4060,26 +4033,26 @@ def register_handlers(app: Client):
                 if sent and not is_prem:
                     asyncio.create_task(_auto_delete(sent, auto_del))
             except Exception as e:
-                await cb.message.reply(f"❌ `{e}`")
+                await cb.message.reply(f" `{e}`")
 
         elif data == "cancel_edit":
             TEMP_EDIT.pop(uid, None)
-            await cb.message.edit("❌ Edit cancelled.")
+            await cb.message.edit(" Edit cancelled.")
             await cb.answer()
 
         elif data == "cancel_welcome":
             TEMP_WELCOME.pop(uid, None)
-            await cb.message.edit("❌ Welcome editor cancelled.")
+            await cb.message.edit(" Welcome editor cancelled.")
             await cb.answer()
 
         elif data == "cancel_protect":
             TEMP_PROTECT.pop(uid, None)
-            await cb.message.edit(stylish("❌ Protection setup cancelled."))
+            await cb.message.edit(stylish(" Protection setup cancelled."))
             await cb.answer()
 
         elif data == "cancel_post":
             TEMP_POST.pop(uid, None)
-            await cb.message.edit(stylish("❌ Post creation cancelled."))
+            await cb.message.edit(stylish(" Post creation cancelled."))
             await cb.answer()
 
         elif data == "cb_create_post":
@@ -4103,8 +4076,8 @@ def register_handlers(app: Client):
             TEMP_POST[uid]["style"] = style
             TEMP_POST[uid]["step"] = "buttons"
             await cb.message.edit(
-                stylish(f"✅ **Style '{style}' applied!**\n\nStep 3/3: Send **Inline Buttons** in the following format:\n\n`Button Text | https://link.com`\n`Button 2 | https://google.com`\n\nSend one button per line. Send `-skip` if you don't want any buttons."),
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("❌ Cancel"), callback_data="cancel_post")]])
+                stylish(f" **Style '{style}' applied!**\n\nStep 3/3: Send **Inline Buttons** in the following format:\n\n`Button Text | https://link.com`\n`Button 2 | https://google.com`\n\nSend one button per line. Send `-skip` if you don't want any buttons."),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")]])
             )
             await cb.answer()
 
@@ -4113,13 +4086,13 @@ def register_handlers(app: Client):
             bi = get_bot_info(bot_id)
             chid = bi.get("connected_channel")
             if not chid:
-                return await cb.answer("❌ No channel connected! Use /setchannel first.", show_alert=True)
+                return await cb.answer(" No channel connected! Use /setchannel first.", show_alert=True)
 
             try:
                 await client.copy_message(chid, cb.message.chat.id, msg_id)
-                await cb.answer("✅ Sent to connected channel!", show_alert=True)
+                await cb.answer(" Sent to connected channel!", show_alert=True)
             except Exception as e:
-                await cb.answer(f"❌ Failed: {e}", show_alert=True)
+                await cb.answer(f" Failed: {e}", show_alert=True)
 
         elif data.startswith("pm_"):
             mode = data[3:]
@@ -4140,20 +4113,20 @@ def register_handlers(app: Client):
 
             link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
             await cb.message.edit(
-                f"🛡 **Channel Protected Successfully!**\n\n"
-                f"📢 **Channel:** `{sess['title']}`\n"
-                f"🆔 `{sess['channel_id']}`\n"
-                f"⚙️ **Join Mode:** `{mode.upper()}`\n\n"
-                f"🔗 **Your Sharable Link:**\n`{link}`\n\n"
-                f"⚠️ **Note:** This link will always generate a fresh invite link (valid for 5 mins) for every user who clicks it.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📤 Share Link", url=f"https://t.me/share/url?url={link}")]])
+                f" **Channel Protected Successfully!**\n\n"
+                f" **Channel:** `{sess['title']}`\n"
+                f" `{sess['channel_id']}`\n"
+                f" **Join Mode:** `{mode.upper()}`\n\n"
+                f" **Your Sharable Link:**\n`{link}`\n\n"
+                f" **Note:** This link will always generate a fresh invite link (valid for 5 mins) for every user who clicks it.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Share Link", url=f"https://t.me/share/url?url={link}")]])
             )
             await cb.answer("Protected link created!", show_alert=True)
 
         elif data == "my_files_back":
             await cb.message.edit(
-                "📋 Use `/listfiles` to browse.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Home", callback_data="back_to_start")]])
+                " Use `/listfiles` to browse.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Home", callback_data="back_to_start")]])
             )
             await cb.answer()
 
@@ -4167,19 +4140,19 @@ def register_handlers(app: Client):
             active_sess = uid in TEMP_DUAL
             btns = []
             if can_create:
-                btns.append([InlineKeyboardButton("➕ Create Dual Post", callback_data="dual_post_start_new")])
+                btns.append([InlineKeyboardButton(" Create Dual Post", callback_data="dual_post_start_new")])
             if dps:
-                btns.append([InlineKeyboardButton(f"📋 My Dual Posts ({len(dps)})", callback_data="dual_post_list")])
-            btns.append([InlineKeyboardButton("🔙 Back", callback_data="back_to_start")])
+                btns.append([InlineKeyboardButton(f" My Dual Posts ({len(dps)})", callback_data="dual_post_list")])
+            btns.append([InlineKeyboardButton(" Back", callback_data="back_to_start")])
             await cb.message.edit(
-                f"🎭 **Dual Post System**\n\n"
+                f" **Dual Post System**\n\n"
                 f"One link → Two experiences!\n\n"
-                f"📂 **FREE tier** — For regular users\n"
+                f" **FREE tier** — For regular users\n"
                 f"   → Shortener ads → Files → Auto-delete\n\n"
-                f"💎 **PRO tier** — For Premium users\n"
+                f" **PRO tier** — For Premium users\n"
                 f"   → Direct delivery → No ads → No delete\n\n"
-                f"{'⚡ Active session: send files!' if active_sess else ''}\n"
-                f"Total posts: `{len(dps)}` | 👁 `{total_views}` views",
+                f"{' Active session: send files!' if active_sess else ''}\n"
+                f"Total posts: `{len(dps)}` |  `{total_views}` views",
                 reply_markup=InlineKeyboardMarkup(btns)
             )
             await cb.answer()
@@ -4189,7 +4162,7 @@ def register_handlers(app: Client):
             can_create = (uid == MAIN_ADMIN or is_admin(uid) or
                           (bi and bi.get("owner_id") == uid))
             if not can_create:
-                return await cb.answer("❌ Only owner/admins can create Dual Posts!", show_alert=True)
+                return await cb.answer(" Only owner/admins can create Dual Posts!", show_alert=True)
             if uid in TEMP_DUAL:
                 sess = TEMP_DUAL[uid]
                 await cb.answer(
@@ -4200,21 +4173,21 @@ def register_handlers(app: Client):
             session = DualPostSession(bot_id, uid)
             TEMP_DUAL[uid] = session
             await cb.message.edit(
-                f"🎭 **Dual Post Creator — Started!**\n\n"
+                f" **Dual Post Creator — Started!**\n\n"
                 f"Tip: `/dualpost My Title` for a titled post.\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"📂 **Stage 1 — FREE TIER**\n\n"
+                f" **Stage 1 — FREE TIER**\n\n"
                 f"Send files for non-premium users.\n\n"
                 f"When done → `/dpremium` or button below\n"
                 f"Cancel → `/dpcancel`\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("💎 Switch to Premium Tier", callback_data="dp_switch_pro")],
-                    [InlineKeyboardButton("✅ Finish & Generate Link",  callback_data="dp_finish")],
-                    [InlineKeyboardButton("❌ Cancel",                  callback_data="dp_cancel_session")]
+                    [InlineKeyboardButton(" Switch to Premium Tier", callback_data="dp_switch_pro")],
+                    [InlineKeyboardButton(" Finish & Generate Link",  callback_data="dp_finish")],
+                    [InlineKeyboardButton(" Cancel",                  callback_data="dp_cancel_session")]
                 ])
             )
-            await cb.answer("📂 FREE tier stage started! Send files.")
+            await cb.answer(" FREE tier stage started! Send files.")
 
         elif data == "dual_post_list":
             bi = get_bot_info(bot_id)
@@ -4225,21 +4198,21 @@ def register_handlers(app: Client):
                 return
             posts = sorted(posts, key=lambda p: p.get("created_at", ""), reverse=True)[:10]
             btns  = []
-            text  = f"🎭 **Dual Posts ({len(posts)})**\n\n"
+            text  = f" **Dual Posts ({len(posts)})**\n\n"
             for p in posts:
                 pid   = p["post_id"]
                 title = p.get("title", "Untitled")[:25]
                 fc    = len(p.get("free_files", []))
                 pc    = len(p.get("pro_files", []))
                 at    = p.get("access_total", 0)
-                text += f"📌 **{title}** | `{pid}` | 👁`{at}` | 📂`{fc}` 💎`{pc}`\n"
+                text += f" **{title}** | `{pid}` | `{at}` | `{fc}` `{pc}`\n"
                 link  = f"https://t.me/{client.me.username}?start=dp_{pid}"
                 btns.append([
-                    InlineKeyboardButton(f"📤 {title[:18]}", url=f"https://t.me/share/url?url={link}"),
-                    InlineKeyboardButton("📊", callback_data=f"dp_analytics_{pid}"),
-                    InlineKeyboardButton("🗑",  callback_data=f"dp_delete_{pid}")
+                    InlineKeyboardButton(f" {title[:18]}", url=f"https://t.me/share/url?url={link}"),
+                    InlineKeyboardButton("", callback_data=f"dp_analytics_{pid}"),
+                    InlineKeyboardButton("",  callback_data=f"dp_delete_{pid}")
                 ])
-            btns.append([InlineKeyboardButton("🔙 Back", callback_data="dual_post_menu")])
+            btns.append([InlineKeyboardButton(" Back", callback_data="dual_post_menu")])
             await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(btns))
             await cb.answer()
 
@@ -4253,27 +4226,27 @@ def register_handlers(app: Client):
                 )
             sess.stage = "pro"
             await cb.message.edit(
-                f"💎 **Premium Tier Active!**\n\n"
-                f"✅ Free tier locked: `{len(sess.free_files)}` file(s)\n\n"
+                f" **Premium Tier Active!**\n\n"
+                f" Free tier locked: `{len(sess.free_files)}` file(s)\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"💎 **Stage 2 — PREMIUM TIER**\n\n"
+                f" **Stage 2 — PREMIUM TIER**\n\n"
                 f"Now send files for Premium users.\n"
                 f"Direct delivery, no ads, no delete.\n\n"
                 f"When done → `/dpdone` or button below\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("✅ Finish & Generate Link", callback_data="dp_finish")],
-                    [InlineKeyboardButton("❌ Cancel Session",         callback_data="dp_cancel_session")]
+                    [InlineKeyboardButton(" Finish & Generate Link", callback_data="dp_finish")],
+                    [InlineKeyboardButton(" Cancel Session",         callback_data="dp_cancel_session")]
                 ])
             )
-            await cb.answer("Switched to 💎 Premium tier!")
+            await cb.answer("Switched to  Premium tier!")
 
         elif data == "dp_finish":
             if uid not in TEMP_DUAL:
                 return await cb.answer("No active session!", show_alert=True)
             sess = TEMP_DUAL[uid]
             if not sess.free_files and not sess.pro_files:
-                return await cb.answer("❌ No files added yet!", show_alert=True)
+                return await cb.answer(" No files added yet!", show_alert=True)
             post_id   = unique_id()
             post_data = save_dual_post(post_id, sess)
             del TEMP_DUAL[uid]
@@ -4284,21 +4257,21 @@ def register_handlers(app: Client):
             base_link = f"https://t.me/{client.me.username}?start=dp_{post_id}"
             bi2 = get_bot_info(bot_id)
             await cb.message.edit(
-                f"🎉 **Dual Post Created!**\n\n"
-                f"📌 **{sess.title or 'Dual Post'}**\n"
-                f"🆔 `{post_id}`\n\n"
-                f"📂 Free: `{len(sess.free_files)}` files "
-                f"{'🔗 (shortener)' if shortener_enabled_for_bot(bi2) else '📂 (direct)'}\n"
-                f"💎 Pro: `{len(sess.pro_files)}` files ⚡ (direct)\n\n"
-                f"🔗 **Link:**\n`{base_link}`",
+                f" **Dual Post Created!**\n\n"
+                f" **{sess.title or 'Dual Post'}**\n"
+                f" `{post_id}`\n\n"
+                f" Free: `{len(sess.free_files)}` files "
+                f"{' (shortener)' if shortener_enabled_for_bot(bi2) else ' (direct)'}\n"
+                f" Pro: `{len(sess.pro_files)}` files  (direct)\n\n"
+                f" **Link:**\n`{base_link}`",
                 reply_markup=kb_dual_post_done(post_id, base_link)
             )
-            await cb.answer("✅ Dual post created!")
+            await cb.answer(" Dual post created!")
 
         elif data == "dp_cancel_session":
             if uid in TEMP_DUAL:
                 del TEMP_DUAL[uid]
-                await cb.message.edit("❌ Dual post session cancelled.")
+                await cb.message.edit(" Dual post session cancelled.")
             await cb.answer()
 
         elif data.startswith("dp_prev_free_"):
@@ -4307,7 +4280,7 @@ def register_handlers(app: Client):
             if not post: return await cb.answer("Post not found!", show_alert=True)
             fids = post.get("free_files", [])
             if not fids: return await cb.answer("No free files!", show_alert=True)
-            await cb.answer("📂 Sending free tier preview...")
+            await cb.answer(" Sending free tier preview...")
             files = load_db(FILES_DB)
             for fuid in fids[:3]:
                 fd = files.get(fuid)
@@ -4324,7 +4297,7 @@ def register_handlers(app: Client):
             if not post: return await cb.answer("Post not found!", show_alert=True)
             fids = post.get("pro_files", [])
             if not fids: return await cb.answer("No premium files in this post!", show_alert=True)
-            await cb.answer("💎 Sending premium tier preview...")
+            await cb.answer(" Sending premium tier preview...")
             files = load_db(FILES_DB)
             for fuid in fids[:3]:
                 fd = files.get(fuid)
@@ -4342,7 +4315,7 @@ def register_handlers(app: Client):
             bi = get_bot_info(bot_id)
             can = (uid == MAIN_ADMIN or is_admin(uid) or
                    (bi and bi.get("owner_id") == uid) or post.get("created_by") == uid)
-            if not can: return await cb.answer("❌ Not your post!", show_alert=True)
+            if not can: return await cb.answer(" Not your post!", show_alert=True)
             fc   = len(post.get("free_files", []))
             pc   = len(post.get("pro_files", []))
             af   = post.get("access_free", 0)
@@ -4354,19 +4327,19 @@ def register_handlers(app: Client):
             bar_p = "█" * (prem_pct // 10) + "░" * (10 - prem_pct // 10)
             bar_f = "█" * (free_pct // 10) + "░" * (10 - free_pct // 10)
             await cb.message.edit(
-                f"📊 **Analytics — {post.get('title','?')}**\n\n"
-                f"🆔 `{post_id}`\n"
-                f"📅 `{str(post.get('created_at','?'))[:16]}`\n"
-                f"🕐 Last: `{last}`\n\n"
+                f" **Analytics — {post.get('title','?')}**\n\n"
+                f" `{post_id}`\n"
+                f" `{str(post.get('created_at','?'))[:16]}`\n"
+                f" Last: `{last}`\n\n"
                 f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"👁 **Total views:** `{at}`\n\n"
-                f"📂 FREE  `[{bar_f}]` {free_pct}%  (`{af}` views, `{fc}` files)\n"
-                f"💎 PRO   `[{bar_p}]` {prem_pct}%  (`{ap}` views, `{pc}` files)\n\n"
-                f"📈 Premium conversion: **{prem_pct}%**",
+                f" **Total views:** `{at}`\n\n"
+                f" FREE  `[{bar_f}]` {free_pct}%  (`{af}` views, `{fc}` files)\n"
+                f" PRO   `[{bar_p}]` {prem_pct}%  (`{ap}` views, `{pc}` files)\n\n"
+                f" Premium conversion: **{prem_pct}%**",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔄 Refresh", callback_data=f"dp_analytics_{post_id}"),
-                     InlineKeyboardButton("🗑 Delete",  callback_data=f"dp_delete_{post_id}")],
-                    [InlineKeyboardButton("🔙 Back",    callback_data="dual_post_list")]
+                    [InlineKeyboardButton(" Refresh", callback_data=f"dp_analytics_{post_id}"),
+                     InlineKeyboardButton(" Delete",  callback_data=f"dp_delete_{post_id}")],
+                    [InlineKeyboardButton(" Back",    callback_data="dual_post_list")]
                 ])
             )
             await cb.answer()
@@ -4375,13 +4348,13 @@ def register_handlers(app: Client):
             await cb.message.edit(
                 "ᴅᴜᴀʟ ᴘᴏsᴛ sʏsᴛᴇᴍ ɢᴜɪᴅᴇ\n\n"
                 "One link → Two different user experiences!\n\n"
-                "1️⃣ `/dualpost Title` — Start a new session.\n"
-                "2️⃣ Send files for **FREE** users (Stage 1).\n"
-                "3️⃣ `/dpremium` — Switch to premium stage.\n"
-                "4️⃣ Send files for **PREMIUM** users (Stage 2).\n"
-                "5️⃣ `/dpdone` — Finalize and get your link.\n\n"
-                "💎 **Premium users** get Stage 2 files directly.\n"
-                "📂 **Free users** get Stage 1 files after ads.",
+                "1 `/dualpost Title` — Start a new session.\n"
+                "2 Send files for **FREE** users (Stage 1).\n"
+                "3 `/dpremium` — Switch to premium stage.\n"
+                "4 Send files for **PREMIUM** users (Stage 2).\n"
+                "5 `/dpdone` — Finalize and get your link.\n\n"
+                " **Premium users** get Stage 2 files directly.\n"
+                " **Free users** get Stage 1 files after ads.",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("sᴛᴀʀᴛ ɴᴏᴡ", callback_data="dual_post_start_new")],
                     [InlineKeyboardButton("ʙᴀᴄᴋ ᴛᴏ ʜᴇʟᴘ", callback_data="help_menu")]
@@ -4396,94 +4369,94 @@ def register_handlers(app: Client):
             bi2 = get_bot_info(bot_id)
             can = (uid == MAIN_ADMIN or is_admin(uid) or
                    (bi2 and bi2.get("owner_id") == uid) or post.get("created_by") == uid)
-            if not can: return await cb.answer("❌ Not your post!", show_alert=True)
+            if not can: return await cb.answer(" Not your post!", show_alert=True)
             del_dual_post(post_id)
-            await cb.answer("🗑 Post deleted!", show_alert=True)
+            await cb.answer(" Post deleted!", show_alert=True)
             await cb.message.edit(
-                f"🗑 **Deleted:** `{post.get('title', post_id)}`\n"
-                f"📂 Free: `{len(post.get('free_files',[]))}` | "
-                f"💎 Pro: `{len(post.get('pro_files',[]))}` files removed."
+                f" **Deleted:** `{post.get('title', post_id)}`\n"
+                f" Free: `{len(post.get('free_files',[]))}` | "
+                f" Pro: `{len(post.get('pro_files',[]))}` files removed."
             )
 
         # ── Admin callbacks ───────────────────────────────────────
         elif data == "dual_posts_admin":
             bi = get_bot_info(bot_id)
             if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
-                return await cb.answer("❌ No access!", show_alert=True)
+                return await cb.answer(" No access!", show_alert=True)
             posts = get_bot_dual_posts(bot_id)
             total_views = sum(p.get("access_total", 0) for p in posts)
             total_free  = sum(p.get("access_free", 0) for p in posts)
             total_pro   = sum(p.get("access_pro", 0) for p in posts)
             pct = round(total_pro / max(total_views, 1) * 100)
             await cb.message.edit(
-                f"🎭 **Dual Posts Overview**\n\n"
+                f" **Dual Posts Overview**\n\n"
                 f"Total posts: `{len(posts)}`\n"
-                f"👁 Total views: `{total_views}`\n"
-                f"📂 Free views: `{total_free}`\n"
-                f"💎 Premium views: `{total_pro}`\n"
-                f"📈 Premium conversion: `{pct}%`\n\n"
+                f" Total views: `{total_views}`\n"
+                f" Free views: `{total_free}`\n"
+                f" Premium views: `{total_pro}`\n"
+                f" Premium conversion: `{pct}%`\n\n"
                 f"Commands:\n`/myduals` — list all posts\n`/dpstats POST_ID` — detailed analytics",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📋 All Posts", callback_data="dual_post_list")],
-                    [InlineKeyboardButton("🔙 Admin",     callback_data="admin_panel")]
+                    [InlineKeyboardButton(" All Posts", callback_data="dual_post_list")],
+                    [InlineKeyboardButton(" Admin",     callback_data="admin_panel")]
                 ])
             )
             await cb.answer()
 
         elif data == "confirm_rebuild":
-            if not is_admin(uid): return await cb.answer("❌ Admin only!", show_alert=True)
-            if not SESSION_STRING: return await cb.answer("❌ SESSION_STRING not set!", show_alert=True)
-            await cb.answer("🔄 Starting rebuild...", show_alert=True)
-            sm = await cb.message.edit("🔄 **Smart Rebuild Starting...**")
+            if not is_admin(uid): return await cb.answer(" Admin only!", show_alert=True)
+            if not SESSION_STRING: return await cb.answer(" SESSION_STRING not set!", show_alert=True)
+            await cb.answer(" Starting rebuild...", show_alert=True)
+            sm = await cb.message.edit(" **Smart Rebuild Starting...**")
             try:
                 stats = await smart_rebuild(status_msg=sm)
                 await sm.edit(
-                    f"🎉 **Rebuild Complete!**\n\n"
-                    f"📦 Phase 1: `{stats['phase1_restored']}/{len(BACKUP_FILES)}` restored\n"
-                    f"📁 Phase 2: `{stats['phase2_files']}` files, "
+                    f" **Rebuild Complete!**\n\n"
+                    f" Phase 1: `{stats['phase1_restored']}/{len(BACKUP_FILES)}` restored\n"
+                    f" Phase 2: `{stats['phase2_files']}` files, "
                     f"`{stats['phase2_batches']}` batches, "
                     f"`{stats['phase2_duals']}` duals\n"
-                    f"❌ Errors: `{stats['phase2_errors']}`\n\n"
-                    f"🔄 **Restarting system in 3s...**"
+                    f" Errors: `{stats['phase2_errors']}`\n\n"
+                    f" **Restarting system in 3s...**"
                 )
                 await asyncio.sleep(3)
                 os.execl(sys.executable, sys.executable, *sys.argv)
             except ValueError: pass
-            except Exception as e: await sm.edit(f"❌ Failed!\n`{e}`")
+            except Exception as e: await sm.edit(f" Failed!\n`{e}`")
 
         elif data == "start_batch":
             TEMP_BATCH[uid] = []
             await cb.message.edit(
-                "📦 **Batch Mode**\n\nSend files. `/done` to finish.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_batch")]])
+                " **Batch Mode**\n\nSend files. `/done` to finish.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_batch")]])
             )
             await cb.answer("Batch started!")
 
         elif data == "cancel_batch":
             TEMP_BATCH.pop(uid, None)
-            await cb.message.edit("❌ Batch cancelled.")
+            await cb.message.edit(" Batch cancelled.")
             await cb.answer()
 
         elif data == "confirm_broadcast":
             bd = TEMP_BROADCAST.get(uid)
-            if not bd: return await cb.answer("❌ Expired!", show_alert=True)
-            sm = await cb.message.edit("📢 **Broadcasting...**")
+            if not bd: return await cb.answer(" Expired!", show_alert=True)
+            sm = await cb.message.edit(" **Broadcasting...**")
             s, f = await do_broadcast(bd["bot_ids"], bd["bc_msg_id"], status_msg=sm, reply_markup=bd.get("markup"))
             TEMP_BROADCAST.pop(uid, None)
-            await sm.edit(f"✅ **Done!**\n\n✅ `{s}` | ❌ `{f}` | 🤖 `{len(bd['bot_ids'])}`")
+            await sm.edit(f" **Done!**\n\n `{s}` |  `{f}` |  `{len(bd['bot_ids'])}`")
 
         elif data == "cancel_broadcast":
             TEMP_BROADCAST.pop(uid, None)
-            await cb.message.edit("❌ Cancelled!")
+            await cb.message.edit(" Cancelled!")
             await cb.answer()
 
         elif data == "clone_menu":
             ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             await cb.message.edit(
-                f"🤖 **Clone** — Your bots: `{len(ubts)}`\n\n1. @BotFather → /newbot\n2. `/clone TOKEN`",
+                f" **Clone** — Your bots: `{len(ubts)}`\n\n1. @BotFather → /newbot\n2. `/clone TOKEN`",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🤖 BotFather", url="https://t.me/BotFather")],
-                    [InlineKeyboardButton("🔙 Back",      callback_data="back_to_start")]
+                    [InlineKeyboardButton(" BotFather", url="https://t.me/BotFather")],
+                    [InlineKeyboardButton(" Back",      callback_data="back_to_start")]
                 ])
             )
             await cb.answer()
@@ -4493,31 +4466,68 @@ def register_handlers(app: Client):
             ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             dps  = get_user_dual_posts(bot_id, uid)
             await cb.message.edit(
-                f"📊 **Dashboard**\n\n"
-                f"📤 `{ud.get('files_uploaded',0) if ud else 0}` uploads | "
-                f"📦 `{ud.get('batches_created',0) if ud else 0}` batches\n"
-                f"🎭 `{len(dps)}` dual posts | 🤖 `{len(ubts)}` bots\n"
-                f"💎 {'Premium ✅' if ud and ud.get('is_premium') else 'Free'}",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="back_to_start")]])
+                f" **Dashboard**\n\n"
+                f" `{ud.get('files_uploaded',0) if ud else 0}` uploads | "
+                f" `{ud.get('batches_created',0) if ud else 0}` batches\n"
+                f" `{len(dps)}` dual posts |  `{len(ubts)}` bots\n"
+                f" {'Premium ' if ud and ud.get('is_premium') else 'Free'}",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="back_to_start")]])
             )
             await cb.answer()
 
         elif data == "my_bots_menu":
             ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
-            text = f"🤖 **Your Bots ({len(ubts)})**\n\n"
+            text = f" **Your Bots ({len(ubts)})**\n\n"
             for i, b in enumerate(ubts[:10], 1):
-                text += f"{i}. {'🟢' if b['bot_id'] in ACTIVE_CLIENTS else '🔴'} @{b['bot_username']}\n"
+                text += f"{i}. {'' if b['bot_id'] in ACTIVE_CLIENTS else ''} @{b['bot_username']}\n"
             if not ubts: text += "None!"
             await cb.message.edit(
                 text,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("➕ Clone", callback_data="clone_menu")],
-                    [InlineKeyboardButton("🔙 Back",  callback_data="back_to_start")]
+                    [InlineKeyboardButton(" Clone", callback_data="clone_menu")],
+                    [InlineKeyboardButton(" Back",  callback_data="back_to_start")]
                 ])
             )
             await cb.answer()
 
-        elif data in ("cb_search", "help_menu", "premium_menu", "referral_menu"):
+        elif data == "about_bot":
+            bi = get_bot_info(bot_id)
+            text = (
+                "<blockquote>"
+                "ʜᴇʟʟᴏ {name}\n\n"
+                "ɪ ᴀᴍ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ, ɪ ᴄᴀɴ sᴛᴏʀᴇ ᴘʀɪᴠᴀᴛᴇ ғɪʟᴇs ɪɴ sᴘᴇᴄɪғɪᴇᴅ ᴄʜᴀɴɴᴇʟ ᴀɴᴅ ᴏᴛʜᴇʀ ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss ɪᴛ ғʀᴏᴍ sᴘᴇᴄɪᴀʟ ʟɪɴᴋ.\n\n"
+                "<b>ᴅᴇᴠᴇʟᴏᴘᴇʀ:</b> <a href='https://t.me/zolvid'>ᴢᴏʟᴠɪᴅ</a>\n"
+                "<b>sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ:</b> <a href='https://t.me/zolvid'>ᴢᴏʟᴠɪᴅ sᴜᴘᴘᴏʀᴛ</a>\n"
+                "<b>sᴜᴘᴘᴏʀᴛ ᴄʜᴀɴɴᴇʟ:</b> <a href='https://t.me/zolvid'>ᴢᴏʟᴠɪᴅ ᴄʜᴀɴɴᴇʟ</a>"
+                "</blockquote>"
+            ).format(name=cb.from_user.first_name)
+            await cb.message.edit(stylish(text), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("BACK"), callback_data="back_to_start")]]), disable_web_page_preview=True)
+            await cb.answer()
+
+        elif data == "help_menu":
+            text = stylish("<b>sᴇʟᴇᴄᴛ ᴄᴀᴛᴇɢᴏʀʏ:</b>")
+            buttons = [
+                [InlineKeyboardButton(stylish("ɢᴇɴᴇʀᴀʟ"), callback_data="help_cat_general"),
+                 InlineKeyboardButton(stylish("ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ"), callback_data="help_cat_files")],
+                [InlineKeyboardButton(stylish("ᴀᴅᴠᴀɴᴄᴇᴅ"), callback_data="help_cat_advanced"),
+                 InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ"), callback_data="help_cat_admin")],
+                [InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="back_to_start")]
+            ]
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
+            await cb.answer()
+
+        elif data.startswith("help_cat_"):
+            cat = data[9:]
+            help_data = {
+                "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/search - Search for files\n/stats - View your statistics\n/premium - Premium membership info</blockquote>",
+                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/done - Finish batch/session\n/cancel - Cancel current action\n/listfiles - List your uploaded files\n/myduals - Manage your dual posts</blockquote>",
+                "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/dualpost - Create a dual-tier post\n/protect - Protect a channel link\n/mybots - List your cloned bots</blockquote>",
+                "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Open Admin Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome message\n/setlog - Set log channel</blockquote>"
+            }
+            text = stylish(help_data.get(cat, "No details found."))
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_menu")]]))
+            await cb.answer()
+        elif data in ("cb_search", "premium_menu", "referral_menu"):
             bi_cb = get_bot_info(bot_id)
             ud_cb = add_user(uid, bot_id, cb.from_user.username, cb.from_user.first_name)[0]
             is_p = (ud_cb or {}).get('is_premium')
@@ -4525,63 +4535,63 @@ def register_handlers(app: Client):
             qr_id = bi_cb.get("premium_qr") if bi_cb else None
 
             default_help = (
-                "🚀 **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
+                " **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
                 "Welcome to the most advanced FileStore bot! Here is a list of commands you can use:\n\n"
-                "📂 **GENERAL COMMANDS**\n"
+                " **GENERAL COMMANDS**\n"
                 "├ /start — Start the bot\n"
                 "├ /help — Show this guide\n"
                 "├ /search — Search for files\n"
                 "├ /stats — View your statistics\n"
                 "└ /premium — Premium membership info\n\n"
-                "📦 **FILE MANAGEMENT**\n"
+                " **FILE MANAGEMENT**\n"
                 "├ /batch — Start batch mode\n"
                 "├ /done — Finish batch/session\n"
                 "├ /cancel — Cancel current action\n"
                 "├ /listfiles — List your uploaded files\n"
                 "└ /myduals — Manage your dual posts\n\n"
-                "🤖 **ADVANCED FEATURES**\n"
+                " **ADVANCED FEATURES**\n"
                 "├ /clone — Create your own bot\n"
                 "├ /dualpost — Create a dual-tier post\n"
                 "├ /protect — Protect a channel link\n"
                 "└ /mybots — List your cloned bots\n\n"
-                "⚙️ **ADMIN TOOLS**\n"
+                " **ADMIN TOOLS**\n"
                 "├ /admin — Open Admin Panel\n"
                 "├ /setfs — Configure Force Sub\n"
                 "├ /setwelcome — Set welcome message\n"
                 "└ /setlog — Set log channel\n\n"
-                "💡 **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
+                " **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             )
             default_prem = (
-                f"🌟 **ELITE PREMIUM MEMBERSHIP** 🌟\n"
+                f" **ELITE PREMIUM MEMBERSHIP** \n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"✨ **Current Status:** {{status}}\n\n"
-                f"🚀 **EXCLUSIVE PRIVILEGES:**\n"
-                f" ├ ♾ **PERMANENT STORAGE:** Files never expire!\n"
-                f" ├ 🎭 **ELITE ACCESS:** Unlock Premium Dual Posts!\n"
-                f" ├ ⚡ **DIRECT DELIVERY:** No ads, no shorteners!\n"
-                f" ├ 📦 **PRO BATCHING:** No limits on creation!\n"
-                f" └ 💎 **PRIORITY SUPPORT:** Instant assistance!\n\n"
-                f"💰 **Subscription Fee:** `{{price}}`\n"
+                f" **Current Status:** {{status}}\n\n"
+                f" **EXCLUSIVE PRIVILEGES:**\n"
+                f" ├  **PERMANENT STORAGE:** Files never expire!\n"
+                f" ├  **ELITE ACCESS:** Unlock Premium Dual Posts!\n"
+                f" ├  **DIRECT DELIVERY:** No ads, no shorteners!\n"
+                f" ├  **PRO BATCHING:** No limits on creation!\n"
+                f" └  **PRIORITY SUPPORT:** Instant assistance!\n\n"
+                f" **Subscription Fee:** `{{price}}`\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
-                f"👇 **WANT TO UPGRADE? CONTACT ADMIN!** 👇"
+                f" **WANT TO UPGRADE? CONTACT ADMIN!** "
             )
             default_ref = (
-                f"👥 **Refer & Earn Program**\n━━━━━━━━━━━━━━━━━━━━\n"
+                f" **Refer & Earn Program**\n━━━━━━━━━━━━━━━━━━━━\n"
                 f"Invite your friends and earn rewards!\n\n"
-                f"📊 **Your Stats:**\n"
+                f" **Your Stats:**\n"
                 f"├ Total Refers: `{{ref_count}}` users\n"
                 f"└ Rewards Earned: `{{ref_rewards}}` days of Premium\n\n"
-                f"🎁 **Reward:** Earn 1 day of Premium for every 5 successful refers!\n\n"
-                f"🔗 **Your Referral Link:**\n"
+                f" **Reward:** Earn 1 day of Premium for every 5 successful refers!\n\n"
+                f" **Your Referral Link:**\n"
                 f"`https://t.me/{{bot_username}}?start=ref_{{uid}}`"
             )
 
             texts = {
-                "cb_search":     get_msg_text("msg_search", "🔍 **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`"),
+                "cb_search":     get_msg_text("msg_search", " **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`"),
                 "help_menu":     get_msg_text("msg_help", default_help),
                 "premium_menu":  get_msg_text("msg_premium", default_prem).format_map(SafeDict(
-                    status='✅ `ACTIVATED`' if is_p else '❌ `NOT ACTIVE`',
+                    status=' `ACTIVATED`' if is_p else ' `NOT ACTIVE`',
                     price=(bi_cb or {}).get('premium_price', '500'),
                     contact=f"@{contact}"
                 )),
@@ -4619,44 +4629,44 @@ def register_handlers(app: Client):
             bi_cb = get_bot_info(bot_id)
             qr_id = bi_cb.get("premium_qr") if bi_cb else None
             if not qr_id:
-                return await cb.answer("❌ QR code not available!", show_alert=True)
+                return await cb.answer(" QR code not available!", show_alert=True)
 
-            await cb.answer("🖼 Loading QR Code...")
-            await cb.message.reply_photo(qr_id, caption="✨ **Scan this QR to pay for Premium** ✨\n\nAfter payment, send screenshot to admin.")
+            await cb.answer(" Loading QR Code...")
+            await cb.message.reply_photo(qr_id, caption=" **Scan this QR to pay for Premium** \n\nAfter payment, send screenshot to admin.")
 
         elif data == "admin_panel":
             bi = get_bot_info(bot_id)
             if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
-                return await cb.answer("❌ No access!", show_alert=True)
-            await cb.message.edit("⚡ **Admin Panel**", reply_markup=kb_admin())
+                return await cb.answer(" No access!", show_alert=True)
+            await cb.message.edit(" **Admin Panel**", reply_markup=kb_admin())
             await cb.answer()
 
         elif data == "broadcast_menu":
             bi = get_bot_info(bot_id)
             if not (is_admin(uid) or uid == MAIN_ADMIN or (bi and bi.get("owner_id") == uid)):
-                return await cb.answer("❌ No access!", show_alert=True)
+                return await cb.answer(" No access!", show_alert=True)
             await cb.message.edit(
-                f"📢 **Broadcast**\n\n👥 `{len(get_all_users(bot_id))}`\n\nReply to a message with `/broadcast`",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]])
+                f" **Broadcast**\n\n `{len(get_all_users(bot_id))}`\n\nReply to a message with `/broadcast`",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="admin_panel")]])
             )
             await cb.answer()
 
         elif data == "plinks_admin":
             bi = get_bot_info(bot_id)
             if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
-                return await cb.answer("❌ No access!", show_alert=True)
+                return await cb.answer(" No access!", show_alert=True)
             plinks = load_db(PLINKS_DB)
             my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id]
             await cb.message.edit(
-                f"🛡 **Protected Links Overview**\n\n"
+                f" **Protected Links Overview**\n\n"
                 f"Total protected: `{len(my_links)}` links\n\n"
                 f"**Commands:**\n"
                 f"├ `/protect` - Create new protection\n"
                 f"└ `/myplinks` - Manage your links\n\n"
                 f"Protected links generate a fresh, 5-minute expiring invite link for every user, making it impossible to leak the real invite link.",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📋 List My Links", callback_data="plinks_list_admin")],
-                    [InlineKeyboardButton("🔙 Admin",          callback_data="admin_panel")]
+                    [InlineKeyboardButton(" List My Links", callback_data="plinks_list_admin")],
+                    [InlineKeyboardButton(" Admin",          callback_data="admin_panel")]
                 ])
             )
             await cb.answer()
@@ -4664,23 +4674,23 @@ def register_handlers(app: Client):
         elif data == "plinks_list_admin":
             bi = get_bot_info(bot_id)
             if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
-                return await cb.answer("❌ No access!", show_alert=True)
+                return await cb.answer(" No access!", show_alert=True)
             plinks = load_db(PLINKS_DB)
             my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id]
             if not my_links:
                 return await cb.answer("No protected links found!", show_alert=True)
 
-            text = f"🛡 **Protected Links List ({len(my_links)})**\n\n"
+            text = f" **Protected Links List ({len(my_links)})**\n\n"
             btns = []
             for l in my_links[:10]:
                 lpid = l["lpid"]
                 title = l.get("title", "Unknown")[:22]
                 text += f"• **{title}** | `{lpid}`\n"
                 btns.append([
-                    InlineKeyboardButton(f"🔗 {title}", callback_data=f"show_plink_{lpid}"),
-                    InlineKeyboardButton("🗑", callback_data=f"del_plink_{lpid}")
+                    InlineKeyboardButton(f" {title}", callback_data=f"show_plink_{lpid}"),
+                    InlineKeyboardButton("", callback_data=f"del_plink_{lpid}")
                 ])
-            btns.append([InlineKeyboardButton("🔙 Back", callback_data="plinks_admin")])
+            btns.append([InlineKeyboardButton(" Back", callback_data="plinks_admin")])
             await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(btns))
             await cb.answer()
 
@@ -4691,16 +4701,16 @@ def register_handlers(app: Client):
             if not p: return await cb.answer("Not found!", show_alert=True)
             link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
             await cb.message.edit(
-                f"🛡 **Protected Link Details**\n\n"
-                f"📢 **Channel:** `{p.get('title')}`\n"
-                f"🆔 `{p['channel_id']}`\n"
-                f"⚙️ **Mode:** `{p.get('mode').upper()}`\n"
-                f"📅 **Created:** `{datetime.fromtimestamp(p.get('created_at')).strftime('%Y-%m-%d %H:%M')}`\n\n"
-                f"🔗 **Sharable Link:**\n`{link}`",
+                f" **Protected Link Details**\n\n"
+                f" **Channel:** `{p.get('title')}`\n"
+                f" `{p['channel_id']}`\n"
+                f" **Mode:** `{p.get('mode').upper()}`\n"
+                f" **Created:** `{datetime.fromtimestamp(p.get('created_at')).strftime('%Y-%m-%d %H:%M')}`\n\n"
+                f" **Sharable Link:**\n`{link}`",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("📤 Share", url=f"https://t.me/share/url?url={link}")],
-                    [InlineKeyboardButton("🗑 Delete", callback_data=f"del_plink_{lpid}"),
-                     InlineKeyboardButton("🔙 Back",   callback_data="plinks_list_admin")]
+                    [InlineKeyboardButton(" Share", url=f"https://t.me/share/url?url={link}")],
+                    [InlineKeyboardButton(" Delete", callback_data=f"del_plink_{lpid}"),
+                     InlineKeyboardButton(" Back",   callback_data="plinks_list_admin")]
                 ])
             )
             await cb.answer()
@@ -4711,28 +4721,28 @@ def register_handlers(app: Client):
             vl = bi.get("verify_link") or "None"
             uc = bi.get("update_channel") or "None"
             await cb.message.edit(
-                f"🛡 **Verification System**\n\n"
-                f"Status: {'✅ ENABLED' if bi.get('verify_link') else '❌ DISABLED'}\n\n"
-                f"🔗 **Link:** `{vl}`\n"
-                f"📢 **Updates:** `{uc}`\n\n"
+                f" **Verification System**\n\n"
+                f"Status: {' ENABLED' if bi.get('verify_link') else ' DISABLED'}\n\n"
+                f" **Link:** `{vl}`\n"
+                f" **Updates:** `{uc}`\n\n"
                 f"**Settings:**\n"
                 f"• `/setverify [link]` - Set link\n"
                 f"• `/setupdates [link]` - Set channel\n"
                 f"• `/setverify off` - Disable\n\n"
                 f"Users must complete this link before using the bot.",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔗 Set Verify Link", callback_data="set_v_link"),
-                     InlineKeyboardButton("📢 Set Update Ch", callback_data="set_u_link")],
-                    [InlineKeyboardButton("❌ Disable System", callback_data="disable_verify")],
-                    [InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]
+                    [InlineKeyboardButton(" Set Verify Link", callback_data="set_v_link"),
+                     InlineKeyboardButton(" Set Update Ch", callback_data="set_u_link")],
+                    [InlineKeyboardButton(" Disable System", callback_data="disable_verify")],
+                    [InlineKeyboardButton(" Back", callback_data="admin_panel")]
                 ])
             )
             await cb.answer()
 
         elif data == "disable_verify":
             update_bot_info(bot_id, "verify_link", None)
-            await cb.answer("✅ Verification system disabled!", show_alert=True)
-            await cb.message.edit("⚡ **Admin Panel**", reply_markup=kb_admin())
+            await cb.answer(" Verification system disabled!", show_alert=True)
+            await cb.message.edit(" **Admin Panel**", reply_markup=kb_admin())
 
         elif data == "set_v_link":
             await cb.answer("Use /setverify [link] to set the link.", show_alert=True)
@@ -4757,7 +4767,7 @@ def register_handlers(app: Client):
                 name = f.get('file_name', 'Unknown')[:20]
                 count = f.get('access_count', 0)
                 icon = file_icon(f.get('file_name', ''))
-                top_files_text += f"{i}. {icon} `{name}` — 👁 **{count}**\n"
+                top_files_text += f"{i}. {icon} `{name}` —  **{count}**\n"
 
             await cb.message.edit(
                 f"ʙᴏᴛ ᴀɴᴀʟʏᴛɪᴄs\n"
@@ -4789,23 +4799,23 @@ def register_handlers(app: Client):
             banned = sum(1 for u in all_u.values()
                          if u.get("bot_id") == bot_id and u.get("is_banned"))
             await cb.message.edit(
-                f"👥 **Users**\n\n🟢 Active: `{len(get_all_users(bot_id))}` | 🚫 Banned: `{banned}`\n\n"
+                f" **Users**\n\n Active: `{len(get_all_users(bot_id))}` |  Banned: `{banned}`\n\n"
                 f"`/ban ID` `/unban ID` `/info ID` `/givepremium ID`",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="admin_panel")]])
             )
             await cb.answer()
 
         elif data == "my_bots_admin":
             ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
-            text = f"🤖 **Your Bots ({len(ubts)})**\n\n"
+            text = f" **Your Bots ({len(ubts)})**\n\n"
             for i, b in enumerate(ubts[:15], 1):
-                text += f"{i}. {'🟢' if b['bot_id'] in ACTIVE_CLIENTS else '🔴'} @{b['bot_username']}\n"
+                text += f"{i}. {'' if b['bot_id'] in ACTIVE_CLIENTS else ''} @{b['bot_username']}\n"
             if not ubts: text += "None!"
             await cb.message.edit(
                 text,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("➕ Clone", callback_data="clone_menu")],
-                    [InlineKeyboardButton("🔙 Back",  callback_data="admin_panel")]
+                    [InlineKeyboardButton(" Clone", callback_data="clone_menu")],
+                    [InlineKeyboardButton(" Back",  callback_data="admin_panel")]
                 ])
             )
             await cb.answer()
@@ -4815,17 +4825,17 @@ def register_handlers(app: Client):
             if not bi: return await cb.answer("Not found!", show_alert=True)
             t = bi.get("auto_delete_time", 600)
             await cb.message.edit(
-                f"⚙️ **Bot Settings**\n\n"
-                f"👋 Welcome: {'Custom ✅' if bi.get('custom_welcome') else 'Default'}\n"
-                f"🖼 Image: {'Set ✅' if bi.get('welcome_image') else 'None'}\n"
-                f"⏱ Timer: `{t}s` ({t//60}min)\n"
-                f"✅ Auto-Approve: `{'ON' if bi.get('auto_approve') else 'OFF'}`\n"
-                f"📝 Log: `{bi.get('log_channel') or 'None'}`",
+                f" **Bot Settings**\n\n"
+                f" Welcome: {'Custom ' if bi.get('custom_welcome') else 'Default'}\n"
+                f" Image: {'Set ' if bi.get('welcome_image') else 'None'}\n"
+                f" Timer: `{t}s` ({t//60}min)\n"
+                f" Auto-Approve: `{'ON' if bi.get('auto_approve') else 'OFF'}`\n"
+                f" Log: `{bi.get('log_channel') or 'None'}`",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("👋 Edit Welcome",   callback_data="edit_welcome_msg")],
-                    [InlineKeyboardButton("⏱ Timer",          callback_data="edit_timer"),
-                     InlineKeyboardButton("📝 Log",            callback_data="set_log_info")],
-                    [InlineKeyboardButton("🔙 Back",           callback_data="admin_panel")]
+                    [InlineKeyboardButton(" Edit Welcome",   callback_data="edit_welcome_msg")],
+                    [InlineKeyboardButton(" Timer",          callback_data="edit_timer"),
+                     InlineKeyboardButton(" Log",            callback_data="set_log_info")],
+                    [InlineKeyboardButton(" Back",           callback_data="admin_panel")]
                 ])
             )
             await cb.answer()
@@ -4833,15 +4843,15 @@ def register_handlers(app: Client):
         elif data == "edit_timer":
             bi = get_bot_info(bot_id); curr = bi.get("auto_delete_time", 600) if bi else 600
             await cb.message.edit(
-                f"⏱ **Auto-Delete Timer**\n\nCurrent: `{curr}s` ({curr//60}min)\n\nChoose a preset or send a custom value:",
+                f" **Auto-Delete Timer**\n\nCurrent: `{curr}s` ({curr//60}min)\n\nChoose a preset or send a custom value:",
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton("1 Min", callback_data="st_60"),
                      InlineKeyboardButton("5 Min", callback_data="st_300")],
                     [InlineKeyboardButton("10 Min", callback_data="st_600"),
                      InlineKeyboardButton("30 Min", callback_data="st_1800")],
                     [InlineKeyboardButton("1 Hour", callback_data="st_3600"),
-                     InlineKeyboardButton("✏️ Custom", callback_data="st_custom")],
-                    [InlineKeyboardButton("🔙 Back", callback_data="bot_settings_admin")]
+                     InlineKeyboardButton(" Custom", callback_data="st_custom")],
+                    [InlineKeyboardButton(" Back", callback_data="bot_settings_admin")]
                 ])
             )
             await cb.answer()
@@ -4850,18 +4860,18 @@ def register_handlers(app: Client):
             val = data[3:]
             if val == "custom":
                 TEMP_EDIT[uid] = {"mode": "set_timer_custom"}
-                await cb.message.edit("⏱ **Custom Timer**\n\nSend the auto-delete time in **seconds**.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="edit_timer")]]))
+                await cb.message.edit(" **Custom Timer**\n\nSend the auto-delete time in **seconds**.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="edit_timer")]]))
             else:
                 secs = int(val)
                 update_bot_info(bot_id, "auto_delete_time", secs)
-                await cb.answer(f"✅ Timer set to {secs}s", show_alert=True)
+                await cb.answer(f" Timer set to {secs}s", show_alert=True)
                 cb.data = "edit_timer"
                 await cb_handler(client, cb)
 
         elif data == "set_log_info":
             await cb.message.edit(
-                "📝 `/setlog CHANNEL_ID` or `/setlog off`",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="bot_settings_admin")]])
+                " `/setlog CHANNEL_ID` or `/setlog off`",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="bot_settings_admin")]])
             )
             await cb.answer()
 
@@ -4869,19 +4879,19 @@ def register_handlers(app: Client):
             bi = get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
             fs   = bi.get("force_subs", [])
-            text = f"🔒 **Force Subscribe** ({len(fs)}/{MAX_FORCE_SUB_CHANNELS})\n━━━━━━━━━━━━━━━━━━━━\n"
+            text = f" **Force Subscribe** ({len(fs)}/{MAX_FORCE_SUB_CHANNELS})\n━━━━━━━━━━━━━━━━━━━━\n"
             btns = []
             for i, f in enumerate(fs, 1):
                 cid = f["channel_id"] if isinstance(f, dict) else f
                 text += f"**{i}.** `{cid}`\n"
-                btns.append([InlineKeyboardButton(f"🗑 Remove {i}", callback_data=f"rm_fs_{cid}")])
+                btns.append([InlineKeyboardButton(f" Remove {i}", callback_data=f"rm_fs_{cid}")])
 
             if not fs: text += "_No channels added yet._\n"
 
             text += "\n**Commands:**\n`/setfs add -100xxxx [link]`\n`/setfs clear` to remove all."
 
-            btns.append([InlineKeyboardButton("➕ Add Channel", callback_data="add_fs_info")])
-            btns.append([InlineKeyboardButton("🔙 Back", callback_data="admin_panel")])
+            btns.append([InlineKeyboardButton(" Add Channel", callback_data="add_fs_info")])
+            btns.append([InlineKeyboardButton(" Back", callback_data="admin_panel")])
 
             await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(btns))
             await cb.answer()
@@ -4895,13 +4905,13 @@ def register_handlers(app: Client):
                 new_fs = [f for f in fs if (f["channel_id"] if isinstance(f, dict) else f) != cid]
                 update_bot_info(bot_id, "force_subs", new_fs)
                 cascade_force_subs(bot_id, new_fs)
-                await cb.answer("✅ Channel removed!", show_alert=True)
+                await cb.answer(" Channel removed!", show_alert=True)
                 # Re-render the menu
-                await cb.message.edit("🔒 **Updating...**")
+                await cb.message.edit(" **Updating...**")
                 cb.data = "forcesub_admin"
                 await cb_handler(client, cb)
             except Exception as e:
-                await cb.answer(f"❌ Error: {e}", show_alert=True)
+                await cb.answer(f" Error: {e}", show_alert=True)
 
         elif data == "add_fs_info":
             await cb.answer("Use /setfs add -100xxxx [link] to add.", show_alert=True)
@@ -4910,7 +4920,7 @@ def register_handlers(app: Client):
             bi = get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
             if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
-                return await cb.answer("❌ Access Denied!", show_alert=True)
+                return await cb.answer(" Access Denied!", show_alert=True)
             curr = bi.get("auto_approve", False)
             update_bot_info(bot_id, "auto_approve", not curr)
             await cb.answer(f"ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ: {'ᴏɴ' if not curr else 'ᴏғғ'}", show_alert=True)
@@ -4923,39 +4933,39 @@ def register_handlers(app: Client):
             if not bi: return await cb.answer("Not found!", show_alert=True)
             curr = bi.get("auto_caption", True)
             update_bot_info(bot_id, "auto_caption", not curr)
-            await cb.answer(f"Auto Caption: {'ON ✅' if not curr else 'OFF ❌'}", show_alert=True)
-            await cb.message.edit("⚡ **Admin Panel**", reply_markup=kb_admin())
+            await cb.answer(f"Auto Caption: {'ON ' if not curr else 'OFF '}", show_alert=True)
+            await cb.message.edit(" **Admin Panel**", reply_markup=kb_admin())
 
         elif data == "shortener_admin":
             bi = get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
-            st = "✅ ON" if bi.get("is_shortener_enabled") else "❌ OFF"
+            st = " ON" if bi.get("is_shortener_enabled") else " OFF"
             active = sum(1 for v in SHORTENER_TOKENS.values()
                          if not v["used"] and time.time() < v["expires_at"])
             await cb.message.edit(
-                f"🔗 **Shortener Settings**\n\n"
+                f" **Shortener Settings**\n\n"
                 f"Status: {st}\n"
                 f"URL: `{bi.get('shortener_url') or 'Not set'}`\n\n"
                 f"**Integration with Dual Posts:**\n"
                 f"• FREE tier → shortener → token → files\n"
                 f"• PRO tier → always direct (no ads)\n\n"
-                f"🔑 Active tokens: `{active}`\n\n"
+                f" Active tokens: `{active}`\n\n"
                 f"`/shortener` to configure.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="admin_panel")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="admin_panel")]])
             )
             await cb.answer()
 
         elif data == "edit_welcome_msg":
             bi = get_bot_info(bot_id)
             if not bi or (bi.get("owner_id") != uid and uid != MAIN_ADMIN):
-                return await cb.answer("❌ Only owner!", show_alert=True)
+                return await cb.answer(" Only owner!", show_alert=True)
             TEMP_WELCOME[uid] = {"bot_id": bot_id, "step": "text"}
             curr_t = bi.get("custom_welcome") or "_(default)_"
-            curr_i = "✅" if bi.get("welcome_image") else "❌"
+            curr_i = "" if bi.get("welcome_image") else ""
             await cb.message.edit(
-                f"👋 **Welcome Editor**\n\nCurrent text: {curr_t[:80]}\nCurrent image: {curr_i}\n\n"
+                f" **Welcome Editor**\n\nCurrent text: {curr_t[:80]}\nCurrent image: {curr_i}\n\n"
                 f"**Step 1/2:** Send new welcome text.\n`-skip` = keep | `-clear` = default",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel", callback_data="cancel_welcome")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_welcome")]])
             )
             await cb.answer()
 
@@ -4973,43 +4983,43 @@ def register_handlers(app: Client):
             await cb.message.reply(f"**Preview:**\n\n{text}")
 
         elif data == "supreme_panel":
-            if uid != MAIN_ADMIN: return await cb.answer("❌ Supreme only!", show_alert=True)
-            sess = "✅" if SESSION_STRING else "❌"
+            if uid != MAIN_ADMIN: return await cb.answer(" Supreme only!", show_alert=True)
+            sess = "" if SESSION_STRING else ""
             await cb.message.edit(
-                f"👑 **Supreme Panel v7.0**\n🔑 Session: {sess}",
+                f" **Supreme Panel v7.0**\n Session: {sess}",
                 reply_markup=kb_supreme()
             )
             await cb.answer()
 
         elif data == "supreme_customize":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             await cb.message.edit(
-                "🎨 **Supreme Customizer**\n\nChoose what you want to customize:",
+                " **Supreme Customizer**\n\nChoose what you want to customize:",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔘 BUTTON NAMES",   callback_data="cust_btns")],
-                    [InlineKeyboardButton("📝 PANEL MESSAGES", callback_data="cust_msgs")],
-                    [InlineKeyboardButton("🔙 BACK",           callback_data="supreme_panel")]
+                    [InlineKeyboardButton(" BUTTON NAMES",   callback_data="cust_btns")],
+                    [InlineKeyboardButton(" PANEL MESSAGES", callback_data="cust_msgs")],
+                    [InlineKeyboardButton(" BACK",           callback_data="supreme_panel")]
                 ])
             )
             await cb.answer()
 
         elif data == "cust_btns":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             await cb.message.edit(
-                "🔘 **Button Customizer**\n\nSelect a menu category:",
+                " **Button Customizer**\n\nSelect a menu category:",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🏠 START MENU", callback_data="cbtn_cat_start")],
-                    [InlineKeyboardButton("⚡ ADMIN MENU", callback_data="cbtn_cat_admin")],
-                    [InlineKeyboardButton("👑 SUPREME MENU", callback_data="cbtn_cat_supreme")],
-                    [InlineKeyboardButton("ℹ️ HELP & OTHERS", callback_data="cbtn_cat_other")],
-                    [InlineKeyboardButton("♻️ RESET ALL",  callback_data="reset_buttons")],
-                    [InlineKeyboardButton("🔙 BACK",       callback_data="supreme_customize")]
+                    [InlineKeyboardButton(" START MENU", callback_data="cbtn_cat_start")],
+                    [InlineKeyboardButton(" ADMIN MENU", callback_data="cbtn_cat_admin")],
+                    [InlineKeyboardButton(" SUPREME MENU", callback_data="cbtn_cat_supreme")],
+                    [InlineKeyboardButton(" HELP & OTHERS", callback_data="cbtn_cat_other")],
+                    [InlineKeyboardButton(" RESET ALL",  callback_data="reset_buttons")],
+                    [InlineKeyboardButton(" BACK",       callback_data="supreme_customize")]
                 ])
             )
             await cb.answer()
 
         elif data.startswith("cbtn_cat_"):
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             cat = data[9:]
             btns_config = get_global_config().get("custom_buttons", {})
             keyboard = []
@@ -5059,12 +5069,12 @@ def register_handlers(app: Client):
                     row.append(InlineKeyboardButton(f"{btns_config.get(key2, def_val2)}", callback_data=f"editbtn_{key2}"))
                 keyboard.append(row)
 
-            keyboard.append([InlineKeyboardButton("🔙 BACK", callback_data="cust_btns")])
-            await cb.message.edit(f"🔘 **Customize {cat.upper()} Buttons**\n\nClick a button to rename it:", reply_markup=InlineKeyboardMarkup(keyboard))
+            keyboard.append([InlineKeyboardButton(" BACK", callback_data="cust_btns")])
+            await cb.message.edit(f" **Customize {cat.upper()} Buttons**\n\nClick a button to rename it:", reply_markup=InlineKeyboardMarkup(keyboard))
             await cb.answer()
 
         elif data == "cust_msgs":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             msgs_config = get_global_config().get("custom_messages", {})
             m_list = [
                 ("msg_welcome", "ᴡᴇʟᴄᴏᴍᴇ ᴍᴇssᴀɢᴇ"), ("msg_help", "ʜᴇʟᴘ ᴍᴇssᴀɢᴇ"),
@@ -5074,27 +5084,27 @@ def register_handlers(app: Client):
             ]
             keyboard = []
             for key, label in m_list:
-                status = "✅ Set" if key in msgs_config else "⚪ Default"
+                status = " Set" if key in msgs_config else " Default"
                 keyboard.append([InlineKeyboardButton(f"{label} ({status})", callback_data=f"editmsg_{key}")])
 
-            keyboard.append([InlineKeyboardButton("♻️ RESET ALL",  callback_data="reset_messages")])
-            keyboard.append([InlineKeyboardButton("🔙 BACK",       callback_data="supreme_customize")])
+            keyboard.append([InlineKeyboardButton(" RESET ALL",  callback_data="reset_messages")])
+            keyboard.append([InlineKeyboardButton(" BACK",       callback_data="supreme_customize")])
 
-            await cb.message.edit("📝 **Panel Message Customizer**\n\nSelect a message to edit:", reply_markup=InlineKeyboardMarkup(keyboard))
+            await cb.message.edit(" **Panel Message Customizer**\n\nSelect a message to edit:", reply_markup=InlineKeyboardMarkup(keyboard))
             await cb.answer()
 
         elif data.startswith("editbtn_"):
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             key = data[8:]
             TEMP_EDIT[uid] = {"mode": "customize_button", "key": key}
             await cb.message.edit(
-                f"📝 **Customize Button**\n\nKey: `{key}`\n\nSend the **new name** for this button.\n`/cancel` to abort.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="cust_btns")]])
+                f" **Customize Button**\n\nKey: `{key}`\n\nSend the **new name** for this button.\n`/cancel` to abort.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" CANCEL", callback_data="cust_btns")]])
             )
             await cb.answer()
 
         elif data.startswith("editmsg_"):
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             key = data[8:]
             TEMP_EDIT[uid] = {"mode": "customize_message", "key": key}
 
@@ -5105,137 +5115,137 @@ def register_handlers(app: Client):
             elif key == "msg_supreme": placeholders = "\n\nAvailable: `{bots}`, `{users}`, `{files}`, `{duals}`, `{sess}`"
 
             await cb.message.edit(
-                f"📝 **Edit Panel Message**\n\nKey: `{key}`{placeholders}\n\nSend the **new text** for this message.\nUse `-clear` to reset to default.\n`/cancel` to abort.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="cust_msgs")]])
+                f" **Edit Panel Message**\n\nKey: `{key}`{placeholders}\n\nSend the **new text** for this message.\nUse `-clear` to reset to default.\n`/cancel` to abort.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" CANCEL", callback_data="cust_msgs")]])
             )
             await cb.answer()
 
         elif data == "reset_messages":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             update_global_config("custom_messages", {})
-            await cb.answer("✅ All messages reset to default!", show_alert=True)
+            await cb.answer(" All messages reset to default!", show_alert=True)
             cb.data = "cust_msgs"
             await cb_handler(client, cb)
 
         elif data.startswith("cbtn_"):
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             key = data[5:]
             TEMP_EDIT[uid] = {"mode": "customize_button", "key": key}
             await cb.message.edit(
-                f"📝 **Customize Button**\n\nKey: `{key}`\n\nSend the **new name** for this button.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("❌ CANCEL", callback_data="supreme_customize")]])
+                f" **Customize Button**\n\nKey: `{key}`\n\nSend the **new name** for this button.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" CANCEL", callback_data="supreme_customize")]])
             )
             await cb.answer()
 
         elif data == "reset_buttons":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             update_global_config("custom_buttons", {})
-            await cb.answer("✅ All buttons reset to default!", show_alert=True)
+            await cb.answer(" All buttons reset to default!", show_alert=True)
             cb.data = "cust_btns"
             await cb_handler(client, cb)
 
         elif data == "global_broadcast":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             await cb.message.edit(
-                f"🌍 **Global Broadcast**\n\n👥 `{len(get_all_users())}` | 🤖 `{len(ACTIVE_CLIENTS)}`\n\nReply to a message with `/broadcast`.",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="supreme_panel")]])
+                f" **Global Broadcast**\n\n `{len(get_all_users())}` |  `{len(ACTIVE_CLIENTS)}`\n\nReply to a message with `/broadcast`.",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="supreme_panel")]])
             )
             await cb.answer()
 
         elif data == "system_stats":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             t, u, f = shutil.disk_usage("/")
             pend    = sum(len(v) for v in _PENDING.values())
-            sess    = "✅ ACTIVATED" if SESSION_STRING else "⚠️ NOT SET (Data at risk!)"
+            sess    = " ACTIVATED" if SESSION_STRING else " NOT SET (Data at risk!)"
             active_tokens = sum(1 for v in SHORTENER_TOKENS.values()
                                 if not v["used"] and time.time() < v["expires_at"])
             dp_count = len(load_db(DUAL_POST_DB))
             await cb.message.edit(
-                f"🖥 **ELITE SUPREME SYSTEM METRICS**\n"
+                f" **ELITE SUPREME SYSTEM METRICS**\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
-                f"🤖 **NETWORK STATUS**\n"
+                f" **NETWORK STATUS**\n"
                 f" ├ Registered Bots: `{len(get_all_bots())}`\n"
                 f" └ Active Instances: `{len(ACTIVE_CLIENTS)}` online\n\n"
-                f"📊 **GLOBAL DATABASE**\n"
+                f" **GLOBAL DATABASE**\n"
                 f" ├ Total Users: `{len(load_db(USERS_DB))}`\n"
                 f" ├ Total Files: `{len(load_db(FILES_DB))}`\n"
                 f" └ Dual Posts: `{dp_count}`\n\n"
-                f"⚙️ **SYSTEM CORE**\n"
+                f" **SYSTEM CORE**\n"
                 f" ├ Pending Requests: `{pend}`\n"
                 f" ├ Active Tokens: `{active_tokens}`\n"
                 f" └ Session String: `{sess}`\n\n"
-                f"💾 **SERVER STORAGE**\n"
+                f" **SERVER STORAGE**\n"
                 f" ├ Used Space: `{u//(2**30)} GB`\n"
                 f" ├ Total Space: `{t//(2**30)} GB`\n"
                 f" └ Free Space: `{f//(2**30)} GB`\n\n"
-                f"⏱ **UPTIME:** `{str(datetime.now()-START_TIME).split('.')[0]}`\n"
+                f" **UPTIME:** `{str(datetime.now()-START_TIME).split('.')[0]}`\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton("🔄 REFRESH SYSTEM", callback_data="system_stats")],
-                    [InlineKeyboardButton("🔙 BACK TO PANEL",  callback_data="supreme_panel")]
+                    [InlineKeyboardButton(" REFRESH SYSTEM", callback_data="system_stats")],
+                    [InlineKeyboardButton(" BACK TO PANEL",  callback_data="supreme_panel")]
                 ])
             )
             await cb.answer()
 
         elif data == "all_bots_list":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             ab = get_all_bots()
-            text = f"🤖 **All Bots ({len(ab)})**\n\n"
+            text = f" **All Bots ({len(ab)})**\n\n"
             for i, (k, b) in enumerate(list(ab.items())[:20], 1):
                 if isinstance(b, dict):
-                    text += f"{i}. {'🟢' if int(k) in ACTIVE_CLIENTS else '🔴'} @{b['bot_username']} — {b.get('owner_name','?')}\n"
+                    text += f"{i}. {'' if int(k) in ACTIVE_CLIENTS else ''} @{b['bot_username']} — {b.get('owner_name','?')}\n"
             if len(ab) > 20: text += f"\n...+{len(ab)-20} more"
             await cb.message.edit(
                 text,
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="supreme_panel")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="supreme_panel")]])
             )
             await cb.answer()
 
         elif data == "manage_admins":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             admins = load_db(ADMINS_DB)
-            text   = f"👑 **Admins**\n\n🌟 Main: `{MAIN_ADMIN}`\n\nSecondary ({len(admins)}):\n"
+            text   = f" **Admins**\n\n Main: `{MAIN_ADMIN}`\n\nSecondary ({len(admins)}):\n"
             for aid in admins: text += f"• `{aid}`\n"
             text += "\n`/addadmin ID` `/deladmin ID`"
             await cb.message.edit(
                 text,
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="supreme_panel")]])
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="supreme_panel")]])
             )
             await cb.answer()
 
         elif data == "toggle_maintenance":
-            if uid != MAIN_ADMIN: return await cb.answer("❌", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             curr = get_global_config().get("maintenance", False)
             update_global_config("maintenance", not curr)
-            await cb.answer(f"Maintenance: {'ON ⚠️' if not curr else 'OFF ✅'}", show_alert=True)
-            await cb.message.edit("👑 **Supreme Panel**", reply_markup=kb_supreme())
+            await cb.answer(f"Maintenance: {'ON ' if not curr else 'OFF '}", show_alert=True)
+            await cb.message.edit(" **Supreme Panel**", reply_markup=kb_supreme())
 
         elif data == "global_msg_set":
             if uid != MAIN_ADMIN: return await cb.answer()
             await cb.message.edit(
-                "📢 `/setglobal MESSAGE` or `/setglobal off`",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="supreme_panel")]])
+                " `/setglobal MESSAGE` or `/setglobal off`",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="supreme_panel")]])
             )
             await cb.answer()
 
         elif data == "manual_backup":
             if uid != MAIN_ADMIN: return await cb.answer()
-            await cb.answer("⏳ Backing up...", show_alert=True)
+            await cb.answer(" Backing up...", show_alert=True)
             asyncio.create_task(do_backup())
 
         elif data == "manual_clean_cache":
             if uid != MAIN_ADMIN: return await cb.answer()
             count = clean_expired_cache()
             expired_tokens = clean_expired_tokens()
-            await cb.answer(f"🧹 Cleaned {count} cache + {expired_tokens} tokens!", show_alert=True)
+            await cb.answer(f" Cleaned {count} cache + {expired_tokens} tokens!", show_alert=True)
 
         elif data == "restart_all_bots":
             if uid != MAIN_ADMIN: return await cb.answer()
-            await cb.answer("♻️ Restarting...", show_alert=True)
+            await cb.answer(" Restarting...", show_alert=True)
             os.execl(sys.executable, sys.executable, *sys.argv)
 
         elif data.startswith("confirm_import_"):
-            if uid != MAIN_ADMIN: return await cb.answer("❌ Only Supreme Admin!", show_alert=True)
+            if uid != MAIN_ADMIN: return await cb.answer(" Only Supreme Admin!", show_alert=True)
             fname = data[15:]
             if fname not in BACKUP_FILES: return await cb.answer("Invalid file!", show_alert=True)
 
@@ -5249,10 +5259,10 @@ def register_handlers(app: Client):
                     msg = None
 
             if not msg or not msg.document or msg.document.file_name != fname:
-                return await cb.message.edit("❌ **Error:** Original file message not found. Please send the file again.")
+                return await cb.message.edit(" **Error:** Original file message not found. Please send the file again.")
 
-            await cb.answer(f"⏳ Restoring {fname}...", show_alert=True)
-            await cb.message.edit(f"⏳ **Restoring `{fname}`... Please wait.**")
+            await cb.answer(f" Restoring {fname}...", show_alert=True)
+            await cb.message.edit(f" **Restoring `{fname}`... Please wait.**")
 
             try:
                 path = await msg.download(file_name=f"{DB_FOLDER}/{fname}.new")
@@ -5269,31 +5279,37 @@ def register_handlers(app: Client):
                         os.rename(path, old_path)
 
                     invalidate_cache(old_path)
-                    await cb.message.edit(f"✅ **Database Restored!**\n\nFile `{fname}` has been successfully updated.\n\nRestarting system to apply changes...")
+                    await cb.message.edit(f" **Database Restored!**\n\nFile `{fname}` has been successfully updated.\n\nRestarting system to apply changes...")
                     await asyncio.sleep(2)
                     os.execl(sys.executable, sys.executable, *sys.argv)
                 else:
-                    await cb.message.edit("❌ **Download failed!**")
+                    await cb.message.edit(" **Download failed!**")
             except Exception as e:
-                await cb.message.edit(f"❌ **Restore Error:**\n`{e}`")
+                await cb.message.edit(f" **Restore Error:**\n`{e}`")
 
         elif data == "cancel_import":
-            await cb.message.edit("❌ Import cancelled.")
+            await cb.message.edit(" Import cancelled.")
             await cb.answer()
 
         elif data == "back_to_start":
             bi  = get_bot_info(bot_id)
-            text = (bi.get("custom_welcome") if bi else None) or f"✨ **Welcome Back!**\n🤖 @{client.me.username}"
+            text = (bi.get("custom_welcome") if bi else None) or (
+                "<blockquote>"
+                f"ʜᴇʟʟᴏ {cb.from_user.first_name}\n\n"
+                "ɪ ᴀᴍ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ, ɪ ᴄᴀɴ sᴛᴏʀᴇ ᴘʀɪᴠᴀᴛᴇ ғɪʟᴇs ɪɴ sᴘᴇᴄɪғɪᴇᴅ ᴄʜᴀɴɴᴇʟ ᴀɴᴅ ᴏᴛʜᴇʀ ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss ɪᴛ ғʀᴏᴍ sᴘᴇᴄɪᴀʟ ʟɪɴᴋ.\n\n"
+                "/help 𝚝𝚘 𝚔𝚗𝚘𝚠 𝚖𝚘𝚛𝚎 𝚊𝚋𝚘𝚞𝚝 𝚋𝚘𝚝"
+                "</blockquote>"
+            )
             img  = bi.get("welcome_image") if bi else None
             kbd  = kb_start(bot_id, uid)
             try:
                 if img:
                     await cb.message.delete()
-                    await client.send_photo(cb.message.chat.id, img, caption=text, reply_markup=kbd)
+                    await client.send_photo(cb.message.chat.id, img, caption=stylish(text), reply_markup=kbd)
                 else:
-                    await cb.message.edit(text, reply_markup=kbd)
+                    await cb.message.edit(stylish(text), reply_markup=kbd)
             except Exception:
-                await cb.message.edit("👋 **Welcome Back!**", reply_markup=kbd)
+                await cb.message.edit(stylish(text), reply_markup=kbd)
             await cb.answer()
 
         else:
@@ -5301,7 +5317,7 @@ def register_handlers(app: Client):
 
 
 # ═══════════════════════════════════════════════════════════════
-# 🔧 HELPERS
+#  HELPERS
 # ═══════════════════════════════════════════════════════════════
 
 async def _auto_delete(msg, delay: int):
@@ -5310,7 +5326,7 @@ async def _auto_delete(msg, delay: int):
     except Exception: pass
 
 # ═══════════════════════════════════════════════════════════════
-# ⏰ BACKGROUND TASKS
+#  BACKGROUND TASKS
 # ═══════════════════════════════════════════════════════════════
 
 async def background_tasks():
@@ -5321,9 +5337,9 @@ async def background_tasks():
         try:
             USER_FLOOD.clear()
             n = clean_expired_cache()
-            if n: logger.info(f"🗑 Cleaned {n} cache entries")
+            if n: logger.info(f" Cleaned {n} cache entries")
             t = clean_expired_tokens()
-            if t: logger.info(f"🔑 Cleaned {t} expired tokens")
+            if t: logger.info(f" Cleaned {t} expired tokens")
             await do_backup()
             if cycle % 6 == 0:
                 now = datetime.now()
@@ -5339,20 +5355,20 @@ async def background_tasks():
             logger.error(f"Background task: {e}")
 
 # ═══════════════════════════════════════════════════════════════
-# 🚀 MAIN
+#  MAIN
 # ═══════════════════════════════════════════════════════════════
 
 async def main():
     print("╔═══════════════════════════════════════════════════════════╗")
-    print("║  🚀 ULTRA FILESTORE BOT v7.0 — ELITE EDITION             ║")
+    print("║   ULTRA FILESTORE BOT v7.0 — ELITE EDITION             ║")
     print("╚═══════════════════════════════════════════════════════════╝")
 
     if DB_CHANNEL == -1000000000000:
-        logger.error("❌ DB_CHANNEL not configured!"); return
+        logger.error(" DB_CHANNEL not configured!"); return
 
     _load_pending()
-    logger.info(f"📋 Loaded pending requests for {len(_PENDING)} channels")
-    logger.info(f"🔑 SESSION_STRING: {'✅ Set' if SESSION_STRING else '❌ Not set'}")
+    logger.info(f" Loaded pending requests for {len(_PENDING)} channels")
+    logger.info(f" SESSION_STRING: {' Set' if SESSION_STRING else ' Not set'}")
 
     await start_web_server()
 
@@ -5364,14 +5380,14 @@ async def main():
                 session_string=SESSION_STRING, in_memory=True
             )
             await GLOBAL_USERBOT.start()
-            logger.info("✅ Persistent Userbot Started!")
+            logger.info(" Persistent Userbot Started!")
         except Exception as e:
-            logger.error(f"❌ Userbot failed to start: {e}")
+            logger.error(f" Userbot failed to start: {e}")
 
-    logger.info("🔥 Starting Main Bot...")
+    logger.info(" Starting Main Bot...")
     main_app = await start_bot(MAIN_BOT_TOKEN)
     if not main_app:
-        logger.error("❌ Main bot failed!"); return
+        logger.error(" Main bot failed!"); return
 
     # Ensure main bot is in BOTS_DB
     me_main = await main_app.get_me()
@@ -5387,21 +5403,21 @@ async def main():
             break
 
     if needs_restore:
-        logger.warning("⚠️ Critical database missing or empty! Attempting auto-restore...")
+        logger.warning(" Critical database missing or empty! Attempting auto-restore...")
         if SESSION_STRING:
             try:
                 # Wait a bit for everything to stabilize
                 await asyncio.sleep(2)
                 stats = await smart_rebuild()
-                logger.info(f"✅ Auto-restore complete! Restored {stats['phase1_restored']} files and {stats['phase2_files']} metadata entries.")
+                logger.info(f" Auto-restore complete! Restored {stats['phase1_restored']} files and {stats['phase2_files']} metadata entries.")
 
                 # After successful auto-restore, we MUST restart to initialize all bots properly
-                logger.info("♻️ Restarting to apply restored data...")
+                logger.info(" Restarting to apply restored data...")
                 os.execl(sys.executable, sys.executable, *sys.argv)
             except Exception as e:
-                logger.error(f"❌ Auto-restore failed: {e}")
+                logger.error(f" Auto-restore failed: {e}")
         else:
-            logger.warning("❌ SESSION_STRING missing! Cannot auto-restore from channel.")
+            logger.warning(" SESSION_STRING missing! Cannot auto-restore from channel.")
 
     all_bots = get_all_bots()
     if all_bots:
@@ -5413,29 +5429,29 @@ async def main():
         if tasks:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             ok = sum(1 for r in results if r and not isinstance(r, Exception))
-            logger.info(f"✅ {ok}/{len(tasks)} clone bots started")
+            logger.info(f" {ok}/{len(tasks)} clone bots started")
 
     print()
     print("╔═══════════════════════════════════════════════════════════╗")
-    print("║         ✅ ALL SYSTEMS OPERATIONAL v7.0 ✅                ║")
+    print("║          ALL SYSTEMS OPERATIONAL v7.0                 ║")
     print("╚═══════════════════════════════════════════════════════════╝")
-    print(f"👑 Admin   : {MAIN_ADMIN}")
-    print(f"🤖 Bots    : {len(ACTIVE_CLIENTS)}")
-    print(f"🌐 Port    : {PORT}")
-    print(f"🔑 Session : {'✅ Set' if SESSION_STRING else '❌ Not Set'}")
-    print(f"📅 Started : {START_TIME:%Y-%m-%d %H:%M:%S}")
+    print(f" Admin   : {MAIN_ADMIN}")
+    print(f" Bots    : {len(ACTIVE_CLIENTS)}")
+    print(f" Port    : {PORT}")
+    print(f" Session : {' Set' if SESSION_STRING else ' Not Set'}")
+    print(f" Started : {START_TIME:%Y-%m-%d %H:%M:%S}")
     print()
 
     asyncio.create_task(background_tasks())
     await idle()
 
-    logger.info("🛑 Shutting down...")
+    logger.info(" Shutting down...")
     global _HTTP
     if _HTTP and not _HTTP.closed: await _HTTP.close()
     for cd in ACTIVE_CLIENTS.values():
         try: await cd["app"].stop()
         except Exception: pass
-    logger.info("✅ Done!")
+    logger.info(" Done!")
 
 
 if __name__ == "__main__":
@@ -5444,4 +5460,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         logger.info("Stopped.")
     except Exception as e:
-        logger.error(f"❌ Fatal: {e}"); raise
+        logger.error(f" Fatal: {e}"); raise
