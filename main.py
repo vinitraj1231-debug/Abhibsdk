@@ -25,7 +25,7 @@
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
 
-import os, sys, json, asyncio, hashlib, logging, random, shutil, time, tempfile, re
+import os, sys, json, asyncio, hashlib, logging, random, shutil, time, tempfile, re, concurrent.futures
 import aiohttp
 from aiohttp import web
 from datetime import datetime, timedelta
@@ -126,6 +126,7 @@ BOT_COMMANDS = [
     BotCommand("deladmin",    " Remove bot admin"),
     BotCommand("font",        " Font Editor"),
     BotCommand("requests",    " Manage join requests"),
+    BotCommand("download",    " Download videos from any site"),
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -1701,6 +1702,71 @@ def get_file_edit_text(client, fd, fuid):
 
 def register_handlers(app: Client):
 
+    @app.on_message(filters.command("download") & filters.private, group=1)
+    async def download_video_cmd(client, message):
+        import yt_dlp
+        uid = message.from_user.id
+        if is_user_banned(uid, client.me.id): return await message.reply(" Banned!")
+
+        url = message.text.split(None, 1)[1] if len(message.command) > 1 else None
+        if not url:
+            return await message.reply(stylish(" **Please send the video link with the command.**\n\nExample: `/download https://link.com`"))
+
+        # Basic URL validation
+        if not url.startswith("http"):
+            return await message.reply(stylish(" **Invalid URL!** Please provide a valid http/https link."))
+
+        sm = await message.reply(stylish(" **Processing video details...**"))
+
+        def extract_info(url):
+            ydl_opts = {
+                'quiet': True,
+                'no_warnings': True,
+                'format': 'best',
+            }
+            with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                return ydl.extract_info(url, download=False)
+
+        try:
+            loop = asyncio.get_event_loop()
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                info = await loop.run_in_executor(pool, extract_info, url)
+
+            title = info.get('title', 'Video')
+            formats = info.get('formats', [])
+
+            # Filter unique qualities (resolution + extension)
+            seen_formats = set()
+            buttons = []
+            row = []
+
+            # We want to offer a few distinct qualities
+            for f in formats:
+                res = f.get('height')
+                ext = f.get('ext')
+                if res and res not in seen_formats and f.get('vcodec') != 'none':
+                    seen_formats.add(res)
+                    fid = f.get('format_id')
+                    row.append(InlineKeyboardButton(f"{res}p ({ext})", callback_data=f"dlv_{fid}"))
+                    if len(row) == 2:
+                        buttons.append(row)
+                        row = []
+
+            if row: buttons.append(row)
+            buttons.append([InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_download")])
+
+            # Store full URL and info temporarily
+            TEMP_EDIT[uid] = {"mode": "download_video", "url": url, "title": title}
+
+            await sm.edit(
+                f" **Video Found!**\n\n **Title:** `{title}`\n\nSelect the quality you want to download:",
+                reply_markup=InlineKeyboardMarkup(buttons)
+            )
+
+        except Exception as e:
+            logger.error(f"Download error info extraction: {e}")
+            await sm.edit(f" **Error:** Could not extract video info.\n\n`{str(e)[:100]}`")
+
     @app.on_message(filters.private, group=0)
     async def flood_ctrl(client, message):
         uid = message.from_user.id
@@ -3086,30 +3152,25 @@ def register_handlers(app: Client):
         if is_user_banned(uid,bot_id): return await message.reply(" Banned!")
 
         # Restriction: Must join Update Channel
-        bi_main = get_bot_info(bot_id)
-        update_ch = bi_main.get("update_channel") if bi_main else None
-        if update_ch and not is_admin(uid, bot_id):
+        update_ch = "https://t.me/filestorebotupdate"
+        if True: # Applying to everyone as per request "jo bhi users bot clone karne jaye"
             try:
-                # Assuming update_ch is a link, we need to extract username or check membership via main bot
-                # For simplicity, if it's set, we check if they are participant in that channel
-                # But get_chat_member might fail if not admin.
-                # Let's use the check_force_sub logic style but specifically for cloning.
                 is_ok = False
                 main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
                 if main_client:
                     try:
-                        # Extract username from link if needed or use as is
-                        target = update_ch.split("/")[-1] if "/" in update_ch else update_ch
-                        await main_client.get_chat_member(target, uid)
+                        await main_client.get_chat_member("filestorebotupdate", uid)
                         is_ok = True
-                    except: pass
+                    except (UserNotParticipant, Exception):
+                        pass
 
                 if not is_ok:
                     return await message.reply(
                         stylish(" **Cloning Restricted!**\n\nYou must join our Update Channel before you can clone a bot."),
                         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Join Update Channel"), url=update_ch)]])
                     )
-            except: pass
+            except Exception as e:
+                logger.error(f"Clone check critical error: {e}")
 
         if len(message.command)<2:
             ubts=[b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
@@ -4203,6 +4264,69 @@ def register_handlers(app: Client):
             TEMP_EDIT.pop(uid, None)
             await cb.message.edit(" Edit cancelled.")
             await cb.answer()
+
+        elif data == "cancel_download":
+            TEMP_EDIT.pop(uid, None)
+            await cb.message.edit(" Download cancelled.")
+            await cb.answer()
+
+        elif data.startswith("dlv_"):
+            import yt_dlp
+            format_id = data[4:]
+
+            if uid not in TEMP_EDIT or TEMP_EDIT[uid].get("mode") != "download_video":
+                return await cb.answer("Session expired! Please use /download again.", show_alert=True)
+
+            sess = TEMP_EDIT.pop(uid)
+            url = sess["url"]
+            title = sess["title"]
+
+            await cb.message.edit(stylish(f" **Downloading video...**\n\nTitle: `{title}`\nQuality: `{format_id}`\n\n_This may take a minute depending on file size._"))
+            await cb.answer("Downloading...")
+
+            def download_video(url, f_id):
+                tmp_dir = tempfile.mkdtemp()
+                ydl_opts = {
+                    'format': f_id + '+bestaudio/best',
+                    'outtmpl': os.path.join(tmp_dir, '%(title)s.%(ext)s'),
+                    'quiet': True,
+                    'no_warnings': True,
+                    # Fallback if ffmpeg is not present
+                    'merge_output_format': 'mp4' if shutil.which('ffmpeg') else None,
+                }
+                if not shutil.which('ffmpeg'):
+                    # If no ffmpeg, we might only get video or audio if they are separate.
+                    # Try to get best single file format if merge is impossible.
+                    ydl_opts['format'] = f_id
+
+                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+                    info = ydl.extract_info(url, download=True)
+                    return ydl.prepare_filename(info), tmp_dir
+
+            try:
+                loop = asyncio.get_event_loop()
+                with concurrent.futures.ThreadPoolExecutor() as pool:
+                    file_path, tmp_dir = await loop.run_in_executor(pool, download_video, url, format_id)
+
+                if os.path.exists(file_path):
+                    await cb.message.edit(stylish(" **Uploading to Telegram...**"))
+
+                    # Determine media type and send
+                    if file_path.lower().endswith((".mp4", ".mkv", ".webm", ".mov")):
+                        await client.send_video(cb.message.chat.id, video=file_path, caption=stylish(f" **{title}**\n\nDownloaded via @{client.me.username}"))
+                    else:
+                        await client.send_document(cb.message.chat.id, document=file_path, caption=stylish(f" **{title}**\n\nDownloaded via @{client.me.username}"))
+
+                    await cb.message.delete()
+                    # Cleanup
+                    shutil.rmtree(tmp_dir)
+                else:
+                    await cb.message.edit(" **Error:** Download failed - file not found.")
+                    shutil.rmtree(tmp_dir)
+
+            except Exception as e:
+                logger.error(f"Download execution error: {e}")
+                await cb.message.edit(f" **Download Failed!**\n\n`{str(e)[:200]}`")
 
         elif data == "cancel_welcome":
             TEMP_WELCOME.pop(uid, None)
