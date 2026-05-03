@@ -3325,42 +3325,78 @@ def register_handlers(app: Client):
             )
         elif cmd == "help":
             help_text = stylish(
-                " **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
-                "Welcome to the most advanced FileStore bot! Here is a list of commands you can use:\n\n"
+                "<blockquote>"
+                " **ULTRA FILESTORE v7.0 — COMPLETE COMMAND LIST**\n\n"
                 " **GENERAL COMMANDS**\n"
                 "├ /start — Start the bot\n"
                 "├ /help — Show this guide\n"
-                "├ /search — Search for files\n"
                 "├ /stats — View your statistics\n"
-                "└ /premium — Premium membership info\n\n"
+                "├ /ping — Check bot speed\n"
+                "├ /search — Search for files\n"
+                "├ /premium — Premium membership info\n"
+                "├ /botinfo — View bot details\n"
+                "├ /download — Download videos\n"
+                "├ /done — Finish current session\n"
+                "└ /cancel — Cancel current action\n\n"
                 " **FILE MANAGEMENT**\n"
                 "├ /batch — Start batch mode\n"
-                "├ /done — Finish batch/session\n"
-                "├ /cancel — Cancel current action\n"
-                "├ /listfiles — List your uploaded files\n"
-                "└ /myduals — Manage your dual posts\n\n"
+                "├ /listfiles — List uploaded files\n"
+                "├ /mybatches — List your batches\n"
+                "├ /editfile — Edit file metadata\n"
+                "├ /delfile — Delete a stored file\n"
+                "├ /dualpost — Create dual-tier post\n"
+                "├ /dpremium — Switch to premium tier\n"
+                "├ /dpdone — Finish dual post\n"
+                "├ /dpcancel — Cancel dual post\n"
+                "├ /myduals — Manage your dual posts\n"
+                "├ /deldual — Delete a dual post\n"
+                "├ /dpstats — Dual post analytics\n"
+                "└ /createpost — Create custom post\n\n"
                 " **ADVANCED FEATURES**\n"
-                "├ /clone — Create your own bot\n"
-                "├ /dualpost — Create a dual-tier post\n"
-                "├ /protect — Protect a channel link\n"
-                "└ /mybots — List your cloned bots\n\n"
+                "├ /clone — Clone this bot\n"
+                "├ /mybots — List your cloned bots\n"
+                "├ /protect — Protect channel link\n"
+                "├ /myplinks — Manage protected links\n"
+                "├ /font — Open stylish font editor\n"
+                "├ /addadmin — Add bot admin\n"
+                "└ /deladmin — Remove bot admin\n\n"
                 " **ADMIN TOOLS**\n"
                 "├ /admin — Open Admin Panel\n"
                 "├ /setfs — Configure Force Sub\n"
-                "├ /setwelcome — Set welcome message\n"
-                "└ /setlog — Set log channel\n\n"
-                " **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+                "├ /setwelcome — Set welcome msg\n"
+                "├ /setlog — Set log channel\n"
+                "├ /setchannel — Connect channel\n"
+                "├ /setmode — Set join mode\n"
+                "├ /broadcast — Send global message\n"
+                "├ /ban — Ban a user\n"
+                "├ /unban — Unban a user\n"
+                "├ /settimer — Auto-delete timer\n"
+                "├ /setprice — Set premium price\n"
+                "├ /setcontact — Set premium contact\n"
+                "├ /setqr — Set premium QR code\n"
+                "├ /givepremium — Give premium access\n"
+                "├ /removepremium — Revoke premium\n"
+                "├ /shortener — Configure shortener\n"
+                "└ /requests — Manage join requests\n\n"
+                " **SUPREME TOOLS**\n"
+                "├ /supreme — Open Supreme Panel\n"
+                "├ /rebuild — Smart DB Rebuild\n"
+                "├ /backup — Force manual backup\n"
+                "└ /restart — System-wide restart\n"
+                "</blockquote>"
             )
 
-            await message.reply(
-                help_text,
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(get_btn_name("btn_hdual", " Dual Post Guide"), callback_data="dual_help"),
-                     InlineKeyboardButton(get_btn_name("btn_hprem", " Premium Info"), callback_data="premium_menu")],
-                    [InlineKeyboardButton(get_btn_name("btn_back", " Back to Home"), callback_data="back_to_start")]
-                ])
-            )
+            buttons = [
+                [InlineKeyboardButton(stylish("ɢᴇɴᴇʀᴀʟ"), callback_data="help_cat_general"),
+                 InlineKeyboardButton(stylish("ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ"), callback_data="help_cat_files")],
+                [InlineKeyboardButton(stylish("ᴀᴅᴠᴀɴᴄᴇᴅ"), callback_data="help_cat_advanced"),
+                 InlineKeyboardButton(stylish("ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="help_cat_fonts")],
+                [InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ"), callback_data="help_cat_admin"),
+                 InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ"), callback_data="help_cat_supreme")],
+                [InlineKeyboardButton(stylish("ʙᴀᴄᴋ ᴛᴏ ʜᴏᴍᴇ"), callback_data="back_to_start")]
+            ]
+
+            await message.reply(help_text, reply_markup=InlineKeyboardMarkup(buttons))
         elif cmd == "setglobal":
             if uid!=MAIN_ADMIN: return
             if len(message.command)<2: return await message.reply("Usage: `/setglobal MSG` or off")
@@ -4851,7 +4887,7 @@ def register_handlers(app: Client):
                  InlineKeyboardButton(stylish("ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="help_cat_fonts")],
                 [InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ"), callback_data="help_cat_admin"),
                  InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ"), callback_data="help_cat_supreme")],
-                [InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="back_to_start")]
+                [InlineKeyboardButton(stylish("ʙᴀᴄᴋ ᴛᴏ ʜᴏᴍᴇ"), callback_data="back_to_start")]
             ]
 
             await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
@@ -4860,9 +4896,9 @@ def register_handlers(app: Client):
         elif data.startswith("help_cat_"):
             cat = data[9:]
             help_data = {
-                "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/search - Search for files\n/stats - View your statistics\n/premium - Premium membership info\n/botinfo - View bot details\n/ping - Check bot speed\n/done - Finish session\n/cancel - Cancel current action</blockquote>",
-                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/listfiles - List your uploaded files\n/mybatches - List your batches\n/editfile - Edit file metadata\n/delfile - Delete a file\n/dualpost - Create dual-tier link\n/dpremium - Switch to premium tier\n/dpdone - Finish dual post\n/dpcancel - Cancel dual post\n/myduals - Manage dual posts\n/deldual - Delete dual post\n/dpstats - Dual post analytics\n/createpost - Create custom post</blockquote>",
-                "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/mybots - List your cloned bots\n/protect - Protect channel link\n/myplinks - Manage protected links\n/addadmin - Add secondary admin\n/deladmin - Remove secondary admin</blockquote>",
+                "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/stats - View statistics\n/ping - Check bot speed\n/search - Search for files\n/premium - Premium membership\n/botinfo - View bot details\n/download - Download videos\n/done - Finish session\n/cancel - Cancel current action</blockquote>",
+                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/listfiles - List uploaded files\n/mybatches - List your batches\n/editfile - Edit file metadata\n/delfile - Delete a file\n/dualpost - Create dual-tier link\n/dpremium - Switch to premium tier\n/dpdone - Finish dual post\n/dpcancel - Cancel dual post\n/myduals - Manage dual posts\n/deldual - Delete dual post\n/dpstats - Dual post analytics\n/createpost - Create custom post</blockquote>",
+                "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/mybots - List your cloned bots\n/protect - Protect channel link\n/myplinks - Manage protected links\n/font - Open font editor\n/addadmin - Add secondary admin\n/deladmin - Remove secondary admin</blockquote>",
                 "fonts": "<blockquote><b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\n/font - Open font editor\n\nChange your default font for captions and posts. Choose from over 10+ highly advanced stylish font designs.</blockquote>",
                 "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Admin Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome msg\n/setlog - Set log channel\n/setchannel - Connect channel\n/setmode - Set join mode\n/broadcast - Send message to all\n/ban - Ban a user\n/unban - Unban a user\n/settimer - Auto-delete timer\n/setprice - Set premium price\n/setcontact - Set premium contact\n/setqr - Set premium QR code\n/givepremium - Give premium access\n/removepremium - Revoke premium access\n/shortener - Configure shortener\n/requests - Manage join requests</blockquote>",
                 "supreme": "<blockquote><b>sᴜᴘʀᴇᴍᴇ ᴛᴏᴏʟs</b>\n\n/supreme - Supreme Panel\n/rebuild - Smart DB Rebuild\n/backup - Force manual backup\n/restart - System restart</blockquote>"
@@ -4870,17 +4906,26 @@ def register_handlers(app: Client):
 
             buttons = []
             if cat == "admin":
-                buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"), callback_data="admin_panel")])
+                buttons.append([InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"), callback_data="admin_panel"),
+                               InlineKeyboardButton(stylish("ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs"), callback_data="manage_requests")])
             elif cat == "supreme":
-                buttons.append([InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), callback_data="supreme_panel")])
+                buttons.append([InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), callback_data="supreme_panel"),
+                               InlineKeyboardButton(stylish("sʏsᴛᴇᴍ sᴛᴀᴛs"), callback_data="system_stats")])
             elif cat == "fonts":
                 buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="font_editor")])
             elif cat == "files":
-                buttons.append([InlineKeyboardButton(stylish("ᴍʏ ғɪʟᴇs"), callback_data="listfiles_cb")])
-                buttons.append([InlineKeyboardButton(stylish("ᴍʏ ᴅᴜᴀʟs"), callback_data="dual_post_list")])
+                buttons.append([InlineKeyboardButton(stylish("ᴍʏ ғɪʟᴇs"), callback_data="listfiles_cb"),
+                               InlineKeyboardButton(stylish("ᴍʏ ᴅᴜᴀʟs"), callback_data="dual_post_list")])
+                buttons.append([InlineKeyboardButton(stylish("sᴛᴀʀᴛ ʙᴀᴛᴄʜ"), callback_data="start_batch"),
+                               InlineKeyboardButton(stylish("ᴄʀᴇᴀᴛᴇ ᴘᴏsᴛ"), callback_data="cb_create_post")])
             elif cat == "general":
-                buttons.append([InlineKeyboardButton(stylish("ᴍʏ sᴛᴀᴛs"), callback_data="user_dashboard")])
-                buttons.append([InlineKeyboardButton(stylish("ᴘʀᴇᴍɪᴜᴍ ɪɴғᴏ"), callback_data="premium_menu")])
+                buttons.append([InlineKeyboardButton(stylish("ᴍʏ sᴛᴀᴛs"), callback_data="user_dashboard"),
+                               InlineKeyboardButton(stylish("ᴘʀᴇᴍɪᴜᴍ ɪɴғᴏ"), callback_data="premium_menu")])
+                buttons.append([InlineKeyboardButton(stylish("sᴇᴀʀᴄʜ ғɪʟᴇs"), callback_data="cb_search"),
+                               InlineKeyboardButton(stylish("ʀᴇғᴇʀ & ᴇᴀʀɴ"), callback_data="referral_menu")])
+            elif cat == "advanced":
+                buttons.append([InlineKeyboardButton(stylish("ᴍʏ ʙᴏᴛs"), callback_data="my_bots_menu"),
+                               InlineKeyboardButton(stylish("ᴄʟᴏɴᴇ ʙᴏᴛ"), callback_data="clone_menu")])
 
             buttons.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_menu")])
             text = stylish(help_data.get(cat, "No details found."))
