@@ -127,6 +127,13 @@ BOT_COMMANDS = [
     BotCommand("font",        " Font Editor"),
     BotCommand("requests",    " Manage join requests"),
     BotCommand("download",    " Download videos from any site"),
+    BotCommand("refer",       " Refer and Earn"),
+    BotCommand("about",       " About the bot"),
+    BotCommand("rename",      " Rename a file"),
+    BotCommand("setcaption",  " Set caption for a file"),
+    BotCommand("setthumb",    " Set thumbnail for a file"),
+    BotCommand("autoapprove", " Toggle Auto Approve"),
+    BotCommand("autocaption", " Toggle Auto Caption"),
 ]
 
 # ═══════════════════════════════════════════════════════════════
@@ -3269,7 +3276,7 @@ def register_handlers(app: Client):
             update_bot_info(bot_id,"force_subs",new_fs); n=cascade_force_subs(bot_id,new_fs)
             return await message.reply(f" Removed! ({n} clones updated)")
 
-    @app.on_message(filters.command(["premium","botinfo","help",
+    @app.on_message(filters.command(["premium","botinfo","help", "about", "refer", "rename", "setcaption", "setthumb", "autoapprove", "autocaption",
                                       "setglobal","addadmin","deladmin","search", "font", "requests"]) & filters.private, group=1)
     async def misc_commands(client, message):
         uid=message.from_user.id; bot_id=client.me.id; cmd=message.command[0]
@@ -3324,68 +3331,7 @@ def register_handlers(app: Client):
                 f" Dual Posts: `{dp_count}`"
             )
         elif cmd == "help":
-            help_text = stylish(
-                "<blockquote>"
-                " **ULTRA FILESTORE v7.0 — COMPLETE COMMAND LIST**\n\n"
-                " **GENERAL COMMANDS**\n"
-                "├ /start — Start the bot\n"
-                "├ /help — Show this guide\n"
-                "├ /stats — View your statistics\n"
-                "├ /ping — Check bot speed\n"
-                "├ /search — Search for files\n"
-                "├ /premium — Premium membership info\n"
-                "├ /botinfo — View bot details\n"
-                "├ /download — Download videos\n"
-                "├ /done — Finish current session\n"
-                "└ /cancel — Cancel current action\n\n"
-                " **FILE MANAGEMENT**\n"
-                "├ /batch — Start batch mode\n"
-                "├ /listfiles — List uploaded files\n"
-                "├ /mybatches — List your batches\n"
-                "├ /editfile — Edit file metadata\n"
-                "├ /delfile — Delete a stored file\n"
-                "├ /dualpost — Create dual-tier post\n"
-                "├ /dpremium — Switch to premium tier\n"
-                "├ /dpdone — Finish dual post\n"
-                "├ /dpcancel — Cancel dual post\n"
-                "├ /myduals — Manage your dual posts\n"
-                "├ /deldual — Delete a dual post\n"
-                "├ /dpstats — Dual post analytics\n"
-                "└ /createpost — Create custom post\n\n"
-                " **ADVANCED FEATURES**\n"
-                "├ /clone — Clone this bot\n"
-                "├ /mybots — List your cloned bots\n"
-                "├ /protect — Protect channel link\n"
-                "├ /myplinks — Manage protected links\n"
-                "├ /font — Open stylish font editor\n"
-                "├ /addadmin — Add bot admin\n"
-                "└ /deladmin — Remove bot admin\n\n"
-                " **ADMIN TOOLS**\n"
-                "├ /admin — Open Admin Panel\n"
-                "├ /setfs — Configure Force Sub\n"
-                "├ /setwelcome — Set welcome msg\n"
-                "├ /setlog — Set log channel\n"
-                "├ /setchannel — Connect channel\n"
-                "├ /setmode — Set join mode\n"
-                "├ /broadcast — Send global message\n"
-                "├ /ban — Ban a user\n"
-                "├ /unban — Unban a user\n"
-                "├ /settimer — Auto-delete timer\n"
-                "├ /setprice — Set premium price\n"
-                "├ /setcontact — Set premium contact\n"
-                "├ /setqr — Set premium QR code\n"
-                "├ /givepremium — Give premium access\n"
-                "├ /removepremium — Revoke premium\n"
-                "├ /shortener — Configure shortener\n"
-                "└ /requests — Manage join requests\n\n"
-                " **SUPREME TOOLS**\n"
-                "├ /supreme — Open Supreme Panel\n"
-                "├ /rebuild — Smart DB Rebuild\n"
-                "├ /backup — Force manual backup\n"
-                "└ /restart — System-wide restart\n"
-                "</blockquote>"
-            )
-
+            text = stylish("<b>sᴇʟᴇᴄᴛ ʜᴇʟᴘ ᴄᴀᴛᴇɢᴏʀʏ:</b>")
             buttons = [
                 [InlineKeyboardButton(stylish("ɢᴇɴᴇʀᴀʟ"), callback_data="help_cat_general"),
                  InlineKeyboardButton(stylish("ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ"), callback_data="help_cat_files")],
@@ -3395,8 +3341,73 @@ def register_handlers(app: Client):
                  InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ"), callback_data="help_cat_supreme")],
                 [InlineKeyboardButton(stylish("ʙᴀᴄᴋ ᴛᴏ ʜᴏᴍᴇ"), callback_data="back_to_start")]
             ]
+            await message.reply(text, reply_markup=InlineKeyboardMarkup(buttons))
+        elif cmd == "about":
+            uptime = str(datetime.now() - START_TIME).split(".")[0]
+            text = (
+                "✨ ᴀʙᴏᴜᴛ ᴍᴇ\n\n"
+                "✰ ᴍʏ ɴᴀᴍᴇ: ꜰɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ\n"
+                "✰ ᴍʏ ᴏᴡɴᴇʀ: MR ZOLVID\n"
+                "✰ ᴜᴘᴅᴀᴛᴇs: ZOLVID BOTZ\n"
+                "✰ sᴜᴘᴘᴏʀᴛ: ZOLVID GROUP\n"
+                f"✰ uptime: {uptime}"
+            )
+            await message.reply(stylish(text), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("BACK"), callback_data="back_to_start")]]))
+        elif cmd == "refer":
+            ud = get_user(uid, bot_id)
+            if not ud: ud = add_user(uid, bot_id, message.from_user.username, message.from_user.first_name)[0]
+            ref_link = f"https://t.me/{client.me.username}?start=ref_{uid}"
+            default_ref = (
+                f" **Refer & Earn Program**\n━━━━━━━━━━━━━━━━━━━━\n"
+                f"Invite your friends and earn rewards!\n\n"
+                f" **Your Stats:**\n"
+                f"├ Total Refers: `{{ref_count}}` users\n"
+                f"└ Rewards Earned: `{{ref_rewards}}` days of Premium\n\n"
+                f" **Reward:** Earn 1 day of Premium for every 5 successful refers!\n\n"
+                f" **Your Referral Link:**\n"
+                f"`{ref_link}`"
+            )
+            text = get_msg_text("msg_referral", default_ref).format_map(SafeDict(
+                ref_count=ud.get('refer_count', 0),
+                ref_rewards=ud.get('refer_rewards', 0),
+                bot_username=client.me.username,
+                uid=uid
+            ))
+            await message.reply(text, reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(get_btn_name("btn_invite", "ɪɴᴠɪᴛᴇ ғʀɪᴇɴᴅs"), url=f"https://t.me/share/url?url={ref_link}")]
+            ]))
+        elif cmd in ("rename", "setcaption", "setthumb"):
+            if len(message.command) < 2:
+                return await message.reply(f"Usage: `/{cmd} FILE_ID`\nFind IDs via /listfiles")
+            fuid = message.command[1]
+            files = load_db(FILES_DB)
+            fd = files.get(fuid)
+            if not fd: return await message.reply(" File not found!")
+            bi = get_bot_info(bot_id)
+            can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
+            if not can: return await message.reply(" Not your file!")
 
-            await message.reply(help_text, reply_markup=InlineKeyboardMarkup(buttons))
+            if cmd == "rename":
+                TEMP_EDIT[uid] = {"mode": "rename", "uid": fuid}
+                await message.reply(f" **Hard Rename**\n\nCurrent: `{fd.get('file_name')}`\n\nSend new name for the file (including extension).", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_edit")]]))
+            elif cmd == "setcaption":
+                TEMP_EDIT[uid] = {"mode": "caption", "uid": fuid}
+                await message.reply(f" **Set Caption**\n\nFile: `{fd.get('file_name')}`\n\nSend new caption text.\n`-clear` to remove.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_edit")]]))
+            elif cmd == "setthumb":
+                TEMP_EDIT[uid] = {"mode": "thumbnail", "uid": fuid}
+                await message.reply(f" **Set Thumbnail**\n\nFile: `{fd.get('file_name')}`\n\nSend a **photo** as thumbnail.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_edit")]]))
+        elif cmd == "autoapprove":
+            bi = get_bot_info(bot_id)
+            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
+            curr = bi.get("auto_approve", False)
+            update_bot_info(bot_id, "auto_approve", not curr)
+            await message.reply(stylish(f"ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ: {'ᴏɴ' if not curr else 'ᴏғғ'}"))
+        elif cmd == "autocaption":
+            bi = get_bot_info(bot_id)
+            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
+            curr = bi.get("auto_caption", True)
+            update_bot_info(bot_id, "auto_caption", not curr)
+            await message.reply(stylish(f"ᴀᴜᴛᴏ ᴄᴀᴘᴛɪᴏɴ: {'ᴏɴ' if not curr else 'ᴏғғ'}"))
         elif cmd == "setglobal":
             if uid!=MAIN_ADMIN: return
             if len(message.command)<2: return await message.reply("Usage: `/setglobal MSG` or off")
@@ -3581,8 +3592,12 @@ def register_handlers(app: Client):
             )
             return
 
+        # Skip if FSM is waiting for input (handled by group 2)
+        if uid in TEMP_EDIT or uid in TEMP_WELCOME or uid in TEMP_POST or uid in TEMP_PROTECT:
+            return
+
         # Only handle if in batch/dual session or if it is a file/message
-        in_session = uid in TEMP_BATCH or uid in TEMP_DUAL or uid in TEMP_EDIT or uid in TEMP_WELCOME
+        in_session = uid in TEMP_BATCH or uid in TEMP_DUAL
         is_media = bool(
             message.document or message.video or message.audio or
             message.photo or message.sticker or message.animation or
@@ -3595,10 +3610,6 @@ def register_handlers(app: Client):
         # Skip commands
         if message.text and message.text.startswith("/"):
             return
-
-        # Skip if FSM is waiting for photo
-        if uid in TEMP_EDIT and TEMP_EDIT[uid].get("mode")=="thumbnail" and message.photo: return
-        if uid in TEMP_WELCOME and TEMP_WELCOME[uid].get("step")=="image" and message.photo: return
 
         main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
         db_msg = None
@@ -3766,7 +3777,7 @@ def register_handlers(app: Client):
         "rebuild","backup","restart","ping","listfiles","mybatches","editfile","delfile",
         "setwelcome","setglobal","addadmin","deladmin",
         "dualpost","dpremium","dpdone","dpcancel","myduals","deldual","dpstats",
-        "createpost"
+        "createpost", "about", "refer", "rename", "setcaption", "setthumb", "download", "autoapprove", "autocaption"
     ]
 
     @app.on_message(filters.private & ~filters.command(_CMD_LIST), group=2)
@@ -4836,16 +4847,15 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "about_bot":
-            bi = get_bot_info(bot_id)
+            uptime = str(datetime.now() - START_TIME).split(".")[0]
             text = (
-                "<blockquote>"
-                "ʜᴇʟʟᴏ {name}\n\n"
-                "ɪ ᴀᴍ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ, ɪ ᴄᴀɴ sᴛᴏʀᴇ ᴘʀɪᴠᴀᴛᴇ ғɪʟᴇs ɪɴ sᴘᴇᴄɪғɪᴇᴅ ᴄʜᴀɴɴᴇʟ ᴀɴᴅ ᴏᴛʜᴇʀ ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss ɪᴛ ғʀᴏᴍ sᴘᴇᴄɪᴀʟ ʟɪɴᴋ.\n\n"
-                "<b>ᴅᴇᴠᴇʟᴏᴘᴇʀ:</b> <a href='https://t.me/zolvid'>ᴢᴏʟᴠɪᴅ</a>\n"
-                "<b>sᴜᴘᴘᴏʀᴛ ɢʀᴏᴜᴘ:</b> <a href='https://t.me/zolvid'>ᴢᴏʟᴠɪᴅ sᴜᴘᴘᴏʀᴛ</a>\n"
-                "<b>sᴜᴘᴘᴏʀᴛ ᴄʜᴀɴɴᴇʟ:</b> <a href='https://t.me/zolvid'>ᴢᴏʟᴠɪᴅ ᴄʜᴀɴɴᴇʟ</a>"
-                "</blockquote>"
-            ).format(name=cb.from_user.first_name)
+                "✨ ᴀʙᴏᴜᴛ ᴍᴇ\n\n"
+                "✰ ᴍʏ ɴᴀᴍᴇ: ꜰɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ\n"
+                "✰ ᴍʏ ᴏᴡɴᴇʀ: MR ZOLVID\n"
+                "✰ ᴜᴘᴅᴀᴛᴇs: ZOLVID BOTZ\n"
+                "✰ sᴜᴘᴘᴏʀᴛ: ZOLVID GROUP\n"
+                f"✰ uptime: {uptime}"
+            )
             await cb.message.edit(stylish(text), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("BACK"), callback_data="back_to_start")]]), disable_web_page_preview=True)
             await cb.answer()
 
@@ -4896,11 +4906,11 @@ def register_handlers(app: Client):
         elif data.startswith("help_cat_"):
             cat = data[9:]
             help_data = {
-                "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/stats - View statistics\n/ping - Check bot speed\n/search - Search for files\n/premium - Premium membership\n/botinfo - View bot details\n/download - Download videos\n/done - Finish session\n/cancel - Cancel current action</blockquote>",
-                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/listfiles - List uploaded files\n/mybatches - List your batches\n/editfile - Edit file metadata\n/delfile - Delete a file\n/dualpost - Create dual-tier link\n/dpremium - Switch to premium tier\n/dpdone - Finish dual post\n/dpcancel - Cancel dual post\n/myduals - Manage dual posts\n/deldual - Delete dual post\n/dpstats - Dual post analytics\n/createpost - Create custom post</blockquote>",
+                "general": "<blockquote><b>ɢᴇɴᴇʀᴀʟ ᴄᴏᴍᴍᴀɴᴅs</b>\n\n/start - Start the bot\n/help - Show this guide\n/about - About bot\n/refer - Refer and Earn\n/stats - View statistics\n/ping - Check bot speed\n/search - Search for files\n/premium - Premium membership\n/botinfo - View bot details\n/download - Download videos\n/done - Finish session\n/cancel - Cancel current action</blockquote>",
+                "files": "<blockquote><b>ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ</b>\n\n/batch - Start batch mode\n/listfiles - List uploaded files\n/mybatches - List your batches\n/editfile - Edit metadata\n/delfile - Delete file\n/rename - Rename file\n/setcaption - Set caption\n/setthumb - Set thumbnail\n/dualpost - Create dual-tier link\n/dpremium - Switch to premium tier\n/dpdone - Finish dual post\n/dpcancel - Cancel dual post\n/myduals - Manage dual posts\n/deldual - Delete dual post\n/dpstats - Dual post analytics\n/createpost - Create custom post</blockquote>",
                 "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/mybots - List your cloned bots\n/protect - Protect channel link\n/myplinks - Manage protected links\n/font - Open font editor\n/addadmin - Add secondary admin\n/deladmin - Remove secondary admin</blockquote>",
                 "fonts": "<blockquote><b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\n/font - Open font editor\n\nChange your default font for captions and posts. Choose from over 10+ highly advanced stylish font designs.</blockquote>",
-                "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Admin Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome msg\n/setlog - Set log channel\n/setchannel - Connect channel\n/setmode - Set join mode\n/broadcast - Send message to all\n/ban - Ban a user\n/unban - Unban a user\n/settimer - Auto-delete timer\n/setprice - Set premium price\n/setcontact - Set premium contact\n/setqr - Set premium QR code\n/givepremium - Give premium access\n/removepremium - Revoke premium access\n/shortener - Configure shortener\n/requests - Manage join requests</blockquote>",
+                "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Admin Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome msg\n/setlog - Set log channel\n/setchannel - Connect channel\n/setmode - Set join mode\n/broadcast - Send message to all\n/ban - Ban a user\n/unban - Unban a user\n/settimer - Auto-delete timer\n/setprice - Set premium price\n/setcontact - Set premium contact\n/setqr - Set premium QR code\n/givepremium - Give premium access\n/removepremium - Revoke premium access\n/shortener - Configure shortener\n/requests - Manage join requests\n/autoapprove - Toggle Auto-Approve\n/autocaption - Toggle Auto-Caption</blockquote>",
                 "supreme": "<blockquote><b>sᴜᴘʀᴇᴍᴇ ᴛᴏᴏʟs</b>\n\n/supreme - Supreme Panel\n/rebuild - Smart DB Rebuild\n/backup - Force manual backup\n/restart - System restart</blockquote>"
             }
 
@@ -4944,6 +4954,8 @@ def register_handlers(app: Client):
                 " **GENERAL COMMANDS**\n"
                 "├ /start — Start the bot\n"
                 "├ /help — Show this guide\n"
+                "├ /about — About the bot\n"
+                "├ /refer — Refer and earn\n"
                 "├ /search — Search for files\n"
                 "├ /stats — View your statistics\n"
                 "└ /premium — Premium membership info\n\n"
@@ -4952,6 +4964,9 @@ def register_handlers(app: Client):
                 "├ /done — Finish batch/session\n"
                 "├ /cancel — Cancel current action\n"
                 "├ /listfiles — List your uploaded files\n"
+                "├ /rename — Rename a file\n"
+                "├ /setcaption — Set file caption\n"
+                "├ /setthumb — Set file thumbnail\n"
                 "└ /myduals — Manage your dual posts\n\n"
                 " **ADVANCED FEATURES**\n"
                 "├ /clone — Create your own bot\n"
@@ -4962,6 +4977,8 @@ def register_handlers(app: Client):
                 "├ /admin — Open Admin Panel\n"
                 "├ /setfs — Configure Force Sub\n"
                 "├ /setwelcome — Set welcome message\n"
+                "├ /autoapprove — Toggle auto-approve\n"
+                "├ /autocaption — Toggle auto-caption\n"
                 "└ /setlog — Set log channel\n\n"
                 " **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
