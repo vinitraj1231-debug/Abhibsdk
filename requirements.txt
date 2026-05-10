@@ -1,4 +1,7 @@
 pyrogram
-TgCrypto
 aiohttp
 yt-dlp
+pyaes
+hachoir
+cryptg
+pycryptodome

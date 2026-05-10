@@ -24,9 +24,12 @@
  CLONE + REFERRAL + PREMIUM + ANALYTICS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+from __future__ import annotations
 
 import os, sys, json, asyncio, hashlib, logging, random, shutil, time, tempfile, re, concurrent.futures
 import aiohttp
+import yt_dlp
+from typing import Optional
 from aiohttp import web
 from datetime import datetime, timedelta
 from pyrogram import Client, filters, idle
@@ -959,7 +962,7 @@ async def _get_latest_msg_id(userbot, chat_id: int) -> int:
         pass
     return 0
 
-async def fetch_remote_metadata(target_uid: str, target_type="file") -> dict | None:
+async def fetch_remote_metadata(target_uid: str, target_type="file") -> Optional[dict]:
     """Fallback: Search DB_CHANNEL for a specific UID if not found in local DB."""
     if not GLOBAL_USERBOT: return None
 
@@ -1287,7 +1290,7 @@ async def smart_rebuild(status_msg=None) -> dict:
 #  BROADCAST
 # ═══════════════════════════════════════════════════════════════
 
-async def store_broadcast(client, original_msg) -> int | None:
+async def store_broadcast(client, original_msg) -> Optional[int]:
     try:
         stored = await original_msg.forward(DB_CHANNEL)
         return stored.id
@@ -1711,7 +1714,6 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("download") & filters.private, group=1)
     async def download_video_cmd(client, message):
-        import yt_dlp
         uid = message.from_user.id
         if is_user_banned(uid, client.me.id): return await message.reply(" Banned!")
 
@@ -4318,7 +4320,6 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data.startswith("dlv_"):
-            import yt_dlp
             format_id = data[4:]
 
             if uid not in TEMP_EDIT or TEMP_EDIT[uid].get("mode") != "download_video":
@@ -4918,9 +4919,16 @@ def register_handlers(app: Client):
             if cat == "admin":
                 buttons.append([InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"), callback_data="admin_panel"),
                                InlineKeyboardButton(stylish("ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs"), callback_data="manage_requests")])
+                buttons.append([InlineKeyboardButton(stylish("ғᴏʀᴄᴇ sᴜʙ"), callback_data="forcesub_admin"),
+                               InlineKeyboardButton(stylish("sʜᴏʀᴛᴇɴᴇʀ"), callback_data="shortener_admin")])
+                buttons.append([InlineKeyboardButton(stylish("ʙᴏᴛ sᴇᴛᴛɪɴɢs"), callback_data="bot_settings_admin")])
             elif cat == "supreme":
                 buttons.append([InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), callback_data="supreme_panel"),
                                InlineKeyboardButton(stylish("sʏsᴛᴇᴍ sᴛᴀᴛs"), callback_data="system_stats")])
+                buttons.append([InlineKeyboardButton(stylish("ʙᴏᴛ ɴᴇᴛᴡᴏʀᴋ"), callback_data="all_bots_list"),
+                               InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ᴍᴀɴᴀɢᴇʀ"), callback_data="manage_admins")])
+                buttons.append([InlineKeyboardButton(stylish("ᴄᴜsᴛᴏᴍɪᴢᴇ"), callback_data="supreme_customize"),
+                               InlineKeyboardButton(stylish("ғᴜʟʟ ʙᴀᴄᴋᴜᴘ"), callback_data="manual_backup")])
             elif cat == "fonts":
                 buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="font_editor")])
             elif cat == "files":
@@ -4928,14 +4936,17 @@ def register_handlers(app: Client):
                                InlineKeyboardButton(stylish("ᴍʏ ᴅᴜᴀʟs"), callback_data="dual_post_list")])
                 buttons.append([InlineKeyboardButton(stylish("sᴛᴀʀᴛ ʙᴀᴛᴄʜ"), callback_data="start_batch"),
                                InlineKeyboardButton(stylish("ᴄʀᴇᴀᴛᴇ ᴘᴏsᴛ"), callback_data="cb_create_post")])
+                buttons.append([InlineKeyboardButton(stylish("ᴅᴜᴀʟ ɢᴜɪᴅᴇ"), callback_data="dual_help")])
             elif cat == "general":
                 buttons.append([InlineKeyboardButton(stylish("ᴍʏ sᴛᴀᴛs"), callback_data="user_dashboard"),
                                InlineKeyboardButton(stylish("ᴘʀᴇᴍɪᴜᴍ ɪɴғᴏ"), callback_data="premium_menu")])
                 buttons.append([InlineKeyboardButton(stylish("sᴇᴀʀᴄʜ ғɪʟᴇs"), callback_data="cb_search"),
                                InlineKeyboardButton(stylish("ʀᴇғᴇʀ & ᴇᴀʀɴ"), callback_data="referral_menu")])
+                buttons.append([InlineKeyboardButton(stylish("ᴀʙᴏᴜᴛ ᴍᴇ"), callback_data="about_bot")])
             elif cat == "advanced":
                 buttons.append([InlineKeyboardButton(stylish("ᴍʏ ʙᴏᴛs"), callback_data="my_bots_menu"),
                                InlineKeyboardButton(stylish("ᴄʟᴏɴᴇ ʙᴏᴛ"), callback_data="clone_menu")])
+                buttons.append([InlineKeyboardButton(stylish("ᴘʀᴏᴛᴇᴄᴛ ʟɪɴᴋ"), callback_data="plinks_admin")])
 
             buttons.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_menu")])
             text = stylish(help_data.get(cat, "No details found."))
