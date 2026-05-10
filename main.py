@@ -4921,7 +4921,12 @@ def register_handlers(app: Client):
                                InlineKeyboardButton(stylish("ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs"), callback_data="manage_requests")])
                 buttons.append([InlineKeyboardButton(stylish("ғᴏʀᴄᴇ sᴜʙ"), callback_data="forcesub_admin"),
                                InlineKeyboardButton(stylish("sʜᴏʀᴛᴇɴᴇʀ"), callback_data="shortener_admin")])
-                buttons.append([InlineKeyboardButton(stylish("ʙᴏᴛ sᴇᴛᴛɪɴɢs"), callback_data="bot_settings_admin")])
+                buttons.append([InlineKeyboardButton(stylish("ʙᴏᴛ sᴇᴛᴛɪɴɢs"), callback_data="bot_settings_admin"),
+                               InlineKeyboardButton(stylish("ʙʀᴏᴀᴅᴄᴀsᴛ"), callback_data="broadcast_menu")])
+                buttons.append([InlineKeyboardButton(stylish("ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ"), callback_data="toggle_auto_approve"),
+                               InlineKeyboardButton(stylish("ᴀᴜᴛᴏ ᴄᴀᴘᴛɪᴏɴ"), callback_data="toggle_auto_caption")])
+                buttons.append([InlineKeyboardButton(stylish("ᴜsᴇʀ ᴍᴀɴᴀɢᴇʀ"), callback_data="manage_users"),
+                               InlineKeyboardButton(stylish("ᴇᴅɪᴛ ᴛɪᴍᴇʀ"), callback_data="edit_timer")])
             elif cat == "supreme":
                 buttons.append([InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), callback_data="supreme_panel"),
                                InlineKeyboardButton(stylish("sʏsᴛᴇᴍ sᴛᴀᴛs"), callback_data="system_stats")])
@@ -4929,6 +4934,9 @@ def register_handlers(app: Client):
                                InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ᴍᴀɴᴀɢᴇʀ"), callback_data="manage_admins")])
                 buttons.append([InlineKeyboardButton(stylish("ᴄᴜsᴛᴏᴍɪᴢᴇ"), callback_data="supreme_customize"),
                                InlineKeyboardButton(stylish("ғᴜʟʟ ʙᴀᴄᴋᴜᴘ"), callback_data="manual_backup")])
+                buttons.append([InlineKeyboardButton(stylish("sᴍᴀʀᴛ ʀᴇʙᴜɪʟᴅ"), callback_data="confirm_rebuild"),
+                               InlineKeyboardButton(stylish("ᴘᴜʀɢᴇ ᴄᴀᴄʜᴇ"), callback_data="manual_clean_cache")])
+                buttons.append([InlineKeyboardButton(stylish("sʏsᴛᴇᴍ ʀᴇsᴛᴀʀᴛ"), callback_data="restart_all_bots")])
             elif cat == "fonts":
                 buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="font_editor")])
             elif cat == "files":
@@ -4936,17 +4944,20 @@ def register_handlers(app: Client):
                                InlineKeyboardButton(stylish("ᴍʏ ᴅᴜᴀʟs"), callback_data="dual_post_list")])
                 buttons.append([InlineKeyboardButton(stylish("sᴛᴀʀᴛ ʙᴀᴛᴄʜ"), callback_data="start_batch"),
                                InlineKeyboardButton(stylish("ᴄʀᴇᴀᴛᴇ ᴘᴏsᴛ"), callback_data="cb_create_post")])
-                buttons.append([InlineKeyboardButton(stylish("ᴅᴜᴀʟ ɢᴜɪᴅᴇ"), callback_data="dual_help")])
+                buttons.append([InlineKeyboardButton(stylish("ᴅᴜᴀʟ ɢᴜɪᴅᴇ"), callback_data="dual_help"),
+                               InlineKeyboardButton(stylish("ᴅᴏᴡɴʟᴏᴀᴅᴇʀ"), callback_data="download_help_info")])
             elif cat == "general":
                 buttons.append([InlineKeyboardButton(stylish("ᴍʏ sᴛᴀᴛs"), callback_data="user_dashboard"),
                                InlineKeyboardButton(stylish("ᴘʀᴇᴍɪᴜᴍ ɪɴғᴏ"), callback_data="premium_menu")])
                 buttons.append([InlineKeyboardButton(stylish("sᴇᴀʀᴄʜ ғɪʟᴇs"), callback_data="cb_search"),
                                InlineKeyboardButton(stylish("ʀᴇғᴇʀ & ᴇᴀʀɴ"), callback_data="referral_menu")])
-                buttons.append([InlineKeyboardButton(stylish("ᴀʙᴏᴜᴛ ᴍᴇ"), callback_data="about_bot")])
+                buttons.append([InlineKeyboardButton(stylish("ᴀʙᴏᴜᴛ ᴍᴇ"), callback_data="about_bot"),
+                               InlineKeyboardButton(stylish("ʙᴏᴛ ɪɴғᴏ"), callback_data="botinfo_help_info")])
             elif cat == "advanced":
                 buttons.append([InlineKeyboardButton(stylish("ᴍʏ ʙᴏᴛs"), callback_data="my_bots_menu"),
                                InlineKeyboardButton(stylish("ᴄʟᴏɴᴇ ʙᴏᴛ"), callback_data="clone_menu")])
-                buttons.append([InlineKeyboardButton(stylish("ᴘʀᴏᴛᴇᴄᴛ ʟɪɴᴋ"), callback_data="plinks_admin")])
+                buttons.append([InlineKeyboardButton(stylish("ᴘʀᴏᴛᴇᴄᴛ ʟɪɴᴋ"), callback_data="plinks_admin"),
+                               InlineKeyboardButton(stylish("ᴍʏ ᴘʟɪɴᴋs"), callback_data="plinks_list_admin")])
 
             buttons.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_menu")])
             text = stylish(help_data.get(cat, "No details found."))
@@ -5799,6 +5810,28 @@ def register_handlers(app: Client):
                 async def answer(self, *a, **k): pass
 
             await cb_handler(client, FakeCB(cb.from_user, cb.message))
+
+        elif data == "download_help_info":
+            text = stylish("<blockquote><b>ᴅᴏᴡɴʟᴏᴀᴅᴇʀ ɢᴜɪᴅᴇ</b>\n\nᴜsᴇ <code>/download [ʟɪɴᴋ]</code> ᴛᴏ ᴅᴏᴡɴʟᴏᴀᴅ ᴠɪᴅᴇᴏs ғʀᴏᴍ ᴠᴀʀɪᴏᴜs ᴘʟᴀᴛғᴏʀᴍs ᴅɪʀᴇᴄᴛʟʏ.\n\nᴛʜᴇ ʙᴏᴛ ᴡɪʟʟ ᴇxᴛʀᴀᴄᴛ ᴀᴠᴀɪʟᴀʙʟᴇ ǫᴜᴀʟɪᴛɪᴇs ғᴏʀ ʏᴏᴜ ᴛᴏ ᴄʜᴏᴏsᴇ.</blockquote>")
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_cat_files")]]))
+            await cb.answer()
+
+        elif data == "botinfo_help_info":
+            bi = get_bot_info(bot_id)
+            if not bi: return await cb.answer("Not in DB.")
+            dp_count = len(get_bot_dual_posts(bot_id))
+            text = stylish(
+                f"<blockquote><b>ʙᴏᴛ ɪɴғᴏʀᴍᴀᴛɪᴏɴ</b>\n\n"
+                f"✰ ᴜsᴇʀɴᴀᴍᴇ: @{client.me.username}\n"
+                f"✰ ᴏᴡɴᴇʀ: {bi.get('owner_name','?')}\n"
+                f"✰ ᴄʟᴏɴᴇs: {len(get_child_bots(bot_id))}\n"
+                f"✰ ғᴏʀᴄᴇ sᴜʙ: {len(bi.get('force_subs',[]))} ᴄʜ\n"
+                f"✰ ᴛɪᴍᴇʀ: {bi.get('auto_delete_time',600)}s\n"
+                f"✰ ᴀᴜᴛᴏ-ᴀᴘᴘʀᴏᴠᴇ: {'ᴏɴ' if bi.get('auto_approve') else 'ᴏғғ'}\n"
+                f"✰ ᴅᴜᴀʟ ᴘᴏsᴛs: {dp_count}</blockquote>"
+            )
+            await cb.message.edit(text, reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_cat_general")]]))
+            await cb.answer()
 
         elif data == "back_to_start":
             bi  = get_bot_info(bot_id)
