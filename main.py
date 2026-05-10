@@ -27,6 +27,7 @@
 
 import os, sys, json, asyncio, hashlib, logging, random, shutil, time, tempfile, re, concurrent.futures
 import aiohttp
+import yt_dlp
 from aiohttp import web
 from datetime import datetime, timedelta
 from pyrogram import Client, filters, idle
@@ -1711,7 +1712,6 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("download") & filters.private, group=1)
     async def download_video_cmd(client, message):
-        import yt_dlp
         uid = message.from_user.id
         if is_user_banned(uid, client.me.id): return await message.reply(" Banned!")
 
@@ -4318,7 +4318,6 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data.startswith("dlv_"):
-            import yt_dlp
             format_id = data[4:]
 
             if uid not in TEMP_EDIT or TEMP_EDIT[uid].get("mode") != "download_video":
