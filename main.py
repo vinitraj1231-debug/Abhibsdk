@@ -24,10 +24,12 @@
  CLONE + REFERRAL + PREMIUM + ANALYTICS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 """
+from __future__ import annotations
 
 import os, sys, json, asyncio, hashlib, logging, random, shutil, time, tempfile, re, concurrent.futures
 import aiohttp
 import yt_dlp
+from typing import Optional
 from aiohttp import web
 from datetime import datetime, timedelta
 from pyrogram import Client, filters, idle
@@ -960,7 +962,7 @@ async def _get_latest_msg_id(userbot, chat_id: int) -> int:
         pass
     return 0
 
-async def fetch_remote_metadata(target_uid: str, target_type="file") -> dict | None:
+async def fetch_remote_metadata(target_uid: str, target_type="file") -> Optional[dict]:
     """Fallback: Search DB_CHANNEL for a specific UID if not found in local DB."""
     if not GLOBAL_USERBOT: return None
 
@@ -1288,7 +1290,7 @@ async def smart_rebuild(status_msg=None) -> dict:
 #  BROADCAST
 # ═══════════════════════════════════════════════════════════════
 
-async def store_broadcast(client, original_msg) -> int | None:
+async def store_broadcast(client, original_msg) -> Optional[int]:
     try:
         stored = await original_msg.forward(DB_CHANNEL)
         return stored.id

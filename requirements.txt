@@ -1,3 +1,7 @@
 pyrogram
 aiohttp
 yt-dlp
+pyaes
+hachoir
+cryptg
+pycryptodome
