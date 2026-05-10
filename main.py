@@ -4918,9 +4918,16 @@ def register_handlers(app: Client):
             if cat == "admin":
                 buttons.append([InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ᴘᴀɴᴇʟ"), callback_data="admin_panel"),
                                InlineKeyboardButton(stylish("ᴊᴏɪɴ ʀᴇǫᴜᴇsᴛs"), callback_data="manage_requests")])
+                buttons.append([InlineKeyboardButton(stylish("ғᴏʀᴄᴇ sᴜʙ"), callback_data="forcesub_admin"),
+                               InlineKeyboardButton(stylish("sʜᴏʀᴛᴇɴᴇʀ"), callback_data="shortener_admin")])
+                buttons.append([InlineKeyboardButton(stylish("ʙᴏᴛ sᴇᴛᴛɪɴɢs"), callback_data="bot_settings_admin")])
             elif cat == "supreme":
                 buttons.append([InlineKeyboardButton(stylish("sᴜᴘʀᴇᴍᴇ ᴘᴀɴᴇʟ"), callback_data="supreme_panel"),
                                InlineKeyboardButton(stylish("sʏsᴛᴇᴍ sᴛᴀᴛs"), callback_data="system_stats")])
+                buttons.append([InlineKeyboardButton(stylish("ʙᴏᴛ ɴᴇᴛᴡᴏʀᴋ"), callback_data="all_bots_list"),
+                               InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ᴍᴀɴᴀɢᴇʀ"), callback_data="manage_admins")])
+                buttons.append([InlineKeyboardButton(stylish("ᴄᴜsᴛᴏᴍɪᴢᴇ"), callback_data="supreme_customize"),
+                               InlineKeyboardButton(stylish("ғᴜʟʟ ʙᴀᴄᴋᴜᴘ"), callback_data="manual_backup")])
             elif cat == "fonts":
                 buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="font_editor")])
             elif cat == "files":
@@ -4928,14 +4935,17 @@ def register_handlers(app: Client):
                                InlineKeyboardButton(stylish("ᴍʏ ᴅᴜᴀʟs"), callback_data="dual_post_list")])
                 buttons.append([InlineKeyboardButton(stylish("sᴛᴀʀᴛ ʙᴀᴛᴄʜ"), callback_data="start_batch"),
                                InlineKeyboardButton(stylish("ᴄʀᴇᴀᴛᴇ ᴘᴏsᴛ"), callback_data="cb_create_post")])
+                buttons.append([InlineKeyboardButton(stylish("ᴅᴜᴀʟ ɢᴜɪᴅᴇ"), callback_data="dual_help")])
             elif cat == "general":
                 buttons.append([InlineKeyboardButton(stylish("ᴍʏ sᴛᴀᴛs"), callback_data="user_dashboard"),
                                InlineKeyboardButton(stylish("ᴘʀᴇᴍɪᴜᴍ ɪɴғᴏ"), callback_data="premium_menu")])
                 buttons.append([InlineKeyboardButton(stylish("sᴇᴀʀᴄʜ ғɪʟᴇs"), callback_data="cb_search"),
                                InlineKeyboardButton(stylish("ʀᴇғᴇʀ & ᴇᴀʀɴ"), callback_data="referral_menu")])
+                buttons.append([InlineKeyboardButton(stylish("ᴀʙᴏᴜᴛ ᴍᴇ"), callback_data="about_bot")])
             elif cat == "advanced":
                 buttons.append([InlineKeyboardButton(stylish("ᴍʏ ʙᴏᴛs"), callback_data="my_bots_menu"),
                                InlineKeyboardButton(stylish("ᴄʟᴏɴᴇ ʙᴏᴛ"), callback_data="clone_menu")])
+                buttons.append([InlineKeyboardButton(stylish("ᴘʀᴏᴛᴇᴄᴛ ʟɪɴᴋ"), callback_data="plinks_admin")])
 
             buttons.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_menu")])
             text = stylish(help_data.get(cat, "No details found."))
