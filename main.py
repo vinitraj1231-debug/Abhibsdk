@@ -557,6 +557,22 @@ def fmt_size(size) -> str:
 def unique_id() -> str:
     return hashlib.md5(str(time.time() + random.random()).encode()).hexdigest()[:12]
 
+def get_individual_links(client, fids: list, files_db: dict = None, limit: int = 10, indent: int = 4) -> str:
+    """Generate a formatted list of individual file links."""
+    if files_db is None:
+        files_db = load_db(FILES_DB)
+    text = ""
+    prefix = " " * indent
+    for i, fuid in enumerate(fids[:limit], 1):
+        fd = files_db.get(fuid)
+        f_name = fd.get("file_name", "File") if fd else "File"
+        f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+        text += f"{prefix}{i}. **{f_name}**\n{prefix}   `{f_link}`\n"
+
+    if len(fids) > limit:
+        text += f"{prefix}... and {len(fids) - limit} more files.\n"
+    return text
+
 def file_icon(name: str) -> str:
     if not name or name == "Message/Post": return ""
     ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
@@ -2095,24 +2111,8 @@ def register_handlers(app: Client):
             else " _Free tier → Direct delivery_"
         )
 
-        files_db = load_db(FILES_DB)
-        free_links = ""
-        for i, fuid in enumerate(sess.free_files[:10], 1):
-            fd = files_db.get(fuid)
-            f_name = fd.get("file_name", "File") if fd else "File"
-            f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
-            free_links += f"    {i}. **{f_name}**\n       `{f_link}`\n"
-        if free_c > 10:
-            free_links += f"    ... and {free_c-10} more.\n"
-
-        pro_links = ""
-        for i, fuid in enumerate(sess.pro_files[:10], 1):
-            fd = files_db.get(fuid)
-            f_name = fd.get("file_name", "File") if fd else "File"
-            f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
-            pro_links += f"    {i}. **{f_name}**\n       `{f_link}`\n"
-        if pro_c > 10:
-            pro_links += f"    ... and {pro_c-10} more.\n"
+        free_links = get_individual_links(client, sess.free_files)
+        pro_links  = get_individual_links(client, sess.pro_files)
 
         await message.reply(
             f" **Dual Post Created Successfully!**\n\n"
@@ -2913,16 +2913,7 @@ def register_handlers(app: Client):
         link  = f"https://t.me/{client.me.username}?start=b_{bid}"
         short = await get_short_link(bi, link)
 
-        files_db = load_db(FILES_DB)
-        file_links = ""
-        for i, fuid in enumerate(fids, 1):
-            fd = files_db.get(fuid)
-            f_name = fd.get("file_name", "File") if fd else "File"
-            f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
-            file_links += f"{i}. **{f_name}**\n   `{f_link}`\n"
-            if i >= 15 and len(fids) > 15:
-                file_links += f"... and {len(fids)-15} more files."
-                break
+        file_links = get_individual_links(client, fids, limit=15, indent=0)
 
         await message.reply(
             f" **Batch Created!**\n\n"
@@ -3606,29 +3597,17 @@ def register_handlers(app: Client):
                     my_b.append((bid, b))
 
             if not my_b: return await message.reply(" No batches found!")
-            recent = sorted(my_b, key=lambda x: x[1].get("date", ""), reverse=True)[:10]
+            recent = sorted(my_b, key=lambda x: x[1].get("date", ""), reverse=True)[:5]
             text = f" **{'All' if is_sup else 'Your'} Batches ({len(my_b)} total)**\n\n"
             btns = []
             files_db = load_db(FILES_DB)
             for bid, b in recent:
                 fids = b.get("files", [])
                 count = len(fids)
-                date = b.get("date", "")[:16]
                 link = f"https://t.me/{client.me.username}?start=b_{bid}"
                 text += f"• **Batch:** `{bid}` ({count} files)\n  Link: `{link}`\n"
 
-                f_links = []
-                for i, fuid in enumerate(fids[:5], 1):
-                    fd = files_db.get(fuid)
-                    f_name = fd.get("file_name", "File") if fd else "File"
-                    f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
-                    f_links.append(f"  {i}. **{f_name}**\n     `{f_link}`")
-
-                if f_links:
-                    text += "\n".join(f_links) + "\n"
-                if count > 5:
-                    text += f"  ... and {count-5} more files.\n"
-                text += "\n"
+                text += get_individual_links(client, fids, files_db=files_db, limit=5, indent=2) + "\n"
 
                 btns.append([InlineKeyboardButton(f" Share {bid[:8]}", url=f"https://t.me/share/url?url={link}")])
             await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
@@ -4734,13 +4713,22 @@ def register_handlers(app: Client):
             }))
             base_link = f"https://t.me/{client.me.username}?start=dp_{post_id}"
             bi2 = get_bot_info(bot_id)
+
+            free_c = len(sess.free_files)
+            pro_c  = len(sess.pro_files)
+
+            free_links = get_individual_links(client, sess.free_files)
+            pro_links  = get_individual_links(client, sess.pro_files)
+
             await cb.message.edit(
                 f" **Dual Post Created!**\n\n"
                 f" **{sess.title or 'Dual Post'}**\n"
                 f" `{post_id}`\n\n"
-                f" Free: `{len(sess.free_files)}` files "
+                f" Free: `{free_c}` files "
                 f"{' (shortener)' if shortener_enabled_for_bot(bi2) else ' (direct)'}\n"
-                f" Pro: `{len(sess.pro_files)}` files  (direct)\n\n"
+                f" **Free File Links:**\n{free_links}\n"
+                f" Pro: `{pro_c}` files  (direct)\n"
+                f" **Premium File Links:**\n{pro_links}\n\n"
                 f" **Link:**\n`{base_link}`",
                 reply_markup=kb_dual_post_done(post_id, base_link)
             )
