@@ -2095,6 +2095,25 @@ def register_handlers(app: Client):
             else " _Free tier → Direct delivery_"
         )
 
+        files_db = load_db(FILES_DB)
+        free_links = ""
+        for i, fuid in enumerate(sess.free_files[:10], 1):
+            fd = files_db.get(fuid)
+            f_name = fd.get("file_name", "File") if fd else "File"
+            f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+            free_links += f"    {i}. **{f_name}**\n       `{f_link}`\n"
+        if free_c > 10:
+            free_links += f"    ... and {free_c-10} more.\n"
+
+        pro_links = ""
+        for i, fuid in enumerate(sess.pro_files[:10], 1):
+            fd = files_db.get(fuid)
+            f_name = fd.get("file_name", "File") if fd else "File"
+            f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+            pro_links += f"    {i}. **{f_name}**\n       `{f_link}`\n"
+        if pro_c > 10:
+            pro_links += f"    ... and {pro_c-10} more.\n"
+
         await message.reply(
             f" **Dual Post Created Successfully!**\n\n"
             f" **{title}**\n"
@@ -2103,11 +2122,13 @@ def register_handlers(app: Client):
             f" **FREE TIER** — `{free_c}` file(s)\n"
             f"    For: Non-premium users\n"
             f"   {shortener_status}\n"
-            f"    Auto-delete after timer\n\n"
+            f"    Auto-delete after timer\n"
+            f" **Free File Links:**\n{free_links}\n"
             f" **PREMIUM TIER** — `{pro_c}` file(s)\n"
             f"    For: Premium users only\n"
             f"    _Direct delivery — no ads, no wait_\n"
-            f"    _No auto-delete_\n\n"
+            f"    _No auto-delete_\n"
+            f" **Premium File Links:**\n{pro_links}\n"
             f"━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
             f" **Share This Link:**\n`{base_link}`",
             reply_markup=kb_dual_post_done(post_id, base_link)
@@ -2891,10 +2912,25 @@ def register_handlers(app: Client):
         }))
         link  = f"https://t.me/{client.me.username}?start=b_{bid}"
         short = await get_short_link(bi, link)
+
+        files_db = load_db(FILES_DB)
+        file_links = ""
+        for i, fuid in enumerate(fids, 1):
+            fd = files_db.get(fuid)
+            f_name = fd.get("file_name", "File") if fd else "File"
+            f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+            file_links += f"{i}. **{f_name}**\n   `{f_link}`\n"
+            if i >= 15 and len(fids) > 15:
+                file_links += f"... and {len(fids)-15} more files."
+                break
+
         await message.reply(
-            f" **Batch Created!**\n\n `{len(fids)}` files\n\n `{short}`",
+            f" **Batch Created!**\n\n"
+            f" `{len(fids)}` files\n\n"
+            f" **Batch Link:**\n`{short}`\n\n"
+            f" **Individual File Links:**\n{file_links}",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(" Share", url=f"https://t.me/share/url?url={short}")]
+                [InlineKeyboardButton(" Share Batch", url=f"https://t.me/share/url?url={short}")]
             ])
         )
 
@@ -3573,12 +3609,28 @@ def register_handlers(app: Client):
             recent = sorted(my_b, key=lambda x: x[1].get("date", ""), reverse=True)[:10]
             text = f" **{'All' if is_sup else 'Your'} Batches ({len(my_b)} total)**\n\n"
             btns = []
+            files_db = load_db(FILES_DB)
             for bid, b in recent:
-                count = len(b.get("files", []))
+                fids = b.get("files", [])
+                count = len(fids)
                 date = b.get("date", "")[:16]
                 link = f"https://t.me/{client.me.username}?start=b_{bid}"
-                text += f"• **Batch:** `{bid}` ({count} files)\n  Link: `{link}`\n\n"
-                btns.append([InlineKeyboardButton(f" {bid}", url=f"https://t.me/share/url?url={link}")])
+                text += f"• **Batch:** `{bid}` ({count} files)\n  Link: `{link}`\n"
+
+                f_links = []
+                for i, fuid in enumerate(fids[:5], 1):
+                    fd = files_db.get(fuid)
+                    f_name = fd.get("file_name", "File") if fd else "File"
+                    f_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+                    f_links.append(f"  {i}. **{f_name}**\n     `{f_link}`")
+
+                if f_links:
+                    text += "\n".join(f_links) + "\n"
+                if count > 5:
+                    text += f"  ... and {count-5} more files.\n"
+                text += "\n"
+
+                btns.append([InlineKeyboardButton(f" Share {bid[:8]}", url=f"https://t.me/share/url?url={link}")])
             await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
         elif cmd == "font":
             user = get_user(uid, bot_id)
