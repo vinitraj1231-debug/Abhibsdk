@@ -1514,6 +1514,75 @@ async def start_web_server():
 # ═══════════════════════════════════════════════════════════════
 
 START_TIME      = datetime.now()
+HELP_TEXT       = (
+    "<b>ULTRA FILESTORE v7.0 — COMPLETE GUIDE</b>\n\n"
+    "Welcome to the most advanced FileStore bot! Here is a list of commands you can use:\n\n"
+    "<b>GENERAL COMMANDS</b>\n"
+    "├ /start — Start the bot\n"
+    "├ /help — Show this guide\n"
+    "├ /about — About the bot\n"
+    "├ /refer — Refer and earn\n"
+    "├ /search — Search for files\n"
+    "├ /stats — View your statistics\n"
+    "├ /ping — Check bot speed\n"
+    "├ /botinfo — View bot details\n"
+    "├ /premium — Premium membership info\n"
+    "├ /download — Download videos\n"
+    "├ /done — Finish session\n"
+    "└ /cancel — Cancel current action\n\n"
+    "<b>FILE MANAGEMENT</b>\n"
+    "├ /batch — Start batch mode\n"
+    "├ /listfiles — List your uploaded files\n"
+    "├ /mybatches — List your batches\n"
+    "├ /editfile — Edit metadata\n"
+    "├ /delfile — Delete file\n"
+    "├ /rename — Rename a file\n"
+    "├ /setcaption — Set file caption\n"
+    "├ /setthumb — Set file thumbnail\n"
+    "├ /dualpost — Create dual-tier link\n"
+    "├ /dpremium — Switch to premium tier\n"
+    "├ /dpdone — Finish dual post\n"
+    "├ /dpcancel — Cancel dual post\n"
+    "├ /myduals — Manage your dual posts\n"
+    "├ /deldual — Delete dual post\n"
+    "├ /dpstats — Dual post analytics\n"
+    "└ /createpost — Create custom post\n\n"
+    "<b>ADVANCED FEATURES</b>\n"
+    "├ /clone — Create your own bot\n"
+    "├ /mybots — List your cloned bots\n"
+    "├ /protect — Protect a channel link\n"
+    "├ /myplinks — Manage protected links\n"
+    "├ /font — Open font editor\n"
+    "├ /addadmin — Add secondary admin\n"
+    "└ /deladmin — Remove secondary admin\n\n"
+    "<b>ADMIN TOOLS</b>\n"
+    "├ /admin — Open Admin Panel\n"
+    "├ /setfs — Configure Force Sub\n"
+    "├ /setwelcome — Set welcome message\n"
+    "├ /autoapprove — Toggle auto-approve\n"
+    "├ /autocaption — Toggle auto-caption\n"
+    "├ /broadcast — Send message to all\n"
+    "├ /ban — Ban a user\n"
+    "├ /unban — Unban a user\n"
+    "├ /setlog — Set log channel\n"
+    "├ /setchannel — Connect channel\n"
+    "├ /setmode — Set join mode\n"
+    "├ /settimer — Auto-delete timer\n"
+    "├ /shortener — Configure shortener\n"
+    "├ /requests — Manage join requests\n"
+    "├ /givepremium — Give premium access\n"
+    "├ /removepremium — Revoke premium access\n"
+    "├ /setprice — Set premium price\n"
+    "├ /setcontact — Set premium contact\n"
+    "└ /setqr — Set premium QR code\n\n"
+    "<b>SUPREME TOOLS</b>\n"
+    "├ /supreme — Supreme Panel\n"
+    "├ /rebuild — Smart DB Rebuild\n"
+    "├ /backup — Force manual backup\n"
+    "└ /restart — System restart\n\n"
+    "<b>TIP:</b> Just send any file to the bot to store it and get a shareable link instantly!\n"
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+)
 ACTIVE_CLIENTS: dict = {}
 GLOBAL_USERBOT: Client = None
 TEMP_BATCH:     dict = {}
@@ -3333,7 +3402,7 @@ def register_handlers(app: Client):
                 f" Dual Posts: `{dp_count}`"
             )
         elif cmd == "help":
-            text = stylish("<b>sᴇʟᴇᴄᴛ ʜᴇʟᴘ ᴄᴀᴛᴇɢᴏʀʏ:</b>")
+            text = get_msg_text("msg_help", HELP_TEXT)
             buttons = [
                 [InlineKeyboardButton(stylish("ɢᴇɴᴇʀᴀʟ"), callback_data="help_cat_general"),
                  InlineKeyboardButton(stylish("ғɪʟᴇ ᴍᴀɴᴀɢᴇᴍᴇɴᴛ"), callback_data="help_cat_files")],
@@ -4889,7 +4958,7 @@ def register_handlers(app: Client):
                 await cb.answer("User not found in DB!", show_alert=True)
 
         elif data == "help_menu":
-            text = stylish("<b>sᴇʟᴇᴄᴛ ʜᴇʟᴘ ᴄᴀᴛᴇɢᴏʀʏ:</b>")
+            text = get_msg_text("msg_help", HELP_TEXT)
 
             buttons = [
                 [InlineKeyboardButton(stylish("ɢᴇɴᴇʀᴀʟ"), callback_data="help_cat_general"),
@@ -4959,41 +5028,6 @@ def register_handlers(app: Client):
             contact = bi_cb.get("premium_contact", "zolvid") if bi_cb else "zolvid"
             qr_id = bi_cb.get("premium_qr") if bi_cb else None
 
-            default_help = (
-                " **ULTRA FILESTORE v7.0 — COMPLETE GUIDE**\n\n"
-                "Welcome to the most advanced FileStore bot! Here is a list of commands you can use:\n\n"
-                " **GENERAL COMMANDS**\n"
-                "├ /start — Start the bot\n"
-                "├ /help — Show this guide\n"
-                "├ /about — About the bot\n"
-                "├ /refer — Refer and earn\n"
-                "├ /search — Search for files\n"
-                "├ /stats — View your statistics\n"
-                "└ /premium — Premium membership info\n\n"
-                " **FILE MANAGEMENT**\n"
-                "├ /batch — Start batch mode\n"
-                "├ /done — Finish batch/session\n"
-                "├ /cancel — Cancel current action\n"
-                "├ /listfiles — List your uploaded files\n"
-                "├ /rename — Rename a file\n"
-                "├ /setcaption — Set file caption\n"
-                "├ /setthumb — Set file thumbnail\n"
-                "└ /myduals — Manage your dual posts\n\n"
-                " **ADVANCED FEATURES**\n"
-                "├ /clone — Create your own bot\n"
-                "├ /dualpost — Create a dual-tier post\n"
-                "├ /protect — Protect a channel link\n"
-                "└ /mybots — List your cloned bots\n\n"
-                " **ADMIN TOOLS**\n"
-                "├ /admin — Open Admin Panel\n"
-                "├ /setfs — Configure Force Sub\n"
-                "├ /setwelcome — Set welcome message\n"
-                "├ /autoapprove — Toggle auto-approve\n"
-                "├ /autocaption — Toggle auto-caption\n"
-                "└ /setlog — Set log channel\n\n"
-                " **TIP:** Just send any file to the bot to store it and get a shareable link instantly!\n"
-                "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            )
             default_prem = (
                 f" **ELITE PREMIUM MEMBERSHIP** \n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -5021,7 +5055,7 @@ def register_handlers(app: Client):
 
             texts = {
                 "cb_search":     get_msg_text("msg_search", " **Search**\n\nUse: `/search FILENAME`\nOr inline: `@BotUsername query`"),
-                "help_menu":     get_msg_text("msg_help", default_help),
+                "help_menu":     get_msg_text("msg_help", HELP_TEXT),
                 "premium_menu":  get_msg_text("msg_premium", default_prem).format_map(SafeDict(
                     status=' `ACTIVATED`' if is_p else ' `NOT ACTIVE`',
                     price=(bi_cb or {}).get('premium_price', '500'),
