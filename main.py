@@ -32,7 +32,18 @@ import yt_dlp
 from typing import Optional
 from aiohttp import web
 from datetime import datetime, timedelta
+
+try:
+    import sqlite3
+except ImportError:
+    import sys
+    from unittest.mock import MagicMock
+    mock_sqlite3 = MagicMock()
+    sys.modules["sqlite3"] = mock_sqlite3
+    sys.modules["_sqlite3"] = mock_sqlite3
+
 from pyrogram import Client, filters, idle
+from pyrogram.storage import MemoryStorage
 from pyrogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, WebAppInfo,
     InlineQueryResultArticle, InputTextMessageContent
@@ -45,7 +56,7 @@ from pyrogram.enums import ChatMemberStatus
 # ═══════════════════════════════════════════════════════════════
 
 API_ID         = int(os.environ.get("API_ID",         "22528639"))
-API_HASH       = os.environ.get("API_HASH",            "43df9dcf764afd03a1fd1dc3cec68bbd)
+API_HASH       = os.environ.get("API_HASH",            "43df9dcf764afd03a1fd1dc3cec68bbd")
 MAIN_BOT_TOKEN = os.environ.get("MAIN_BOT_TOKEN",     "8235471153:AAEBfhiiUE-2977TqWEeI_cpCQeWJV9W9RY")
 MAIN_ADMIN     = int(os.environ.get("MAIN_ADMIN",     "8647666069"))
 DB_CHANNEL     = int(os.environ.get("DB_CHANNEL",     "-1003928301559"))
@@ -1644,10 +1655,15 @@ async def check_force_sub(client, user_id: int):
 
 async def start_bot(token: str, parent_bot_id=None):
     try:
+        bot_session = f"bot_{token.split(':')[0]}"
+        # Fallback to MemoryStorage if sqlite3 is mocked
+        is_mocked = "unittest.mock" in sys.modules.get("sqlite3", "").__class__.__module__
         app = Client(
-            f"bot_{token.split(':')[0]}",
+            bot_session,
             api_id=API_ID, api_hash=API_HASH,
-            bot_token=token, in_memory=True
+            bot_token=token,
+            in_memory=is_mocked,
+            workdir=DB_FOLDER if not is_mocked else None
         )
         await app.start()
         me = await app.get_me()
