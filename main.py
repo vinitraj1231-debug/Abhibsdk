@@ -44,8 +44,8 @@ from pyrogram.enums import ChatMemberStatus
 #  CONFIGURATION
 # ═══════════════════════════════════════════════════════════════
 
-API_ID         = int(os.environ.get("API_ID",         "23790796"))
-API_HASH       = os.environ.get("API_HASH",            "626eb31c9057007df4c2851b3074f27f")
+API_ID         = int(os.environ.get("API_ID",         "22528639"))
+API_HASH       = os.environ.get("API_HASH",            "43df9dcf764afd03a1fd1dc3cec68bbd)
 MAIN_BOT_TOKEN = os.environ.get("MAIN_BOT_TOKEN",     "8235471153:AAEBfhiiUE-2977TqWEeI_cpCQeWJV9W9RY")
 MAIN_ADMIN     = int(os.environ.get("MAIN_ADMIN",     "8647666069"))
 DB_CHANNEL     = int(os.environ.get("DB_CHANNEL",     "-1003928301559"))
