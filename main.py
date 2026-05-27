@@ -51,7 +51,7 @@ MAIN_ADMIN     = int(os.environ.get("MAIN_ADMIN",     "8647666069"))
 DB_CHANNEL     = int(os.environ.get("DB_CHANNEL",     "-1003928301559"))
 PORT           = int(os.environ.get("PORT",            "8080"))
 WEBAPP_URL     = os.environ.get("WEBAPP_URL",          "")
-SESSION_STRING = os.environ.get("SESSION_STRING",     "")
+SESSION_STRING = os.environ.get("SESSION_STRING",     "BQCOaU4AqDH8yxZfXnoOqgBnz4wDf6UpUsjIQY4xxqYCMkT6Sj7jTUXwnjtQf5QHAKAv2VN5GWCcsLRAVVGv4kGgAPduFt_DTyKHsaSn7Zzcdb15_3l66G3Akx9NKt2GsxG0w_KusnjeTSzr9YB8m0c3IpGD1ALPP7lFWcSpWh5L86dVxftlYRc15nIwPXQNH_GlCCLq0_RqRc_Rkw94y1QhZYDQyBVxGhSVMcmmE3hyCYmuYLtoryt0ZDamKA0mUUPE63Q4jwbOnBH4Q1PV2wGV-80ApICjes59sObucx_Hh9SiDzZDY61xTTdWCqhpFTAxV-5DD4d777QCtRH4kVM_0xht5gAAAAFpYTzQAA")
 
 FILE_CACHE_DURATION      = 3600
 MAX_FORCE_SUB_CHANNELS   = 100
