@@ -42,8 +42,20 @@ except ImportError:
     sys.modules["sqlite3"] = mock_sqlite3
     sys.modules["_sqlite3"] = mock_sqlite3
 
-from pyrogram import Client, filters, idle
+from pyrogram import Client, filters, idle, utils
 from pyrogram.storage import MemoryStorage
+
+# Monkey-patching Pyrogram's get_peer_type to fix PeerIdInvalid for some channel IDs
+def get_peer_type_new(peer_id: int) -> str:
+    peer_id_str = str(peer_id)
+    if not peer_id_str.startswith("-"):
+        return "user"
+    elif peer_id_str.startswith("-100"):
+        return "channel"
+    else:
+        return "chat"
+
+utils.get_peer_type = get_peer_type_new
 from pyrogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, WebAppInfo,
     InlineQueryResultArticle, InputTextMessageContent
@@ -5976,6 +5988,19 @@ async def background_tasks():
 #  MAIN
 # ═══════════════════════════════════════════════════════════════
 
+async def resolve_db_channel(client, channel_id):
+    """Try to resolve DB_CHANNEL peer with retries."""
+    for i in range(3):
+        try:
+            chat = await client.get_chat(channel_id)
+            return chat
+        except Exception as e:
+            if i == 2:
+                logger.warning(f" Could not resolve DB_CHANNEL {channel_id} after 3 attempts: {e}")
+                break
+            await asyncio.sleep(2)
+    return None
+
 async def main():
     print("╔═══════════════════════════════════════════════════════════╗")
     print("║   ULTRA FILESTORE BOT v7.0 — ELITE EDITION             ║")
@@ -5999,22 +6024,20 @@ async def main():
             )
             await GLOBAL_USERBOT.start()
             logger.info(" Persistent Userbot Started!")
-            try:
-                await GLOBAL_USERBOT.get_chat(DB_CHANNEL)
-                logger.info(f" Userbot resolved DB_CHANNEL: {DB_CHANNEL}")
-            except Exception as e:
-                logger.warning(f" Userbot could not resolve DB_CHANNEL {DB_CHANNEL}: {e}")
+            chat = await resolve_db_channel(GLOBAL_USERBOT, DB_CHANNEL)
+            if chat:
+                logger.info(f" Userbot resolved DB_CHANNEL: {chat.title} ({DB_CHANNEL})")
         except Exception as e:
             logger.error(f" Userbot failed to start: {e}")
 
     logger.info(" Starting Main Bot...")
     main_app = await start_bot(MAIN_BOT_TOKEN)
     if main_app:
-        try:
-            await main_app.get_chat(DB_CHANNEL)
-            logger.info(f" Main Bot resolved DB_CHANNEL: {DB_CHANNEL}")
-        except Exception as e:
-            logger.warning(f" Main Bot could not resolve DB_CHANNEL {DB_CHANNEL}: {e}. Make sure the bot is an admin there.")
+        chat = await resolve_db_channel(main_app, DB_CHANNEL)
+        if chat:
+            logger.info(f" Main Bot resolved DB_CHANNEL: {chat.title} ({DB_CHANNEL})")
+        else:
+            logger.warning(f" Main Bot failed to resolve DB_CHANNEL {DB_CHANNEL}. Make sure the bot is an admin there.")
     if not main_app:
         logger.error(" Main bot failed!"); return
 
