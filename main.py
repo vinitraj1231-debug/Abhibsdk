@@ -542,6 +542,28 @@ def fmt_size(size) -> str:
 def unique_id() -> str:
     return hashlib.md5(str(time.time() + random.random()).encode()).hexdigest()[:12]
 
+def get_reply_markup(data):
+    if not data: return None
+    if isinstance(data, str):
+        try: data = json.loads(data)
+        except: return None
+    if not isinstance(data, dict) or "inline_keyboard" not in data:
+        return None
+
+    rows = []
+    for row in data["inline_keyboard"]:
+        btns = []
+        for btn in row:
+            if "url" in btn:
+                btns.append(InlineKeyboardButton(btn["text"], url=btn["url"]))
+            elif "callback_data" in btn:
+                btns.append(InlineKeyboardButton(btn["text"], callback_data=btn["callback_data"]))
+            elif "web_app" in btn:
+                btns.append(InlineKeyboardButton(btn["text"], web_app=WebAppInfo(url=btn["web_app"]["url"])))
+        if btns:
+            rows.append(btns)
+    return InlineKeyboardMarkup(rows) if rows else None
+
 def file_icon(name: str) -> str:
     if not name or name == "Message/Post": return ""
     ext = name.rsplit(".", 1)[-1].lower() if "." in name else ""
@@ -743,13 +765,7 @@ async def deliver_file(client, chat_id: int, file_data: dict):
     media_type = file_data.get("media_type", "document")
     file_id    = file_data["file_id"]
     db_msg_id  = file_data.get("db_msg_id")
-    reply_markup = None
-
-    if file_data.get("reply_markup"):
-        try:
-            reply_markup = InlineKeyboardMarkup.from_json(json.dumps(file_data["reply_markup"]))
-        except Exception:
-            pass
+    reply_markup = get_reply_markup(file_data.get("reply_markup"))
 
     if thumb_fid and media_type in ("document", "video", "audio", "animation"):
         try:
@@ -3254,27 +3270,27 @@ def register_handlers(app: Client):
                     path = await message.download()
                     if path:
                         if message.photo:
-                            db_msg = await uploader.send_photo(DB_CHANNEL, photo=path, caption=message.caption)
+                            db_msg = await uploader.send_photo(DB_CHANNEL, photo=path, caption=message.caption, reply_markup=message.reply_markup)
                         elif message.video:
-                            db_msg = await uploader.send_video(DB_CHANNEL, video=path, caption=message.caption)
+                            db_msg = await uploader.send_video(DB_CHANNEL, video=path, caption=message.caption, reply_markup=message.reply_markup)
                         elif message.audio:
-                            db_msg = await uploader.send_audio(DB_CHANNEL, audio=path, caption=message.caption)
+                            db_msg = await uploader.send_audio(DB_CHANNEL, audio=path, caption=message.caption, reply_markup=message.reply_markup)
                         elif message.voice:
-                            db_msg = await uploader.send_voice(DB_CHANNEL, voice=path, caption=message.caption)
+                            db_msg = await uploader.send_voice(DB_CHANNEL, voice=path, caption=message.caption, reply_markup=message.reply_markup)
                         elif message.video_note:
-                            db_msg = await uploader.send_video_note(DB_CHANNEL, video_note=path)
+                            db_msg = await uploader.send_video_note(DB_CHANNEL, video_note=path, reply_markup=message.reply_markup)
                         elif message.sticker:
-                            db_msg = await uploader.send_sticker(DB_CHANNEL, sticker=path)
+                            db_msg = await uploader.send_sticker(DB_CHANNEL, sticker=path, reply_markup=message.reply_markup)
                         elif message.animation:
-                            db_msg = await uploader.send_animation(DB_CHANNEL, animation=path, caption=message.caption)
+                            db_msg = await uploader.send_animation(DB_CHANNEL, animation=path, caption=message.caption, reply_markup=message.reply_markup)
                         else:
-                            db_msg = await uploader.send_document(DB_CHANNEL, document=path, caption=message.caption)
+                            db_msg = await uploader.send_document(DB_CHANNEL, document=path, caption=message.caption, reply_markup=message.reply_markup)
                         os.remove(path)
                     else:
                         return await sm.edit(" Failed to download file for re-upload.")
                 else:
                     # Pure text message
-                    db_msg = await uploader.send_message(DB_CHANNEL, text=message.text or message.caption)
+                    db_msg = await uploader.send_message(DB_CHANNEL, text=message.text or message.caption, reply_markup=message.reply_markup)
 
                 await sm.delete()
             except Exception as e:
@@ -3778,7 +3794,8 @@ def register_handlers(app: Client):
                             thumb_path = await client.download_media(thumb)
 
                         # Always use send_document to preserve original quality and size
-                        new_db_msg = await client.send_document(DB_CHANNEL, document=new_path, thumb=thumb_path, caption=fd.get('caption'), progress=up_progress)
+                        rm = get_reply_markup(fd.get("reply_markup"))
+                        new_db_msg = await client.send_document(DB_CHANNEL, document=new_path, thumb=thumb_path, caption=fd.get('caption'), progress=up_progress, reply_markup=rm)
 
                         if new_db_msg:
                             media = new_db_msg.document or new_db_msg.video or new_db_msg.audio or new_db_msg.animation or new_db_msg.sticker
@@ -3915,7 +3932,8 @@ def register_handlers(app: Client):
                 thumb_path = await client.download_media(fd['custom_thumbnail'])
 
                 # Always use send_document to preserve original quality and size
-                new_db_msg = await client.send_document(DB_CHANNEL, document=path, thumb=thumb_path, caption=fd.get('caption'))
+                rm = get_reply_markup(fd.get("reply_markup"))
+                new_db_msg = await client.send_document(DB_CHANNEL, document=path, thumb=thumb_path, caption=fd.get('caption'), reply_markup=rm)
 
                 if new_db_msg:
                     media = new_db_msg.document or new_db_msg.video or new_db_msg.audio or new_db_msg.animation or new_db_msg.sticker
