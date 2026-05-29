@@ -11,8 +11,6 @@
    └─ Token-secured shortener bypass
 
  SHORTENER TOKEN SYSTEM  — 15min expiry, one-time use
- SMART 2-PHASE REBUILD   — backup JSON restore + #FS_META scan
- REBUILD NEVER HANGS     — manual pagination, FloodWait handled
  RENDER READY            — aiohttp health-check on $PORT
  BROADCAST               — stored in DB_CHANNEL, copy per-bot
  THUMBNAIL               — BytesIO in_memory → thumb param
@@ -74,19 +72,11 @@ MAIN_ADMIN     = int(os.environ.get("MAIN_ADMIN",     "8647666069"))
 DB_CHANNEL     = int(os.environ.get("DB_CHANNEL",     "-1003921125499"))
 PORT           = int(os.environ.get("PORT",            "8080"))
 WEBAPP_URL     = os.environ.get("WEBAPP_URL",          "")
-SESSION_STRING = os.environ.get("SESSION_STRING",     "BQCOaU4APHrjDwd6txw889cQKEdAniCXk_gneVAT07cv9DV8PkJvndwuzsoHD3ExNspAIPhYjyS4HplW0I-I2E4VvjInCFRrzC8Z8Q9_s-GHHRLg7eydiYjx_HHMUvputUOp8d6UBvff6Q63QDATRFYxzi7IGQCN9aM84h0jfaMFIg5Gh9KD85ZVFb8bY-cQbJtip_j7oLNpiHGZmxUoAcrnSagw8gchk3DLiiRnwwU7SfxcN6Kebn1g3W0_m9PQXS8_rOnETXfkC5Wc_e30FTizojiaZ2LaL5Qbx5Ojkic7k8g15yc4Le69Vsc823lkBqBCZpJrwGbfWUHHY8a5xXQBcl8VygAAAAFpYTzQAA")
 FILE_CACHE_DURATION      = 3600
 MAX_FORCE_SUB_CHANNELS   = 100
 PENDING_REQUEST_TTL_DAYS = 30
-METADATA_TAG             = "#FS_META"
 MAX_BROADCAST_RATE       = 0.05
 SHORTENER_TOKEN_EXPIRY   = 900   # 15 minutes
-
-BACKUP_FILES = [
-    "files.json","batches.json","bots.json","users.json",
-    "admins.json","file_cache.json","config.json",
-    "pending_requests.json","dual_posts.json","protected_links.json","user_links.json"
-]
 
 DB_FOLDER       = "database"
 FILES_DB        = f"{DB_FOLDER}/files.json"
@@ -130,8 +120,6 @@ BOT_COMMANDS = [
     BotCommand("setmode",     " Set Join Mode"),
     BotCommand("protect",     " Protect Channel Link"),
     BotCommand("myplinks",    " My Protected Links"),
-    BotCommand("rebuild",     " Rebuild DB from channel"),
-    BotCommand("backup",      " Force backup now"),
     BotCommand("restart",     " Restart (Supreme)"),
     BotCommand("ping",        " Ping"),
     BotCommand("listfiles",   " List files"),
@@ -257,14 +245,6 @@ def update_global_config(key: str, value) -> None:
     cfg[key] = value
     save_db(CONFIG_DB, cfg)
     _GLOBAL_CFG = cfg
-
-    # Metadata for reconstruction
-    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
-    if main_client:
-        asyncio.create_task(save_meta(main_client, {"type": "config", "unique_id": "global_config", "config": cfg}))
-
-    # Immediate Backup
-    asyncio.create_task(do_backup())
 
 # ─── PENDING JOIN REQUESTS ──────────────────────────────────────
 
@@ -410,14 +390,6 @@ def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_
     if parent_bot_id:
         update_user_stats(owner_id, parent_bot_id, "bots_cloned")
 
-    # Metadata for reconstruction
-    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
-    if main_client:
-        asyncio.create_task(save_meta(main_client, {**data, "unique_id": f"bot_{bot_id}", "type": "bot"}))
-
-    # Immediate Backup
-    asyncio.create_task(do_backup())
-
 def get_bot_info(bot_id):
     return load_db(BOTS_DB).get(str(bot_id))
 
@@ -426,15 +398,6 @@ def update_bot_info(bot_id, field, value) -> bool:
     if str(bot_id) in bots:
         bots[str(bot_id)][field] = value
         save_db(BOTS_DB, bots)
-
-        # Metadata update
-        main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
-        if main_client:
-            asyncio.create_task(save_meta(main_client, {**bots[str(bot_id)], "unique_id": f"bot_{bot_id}", "type": "bot"}))
-
-        # Immediate Backup for critical changes
-        if field in ("token", "owner_id", "force_subs", "secondary_admins"):
-            asyncio.create_task(do_backup())
         return True
     return False
 
@@ -759,57 +722,6 @@ async def make_shortener_link(client, bi: dict, uid: int, bot_id: int,
     return short
 
 # ═══════════════════════════════════════════════════════════════
-#  BACKUP
-# ═══════════════════════════════════════════════════════════════
-
-async def do_backup(bot_client=None) -> int:
-    # Always prioritize the main bot for backups to ensure DB_CHANNEL access
-    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
-    client = main_client or bot_client
-
-    if not client:
-        logger.error(" Backup failed: No active bot client found.")
-        return 0
-
-    count = 0
-    # Create a zip of the database folder for extra safety
-    backup_zip = f"database_backup_{int(time.time())}.zip"
-    try:
-        shutil.make_archive(backup_zip.replace(".zip", ""), 'zip', DB_FOLDER)
-        await client.send_document(
-            DB_CHANNEL, document=backup_zip,
-            caption=f" **FULL DB BUNDLE** | `{backup_zip}`\n {datetime.now():%Y-%m-%d %H:%M:%S}"
-        )
-        os.remove(backup_zip)
-        logger.info(f" Zip backup sent to DB_CHANNEL")
-    except Exception as e:
-        logger.error(f"Zip backup failed: {e}")
-
-    for fname in BACKUP_FILES:
-        path = f"{DB_FOLDER}/{fname}"
-        if not os.path.exists(path): continue
-        try:
-            await client.send_document(
-                DB_CHANNEL, document=path,
-                caption=f" **DB Backup** | `{fname}` | {datetime.now():%Y-%m-%d %H:%M:%S}"
-            )
-            count += 1
-            await asyncio.sleep(0.5)
-        except FloodWait as e:
-            await asyncio.sleep(e.value + 1)
-            try:
-                await client.send_document(DB_CHANNEL, document=path,
-                    caption=f" **DB Backup** | `{fname}`")
-                count += 1
-            except Exception as ex:
-                logger.error(f"Backup retry failed {fname}: {ex}")
-        except Exception as e:
-            logger.error(f"Backup failed {fname}: {e}")
-
-    logger.info(f" Backup complete: {count} files")
-    return count
-
-# ═══════════════════════════════════════════════════════════════
 #  DELIVER FILE
 # ═══════════════════════════════════════════════════════════════
 
@@ -876,14 +788,6 @@ async def deliver_file(client, chat_id: int, file_data: dict):
                     )
                 except Exception: pass
 
-            # Fallback 2: Use Userbot if available
-            if GLOBAL_USERBOT:
-                try:
-                    return await GLOBAL_USERBOT.copy_message(
-                        chat_id=chat_id, from_chat_id=DB_CHANNEL,
-                        message_id=db_msg_id, caption=caption, reply_markup=reply_markup
-                    )
-                except Exception: pass
 
     # Fallback 3: Cache from other bots
     cached = get_from_cache(file_id)
@@ -925,390 +829,6 @@ async def deliver_batch_files(client, chat_id: int, file_ids: list,
 
     return sent_c, total
 
-# ═══════════════════════════════════════════════════════════════
-#  METADATA
-# ═══════════════════════════════════════════════════════════════
-
-async def save_meta(client, meta: dict) -> bool:
-    txt = f"{METADATA_TAG}\n{json.dumps(meta, ensure_ascii=False)}"
-    try:
-        await client.send_message(DB_CHANNEL, txt)
-        return True
-    except Exception:
-        main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
-        if main_client and main_client != client:
-            try:
-                await main_client.send_message(DB_CHANNEL, txt)
-                return True
-            except: pass
-        if GLOBAL_USERBOT:
-            try:
-                await GLOBAL_USERBOT.send_message(DB_CHANNEL, txt)
-                return True
-            except: pass
-    return False
-
-# ═══════════════════════════════════════════════════════════════
-#  SMART 2-PHASE DB REBUILD
-# ═══════════════════════════════════════════════════════════════
-
-BATCH_SIZE  = 100
-MSG_TIMEOUT = 20
-
-async def _fetch_batch(userbot, chat_id: int, offset_id: int) -> list:
-    try:
-        msgs = await asyncio.wait_for(
-            userbot.get_messages(
-                chat_id,
-                message_ids=list(range(max(1, offset_id - BATCH_SIZE), offset_id))
-            ),
-            timeout=MSG_TIMEOUT
-        )
-        result = [m for m in (msgs if isinstance(msgs, list) else [msgs]) if m and m.id]
-        return sorted(result, key=lambda m: m.id, reverse=True)
-    except asyncio.TimeoutError:
-        logger.warning(f"Batch fetch timeout at offset {offset_id}")
-        return []
-    except FloodWait as e:
-        await asyncio.sleep(e.value + 2)
-        return []
-    except Exception as e:
-        logger.warning(f"Batch fetch error: {e}")
-        return []
-
-async def _get_latest_msg_id(userbot, chat_id: int) -> int:
-    try:
-        async for m in userbot.get_chat_history(chat_id, limit=1):
-            return m.id
-    except Exception:
-        pass
-    return 0
-
-async def fetch_remote_metadata(target_uid: str, target_type="file") -> Optional[dict]:
-    """Fallback: Search DB_CHANNEL for a specific UID if not found in local DB."""
-    if not GLOBAL_USERBOT: return None
-
-    try:
-        latest_id = await _get_latest_msg_id(GLOBAL_USERBOT, DB_CHANNEL)
-        if not latest_id: return None
-
-        offset_id = latest_id + 1
-        scanned = 0
-        MAX_METADATA_SCAN = 1000 # Only scan last 1000 messages for speed
-
-        while offset_id > 1 and scanned < MAX_METADATA_SCAN:
-            batch = await _fetch_batch(GLOBAL_USERBOT, DB_CHANNEL, offset_id)
-            if not batch: break
-
-            for msg in batch:
-                scanned += 1
-                try:
-                    text = msg.text or msg.caption
-                    if text and text.startswith(METADATA_TAG):
-                        raw = text[len(METADATA_TAG):].strip()
-                        meta = json.loads(raw)
-                        if meta.get("unique_id") == target_uid:
-                            # Found it! Save to local DB for future use
-                            if target_type == "file":
-                                files = load_db(FILES_DB)
-                                files[target_uid] = {
-                                    "file_id": meta["file_id"],
-                                    "file_name": meta.get("file_name", "Unknown"),
-                                    "file_size": meta.get("file_size", 0),
-                                    "caption": meta.get("caption"),
-                                    "user_id": meta.get("user_id"),
-                                    "bot_id": meta.get("bot_id"),
-                                    "upload_date": meta.get("upload_date", str(datetime.now())),
-                                    "db_msg_id": meta.get("db_msg_id"),
-                                    "access_count": meta.get("access_count", 0),
-                                    "media_type": meta.get("media_type", "document"),
-                                    "custom_thumbnail": meta.get("custom_thumbnail"),
-                                }
-                                save_db(FILES_DB, files)
-                                return files[target_uid]
-                            elif target_type == "batch":
-                                batches = load_db(BATCH_DB)
-                                batches[target_uid] = meta
-                                save_db(BATCH_DB, batches)
-                                return batches[target_uid]
-                            elif target_type == "dual_post":
-                                duals = load_db(DUAL_POST_DB)
-                                duals[target_uid] = meta
-                                save_db(DUAL_POST_DB, duals)
-                                return duals[target_uid]
-                except Exception: pass
-
-            offset_id = batch[-1].id
-            await asyncio.sleep(0.1)
-    except Exception as e:
-        logger.error(f"Remote metadata fetch error: {e}")
-
-    return None
-
-async def rebuild_phase1(userbot, upd_fn) -> dict:
-    await upd_fn(" **Phase 1: Finding backup files...**")
-    latest_id = await _get_latest_msg_id(userbot, DB_CHANNEL)
-    if not latest_id:
-        latest_id = 99999
-
-    found    = {}
-    zip_backup = None
-    offset_id = latest_id + 1
-    scanned  = 0
-    MAX_SCAN = 100000
-
-    while offset_id > 1 and scanned < MAX_SCAN:
-        batch = await _fetch_batch(userbot, DB_CHANNEL, offset_id)
-        if not batch:
-            if offset_id <= BATCH_SIZE: break
-            offset_id -= BATCH_SIZE
-            await asyncio.sleep(0.3)
-            continue
-
-        for msg in batch:
-            scanned += 1
-            try:
-                doc = msg.document
-                if doc:
-                    if doc.file_name.startswith("database_backup_") and doc.file_name.endswith(".zip") and not zip_backup:
-                        zip_backup = {"file_id": doc.file_id, "date": msg.date, "name": doc.file_name}
-                        logger.info(f"Found ZIP backup: {doc.file_name}")
-
-                    if doc.file_name in BACKUP_FILES:
-                        fname = doc.file_name
-                        if fname not in found:
-                            found[fname] = {
-                                "msg_id": msg.id, "date": msg.date,
-                                "file_id": doc.file_id, "size": doc.file_size or 0
-                            }
-            except Exception:
-                pass
-
-        offset_id = batch[-1].id
-        await upd_fn(
-            f" **Phase 1** | Scanned: `{scanned}` | Found: `{len(found)}/{len(BACKUP_FILES)}`" +
-            (f" |  ZIP Found" if zip_backup else "") +
-            f"\nCurrent ID: `{offset_id}`"
-        )
-        if len(found) == len(BACKUP_FILES): break
-        await asyncio.sleep(0.1)
-
-    restored = {}
-
-    # Try restoring from ZIP first
-    if zip_backup:
-        try:
-            await upd_fn(f" **Extracting ZIP Bundle:** `{zip_backup['name']}`...")
-            path = await asyncio.wait_for(userbot.download_media(zip_backup["file_id"]), timeout=120)
-            if path:
-                import zipfile
-                with zipfile.ZipFile(path, 'r') as zip_ref:
-                    zip_ref.extractall(DB_FOLDER)
-                os.remove(path)
-
-                # Mark all as restored from ZIP date
-                for fname in BACKUP_FILES:
-                    restored[fname] = zip_backup["date"]
-                    invalidate_cache(f"{DB_FOLDER}/{fname}")
-
-                await upd_fn(" **ZIP Bundle Restored!** Checking for newer individual files...")
-        except Exception as e:
-            logger.error(f"ZIP restore failed: {e}")
-
-    # Individual files (might be newer than ZIP)
-    for i, (fname, info) in enumerate(found.items(), 1):
-        # Only restore if newer than ZIP or ZIP restore failed
-        if fname not in restored or info["date"] > restored[fname]:
-            try:
-                path       = f"{DB_FOLDER}/{fname}"
-                data_bytes = await asyncio.wait_for(
-                    userbot.download_media(info["file_id"], in_memory=True), timeout=30
-                )
-                data_bytes.seek(0)
-                content = json.loads(data_bytes.read().decode("utf-8"))
-                save_db(path, content)
-                invalidate_cache(path)
-                restored[fname] = info["date"]
-                await upd_fn(f" **Phase 1** |  `{i}/{len(found)}` restored | `{fname}`")
-            except Exception as e:
-                logger.error(f"Failed to restore {fname}: {e}")
-
-    return restored
-
-async def rebuild_phase2(userbot, upd_fn, since_date=None, latest_id: int = 0) -> dict:
-    stats   = {"files": 0, "batches": 0, "duals": 0, "bots": 0, "config": 0, "admins": 0, "errors": 0}
-    files   = load_db(FILES_DB)
-    batches = load_db(BATCH_DB)
-    duals   = load_db(DUAL_POST_DB)
-    bots    = load_db(BOTS_DB)
-    admins_db = load_db(ADMINS_DB)
-
-    since_ts  = since_date.timestamp() if since_date else 0
-    if not latest_id:
-        latest_id = await _get_latest_msg_id(userbot, DB_CHANNEL)
-        if not latest_id:
-            return stats
-
-    offset_id = latest_id + 1
-    scanned   = 0
-    stopped   = False
-
-    while offset_id > 1 and not stopped:
-        batch = await _fetch_batch(userbot, DB_CHANNEL, offset_id)
-        if not batch:
-            if offset_id <= BATCH_SIZE: break
-            offset_id -= BATCH_SIZE
-            await asyncio.sleep(0.3)
-            continue
-
-        for msg in batch:
-            scanned += 1
-            if since_ts and msg.date and msg.date.timestamp() < since_ts:
-                stopped = True
-                break
-            try:
-                text = msg.text or msg.caption
-                if not text: continue
-                text = str(text).strip()
-                if not text.startswith(METADATA_TAG): continue
-                raw  = text[len(METADATA_TAG):].strip()
-                meta = json.loads(raw)
-                if "unique_id" not in meta: continue
-                uid  = meta["unique_id"]
-
-                mtype = meta.get("type", "file")
-                if mtype == "dual_post":
-                    if uid not in duals:
-                        duals[uid] = meta
-                        stats["duals"] += 1
-                elif mtype == "batch":
-                    if uid not in batches:
-                        batches[uid] = {
-                            "files": meta.get("files", []),
-                            "created_by": meta.get("created_by"),
-                            "bot_id": meta.get("bot_id"),
-                            "date": meta.get("date", str(datetime.now()))
-                        }
-                        stats["batches"] += 1
-                elif mtype == "bot":
-                    bid_str = str(meta.get("bot_id"))
-                    if bid_str not in bots:
-                        bots[bid_str] = meta
-                        stats["bots"] += 1
-                elif mtype == "config":
-                    new_cfg = meta.get("config", {})
-                    if new_cfg:
-                        save_db(CONFIG_DB, new_cfg)
-                        stats["config"] += 1
-                elif mtype == "admins":
-                    new_admins = meta.get("admins", {})
-                    if new_admins:
-                        admins_db.update(new_admins)
-                        stats["admins"] += 1
-                else:
-                    if uid not in files:
-                        files[uid] = {
-                            "file_id": meta["file_id"],
-                            "file_name": meta.get("file_name", "Unknown"),
-                            "file_size": meta.get("file_size", 0),
-                            "caption": meta.get("caption"),
-                            "user_id": meta.get("user_id"),
-                            "bot_id": meta.get("bot_id"),
-                            "upload_date": meta.get("upload_date", str(datetime.now())),
-                            "db_msg_id": meta.get("db_msg_id"),
-                            "access_count": meta.get("access_count", 0),
-                            "media_type": meta.get("media_type", "document"),
-                            "custom_thumbnail": meta.get("custom_thumbnail"),
-                        }
-                        stats["files"] += 1
-            except Exception:
-                stats["errors"] += 1
-
-        offset_id = batch[-1].id
-        await upd_fn(
-            f" **Phase 2** | `{scanned}` msgs\n"
-            f" `{stats['files']}` Files |  `{stats['batches']}` Batches\n"
-            f" `{stats['duals']}` Duals |  `{stats['bots']}` Bots\n"
-            f" Config/Admins: `{stats['config'] + stats['admins']}`"
-        )
-        await asyncio.sleep(0.1)
-
-    save_db(FILES_DB, files)
-    save_db(BATCH_DB, batches)
-    save_db(DUAL_POST_DB, duals)
-    save_db(BOTS_DB, bots)
-    save_db(ADMINS_DB, admins_db)
-    invalidate_cache(FILES_DB)
-    invalidate_cache(BATCH_DB)
-    invalidate_cache(DUAL_POST_DB)
-    invalidate_cache(BOTS_DB)
-    invalidate_cache(ADMINS_DB)
-    global _GLOBAL_CFG
-    _GLOBAL_CFG = load_db(CONFIG_DB)
-    return stats
-
-async def smart_rebuild(status_msg=None) -> dict:
-    async def upd(text):
-        if status_msg:
-            try: await status_msg.edit(text)
-            except Exception: pass
-
-    if not SESSION_STRING:
-        await upd(
-            " **SESSION_STRING NOT CONFIGURED!** \n\n"
-            "Rebuilding the database and auto-restore features **REQUIRED** a Userbot Session.\n\n"
-            "**How to fix:**\n"
-            "1 Run `python generate_session.py` locally.\n"
-            "2 Copy the session string.\n"
-            "3 Add it to your Environment Variables as `SESSION_STRING`.\n"
-            "4 Restart the bot.\n\n"
-            "Without this, your data is at risk if JSON files are deleted!"
-        )
-        raise ValueError("SESSION_STRING not set")
-
-    combined = {"phase1_restored": 0, "phase2_files": 0, "phase2_batches": 0,
-                "phase2_duals": 0, "phase2_errors": 0, "backup_date": None}
-
-    try:
-        async with Client(
-            "userbot_rebuild", api_id=API_ID, api_hash=API_HASH,
-            session_string=SESSION_STRING, in_memory=True
-        ) as userbot:
-            await upd(" Userbot connected!\n\n Starting Phase 1...")
-            latest_id = await _get_latest_msg_id(userbot, DB_CHANNEL)
-
-            restored = await rebuild_phase1(userbot, upd)
-            combined["phase1_restored"] = len(restored)
-
-            backup_date = None
-            if restored:
-                dates = [d for d in restored.values() if d]
-                if dates: backup_date = max(dates)
-            combined["backup_date"] = str(backup_date) if backup_date else None
-
-            await upd(
-                f" **Phase 1 Done!** `{len(restored)}` files restored\n\n"
-                f" Phase 2: Scanning #FS_META..."
-            )
-            await asyncio.sleep(1)
-
-            stats2 = await rebuild_phase2(userbot, upd, since_date=backup_date,
-                                          latest_id=latest_id)
-            combined["phase2_files"]   = stats2["files"]
-            combined["phase2_batches"] = stats2["batches"]
-            combined["phase2_duals"]   = stats2.get("duals", 0)
-            combined["phase2_errors"]  = stats2["errors"]
-
-    except ValueError:
-        raise
-    except Exception as e:
-        logger.error(f"Rebuild error: {e}")
-        await upd(f" **Rebuild failed!**\n\n`{e}`")
-        raise
-
-    return combined
-
-# ═══════════════════════════════════════════════════════════════
 #  BROADCAST
 # ═══════════════════════════════════════════════════════════════
 
@@ -1599,14 +1119,11 @@ HELP_TEXT       = (
     "└ /setqr — Set premium QR code\n\n"
     "<b>SUPREME TOOLS</b>\n"
     "├ /supreme — Supreme Panel\n"
-    "├ /rebuild — Smart DB Rebuild\n"
-    "├ /backup — Force manual backup\n"
     "└ /restart — System restart\n\n"
     "<b>TIP:</b> Just send any file to the bot to store it and get a shareable link instantly!\n"
     "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 )
 ACTIVE_CLIENTS: dict = {}
-GLOBAL_USERBOT: Client = None
 TEMP_BATCH:     dict = {}
 TEMP_BROADCAST: dict = {}
 TEMP_EDIT:      dict = {}
@@ -1746,9 +1263,7 @@ def kb_supreme():
         [InlineKeyboardButton(get_btn_name("btn_sadm", " ADMIN MANAGER"),    callback_data="manage_admins"),
          InlineKeyboardButton(get_btn_name("btn_smsg", " SYSTEM MSG"),      callback_data="global_msg_set")],
         [InlineKeyboardButton(get_btn_name("btn_smnt", f" MAINT: {'ON' if maint else 'OFF'}"), callback_data="toggle_maintenance")],
-        [InlineKeyboardButton(get_btn_name("btn_sbak", " FULL BACKUP"),      callback_data="manual_backup")],
-        [InlineKeyboardButton(get_btn_name("btn_spur", " PURGE CACHE"),      callback_data="manual_clean_cache"),
-         InlineKeyboardButton(get_btn_name("btn_srbd", " SMART REBUILD"),    callback_data="confirm_rebuild")],
+        [InlineKeyboardButton(get_btn_name("btn_spur", " PURGE CACHE"),      callback_data="manual_clean_cache")],
         [InlineKeyboardButton(get_btn_name("btn_scus", " CUSTOMIZE"),        callback_data="supreme_customize")],
         [InlineKeyboardButton(get_btn_name("btn_srst", " SYSTEM RESTART"),   callback_data="restart_all_bots")],
         [InlineKeyboardButton(get_btn_name("btn_back", " BACK TO HOME"),     callback_data="back_to_start")],
@@ -1922,7 +1437,6 @@ def register_handlers(app: Client):
         t0   = time.time()
         sent = await message.reply(" Pong...")
         ms   = round((time.time() - t0) * 1000, 2)
-        sess = "" if SESSION_STRING else " (rebuild disabled)"
         active_tokens = sum(1 for v in SHORTENER_TOKENS.values()
                             if not v["used"] and time.time() < v["expires_at"])
         await sent.edit(
@@ -1931,7 +1445,6 @@ def register_handlers(app: Client):
             f" Uptime: `{str(datetime.now() - START_TIME).split('.')[0]}`\n"
             f" Bots: `{len(ACTIVE_CLIENTS)}`\n"
             f" Dual Posts: `{len(load_db(DUAL_POST_DB))}`\n"
-            f" Session: {sess}\n"
             f" Active tokens: `{active_tokens}`"
         )
 
@@ -1941,63 +1454,7 @@ def register_handlers(app: Client):
         await message.reply(" Restarting...")
         os.execl(sys.executable, sys.executable, *sys.argv)
 
-    @app.on_message(filters.command("backup") & filters.private, group=1)
-    async def backup_cmd(client, message):
-        uid = message.from_user.id
-        if not is_admin(uid): return await message.reply(" Admin only!")
 
-        sm = await message.reply(" **Initializing backup process...**")
-        try:
-            count = await do_backup(client)
-            if count > 0:
-                await sm.edit(
-                    f" **Backup Successful!**\n\n"
-                    f" Files backed up: `{count}`\n"
-                    f" Target: `DB_CHANNEL`\n"
-                    f" `{datetime.now():%Y-%m-%d %H:%M:%S}`\n\n"
-                    f"Tip: You can also send JSON database files directly to me to restore them!"
-                )
-            else:
-                await sm.edit(" **Backup Failed!**\n\nCould not send files to DB_CHANNEL. Ensure the main bot is an admin in the channel.")
-        except Exception as e:
-            await sm.edit(f" **Backup Error:**\n`{e}`")
-
-    @app.on_message(filters.command("rebuild") & filters.private, group=1)
-    async def rebuild_cmd(client, message):
-        uid = message.from_user.id
-        if not is_admin(uid): return await message.reply(" Admin only!")
-        if not SESSION_STRING:
-            return await message.reply(
-                " **SESSION_STRING not set!**\n\n"
-                "1 `pip install pyrogram TgCrypto`\n"
-                "2 `python generate_session.py`\n"
-                "3 Set `SESSION_STRING` env var\n"
-                "4 Restart → `/rebuild` will work"
-            )
-        sm = await message.reply(" **Smart DB Rebuild Starting...**")
-        try:
-            stats = await smart_rebuild(status_msg=sm)
-            await sm.edit(
-                f" **Smart Rebuild Complete!**\n\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f"**Phase 1 — Backup Restore:**\n"
-                f" Restored: `{stats['phase1_restored']}/{len(BACKUP_FILES)}`\n"
-                f" Backup date: `{stats.get('backup_date', 'N/A')}`\n\n"
-                f"**Phase 2 — Incremental Scan:**\n"
-                f" Files: `{stats['phase2_files']}`\n"
-                f" Batches: `{stats['phase2_batches']}`\n"
-                f" Dual Posts: `{stats['phase2_duals']}`\n"
-                f" Errors: `{stats['phase2_errors']}`\n"
-                f"━━━━━━━━━━━━━━━━━━━━\n"
-                f" Database fully restored!\n\n"
-                f" **Restarting system in 3s...**"
-            )
-            await asyncio.sleep(3)
-            os.execl(sys.executable, sys.executable, *sys.argv)
-        except ValueError:
-            pass
-        except Exception as e:
-            await sm.edit(f" Rebuild failed!\n\n`{e}`")
 
     # ═══════════════════════════════════════════════════════════
     #  DUAL POST COMMANDS
@@ -2104,12 +1561,6 @@ def register_handlers(app: Client):
         post_data = save_dual_post(post_id, sess)
         del TEMP_DUAL[uid]
 
-        main_client = next(
-            (d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client
-        )
-        asyncio.create_task(save_meta(main_client, {
-            **post_data, "unique_id": post_id, "type": "dual_post"
-        }))
 
         base_link = f"https://t.me/{client.me.username}?start=dp_{post_id}"
         free_c    = len(sess.free_files)
@@ -2450,8 +1901,6 @@ def register_handlers(app: Client):
             files = load_db(FILES_DB)
             fdata = files.get(fuid)
             if not fdata:
-                fdata = await fetch_remote_metadata(fuid, "file")
-            if not fdata:
                 return await message.reply(" **File not found!**")
 
             # Check if password protected
@@ -2486,8 +1935,6 @@ def register_handlers(app: Client):
             fuid  = deep[2:]
             files = load_db(FILES_DB)
             fdata = files.get(fuid)
-            if not fdata:
-                fdata = await fetch_remote_metadata(fuid, "file")
             if not fdata:
                 return await message.reply(" **File not found!**")
 
@@ -2537,8 +1984,6 @@ def register_handlers(app: Client):
             bid_key = parts[0]
             token   = parts[1] if len(parts) > 1 else ""
             bdata   = load_db(BATCH_DB).get(bid_key)
-            if not bdata:
-                bdata = await fetch_remote_metadata(bid_key, "batch")
             if not bdata: return await message.reply(" Batch not found.")
             td = validate_token(token, uid, bot_id)
             if not td or td.get("resource_id") != bid_key:
@@ -2559,8 +2004,6 @@ def register_handlers(app: Client):
         elif deep.startswith("b_") and "_t_" not in deep:
             bid_key = deep[2:]
             bdata   = load_db(BATCH_DB).get(bid_key)
-            if not bdata:
-                bdata = await fetch_remote_metadata(bid_key, "batch")
             if not bdata: return await message.reply(" Batch not found.")
             total = len(bdata["files"])
 
@@ -2603,8 +2046,6 @@ def register_handlers(app: Client):
                 actual_pid, token_val = raw_deep.split("_t_", 1)
 
             post = get_dual_post(actual_pid)
-            if not post:
-                post = await fetch_remote_metadata(actual_pid, "dual_post")
             if not post:
                 return await message.reply(
                     " **Dual Post not found!**\n\n"
@@ -2775,19 +2216,16 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("supreme") & filters.private, group=1)
     async def supreme_cmd(client, message):
         if message.from_user.id != MAIN_ADMIN: return
-        sess = " Set" if SESSION_STRING else " Not Set"
         default_supreme = (
             f" **Supreme Panel v7.0**\n\n"
             f" Bots: `{{bots}}` |  Users: `{{users}}`\n"
-            f" Files: `{{files}}` |  Duals: `{{duals}}`\n"
-            f" Session: {{sess}}"
+            f" Files: `{{files}}` |  Duals: `{{duals}}`"
         )
         text = get_msg_text("msg_supreme", default_supreme).format_map(SafeDict(
             bots=len(ACTIVE_CLIENTS),
             users=len(load_db(USERS_DB)),
             files=len(load_db(FILES_DB)),
-            duals=len(load_db(DUAL_POST_DB)),
-            sess=sess
+            duals=len(load_db(DUAL_POST_DB))
         ))
         await message.reply(text, reply_markup=kb_supreme())
 
@@ -2932,11 +2370,6 @@ def register_handlers(app: Client):
         batches[bid] = {"files": fids, "created_by": uid, "bot_id": bot_id, "date": str(datetime.now())}
         save_db(BATCH_DB, batches)
         update_user_stats(uid, bot_id, "batches_created")
-        main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-        asyncio.create_task(save_meta(main_client, {
-            "type": "batch", "unique_id": bid, "files": fids,
-            "created_by": uid, "bot_id": bot_id, "date": str(datetime.now())
-        }))
         link  = f"https://t.me/{client.me.username}?start=b_{bid}"
         short = await get_short_link(bi, link)
 
@@ -3565,12 +2998,6 @@ def register_handlers(app: Client):
                 admins[str(target)] = str(datetime.now())
                 save_db(ADMINS_DB, admins)
 
-                # Metadata update
-                main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
-                if main_client:
-                    asyncio.create_task(save_meta(main_client, {"type": "admins", "unique_id": "global_admins", "admins": admins}))
-                # Immediate Backup
-                asyncio.create_task(do_backup())
 
                 await message.reply(stylish(f" `{target}` added as Global Admin."))
             elif bi and bi.get("owner_id") == uid:
@@ -3595,13 +3022,6 @@ def register_handlers(app: Client):
                     del admins[str(target)]
                     save_db(ADMINS_DB, admins)
 
-                    # Metadata update
-                    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
-                    if main_client:
-                        asyncio.create_task(save_meta(main_client, {"type": "admins", "unique_id": "global_admins", "admins": admins}))
-
-                    # Immediate Backup
-                    asyncio.create_task(do_backup())
 
                     await message.reply(stylish(f" `{target}` removed from Global Admins."))
                 else:
@@ -3736,18 +3156,6 @@ def register_handlers(app: Client):
         uid=message.from_user.id; bot_id=client.me.id
         if is_user_banned(uid,bot_id): return
 
-        # ── DATABASE RESTORE FEATURE ──────────────────────────────
-        if uid == MAIN_ADMIN and message.document and message.document.file_name in BACKUP_FILES:
-            fname = message.document.file_name
-            await message.reply(
-                f" **Database File Detected:** `{fname}`\n\n"
-                f"Do you want to restore/overwrite the current `{fname}` with this one?",
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(" YES, RESTORE", callback_data=f"confirm_import_{fname}"),
-                     InlineKeyboardButton(" NO",           callback_data="cancel_import")]
-                ])
-            )
-            return
 
         # Skip if FSM is waiting for input (handled by group 2)
         if uid in TEMP_EDIT or uid in TEMP_WELCOME or uid in TEMP_POST or uid in TEMP_PROTECT:
@@ -3781,7 +3189,7 @@ def register_handlers(app: Client):
                 # Since bots have different file_ids, we download and upload.
                 path = await message.download()
                 if path:
-                    uploader = main_client or GLOBAL_USERBOT
+                    uploader = main_client
                     if uploader:
                         if message.photo:
                             db_msg = await uploader.send_photo(DB_CHANNEL, photo=path, caption=message.caption)
@@ -3851,9 +3259,6 @@ def register_handlers(app: Client):
         files[fuid]=fdata; save_db(FILES_DB,files)
         add_to_cache(file_id,db_msg.id,DB_CHANNEL,bot_id,original_caption)
         update_user_stats(uid,bot_id,"files_uploaded")
-
-        main_client=next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")),client)
-        asyncio.create_task(save_meta(main_client,{**fdata,"unique_id":fuid}))
 
         bi=get_bot_info(bot_id)
         if bi and bi.get("log_channel"):
@@ -3931,7 +3336,7 @@ def register_handlers(app: Client):
         "help","broadcast","ban","unban","info","givepremium","removepremium","gban","ungban","botinfo",
         "settimer","search","premium","setprice","shortener","setlog",
         "setchannel","setmode","protect","myplinks","requests","font",
-        "rebuild","backup","restart","ping","listfiles","mybatches","editfile","delfile",
+        "restart","ping","listfiles","mybatches","editfile","delfile",
         "setwelcome","setglobal","addadmin","deladmin",
         "dualpost","dpremium","dpdone","dpcancel","myduals","deldual","dpstats",
         "createpost", "about", "refer", "rename", "setcaption", "setthumb", "download", "autoapprove", "autocaption"
@@ -4080,8 +3485,6 @@ def register_handlers(app: Client):
                 if txt == "-clear":
                     files[fuid]["caption"] = None
                     save_db(FILES_DB, files)
-                    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                    asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                     del TEMP_EDIT[uid]
                     return await message.reply(
                         get_file_edit_text(client, files[fuid], fuid),
@@ -4109,8 +3512,6 @@ def register_handlers(app: Client):
                 if not message.photo: return await message.reply(" Send a **photo** as thumbnail.")
                 files[fuid]["custom_thumbnail"] = message.photo.file_id
                 save_db(FILES_DB, files)
-                main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
                 await message.reply(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -4121,8 +3522,6 @@ def register_handlers(app: Client):
                 new_name = message.text.strip()
                 files[fuid]["file_name"] = new_name
                 save_db(FILES_DB, files)
-                main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
                 await message.reply(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -4177,8 +3576,6 @@ def register_handlers(app: Client):
                 pw = message.text.strip()
                 files[fuid]["password"] = None if pw == "-clear" else pw
                 save_db(FILES_DB, files)
-                main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 del TEMP_EDIT[uid]
                 await message.reply(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -4261,9 +3658,6 @@ def register_handlers(app: Client):
                             # Update cache
                             add_to_cache(media.file_id, new_db_msg.id, DB_CHANNEL, bot_id, fd.get('caption'))
 
-                            main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                            asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
-
                             await sm.edit(
                                 get_file_edit_text(client, fd, fuid),
                                 reply_markup=kb_file_edit(fuid)
@@ -4323,8 +3717,6 @@ def register_handlers(app: Client):
             if fuid in files:
                 files[fuid]["caption"] = txt
                 save_db(FILES_DB, files)
-                main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
 
             del TEMP_EDIT[uid]
             await cb.message.edit(
@@ -4383,9 +3775,6 @@ def register_handlers(app: Client):
                     fd['db_msg_id'] = new_db_msg.id
                     save_db(FILES_DB, files)
 
-                    main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                    asyncio.create_task(save_meta(main_client, {**fd, "unique_id": fuid}))
-
                     await sm.edit(
                         get_file_edit_text(client, fd, fuid),
                         reply_markup=kb_file_edit(fuid)
@@ -4423,8 +3812,6 @@ def register_handlers(app: Client):
             if fuid in files:
                 files[fuid]["custom_thumbnail"] = None; save_db(FILES_DB, files)
                 TEMP_EDIT.pop(uid, None)
-                main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-                asyncio.create_task(save_meta(main_client, {**files[fuid], "unique_id": fuid}))
                 await cb.answer(" Thumbnail removed!", show_alert=True)
                 await cb.message.edit(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -4761,12 +4148,8 @@ def register_handlers(app: Client):
             if not sess.free_files and not sess.pro_files:
                 return await cb.answer(" No files added yet!", show_alert=True)
             post_id   = unique_id()
-            post_data = save_dual_post(post_id, sess)
+            save_dual_post(post_id, sess)
             del TEMP_DUAL[uid]
-            main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), client)
-            asyncio.create_task(save_meta(main_client, {
-                **post_data, "unique_id": post_id, "type": "dual_post"
-            }))
             base_link = f"https://t.me/{client.me.username}?start=dp_{post_id}"
             bi2 = get_bot_info(bot_id)
             await cb.message.edit(
@@ -4916,26 +4299,6 @@ def register_handlers(app: Client):
             )
             await cb.answer()
 
-        elif data == "confirm_rebuild":
-            if not is_admin(uid): return await cb.answer(" Admin only!", show_alert=True)
-            if not SESSION_STRING: return await cb.answer(" SESSION_STRING not set!", show_alert=True)
-            await cb.answer(" Starting rebuild...", show_alert=True)
-            sm = await cb.message.edit(" **Smart Rebuild Starting...**")
-            try:
-                stats = await smart_rebuild(status_msg=sm)
-                await sm.edit(
-                    f" **Rebuild Complete!**\n\n"
-                    f" Phase 1: `{stats['phase1_restored']}/{len(BACKUP_FILES)}` restored\n"
-                    f" Phase 2: `{stats['phase2_files']}` files, "
-                    f"`{stats['phase2_batches']}` batches, "
-                    f"`{stats['phase2_duals']}` duals\n"
-                    f" Errors: `{stats['phase2_errors']}`\n\n"
-                    f" **Restarting system in 3s...**"
-                )
-                await asyncio.sleep(3)
-                os.execl(sys.executable, sys.executable, *sys.argv)
-            except ValueError: pass
-            except Exception as e: await sm.edit(f" Failed!\n`{e}`")
 
         elif data == "start_batch":
             TEMP_BATCH[uid] = []
@@ -5068,7 +4431,7 @@ def register_handlers(app: Client):
                 "advanced": "<blockquote><b>ᴀᴅᴠᴀɴᴄᴇᴅ ғᴇᴀᴛᴜʀᴇs</b>\n\n/clone - Create your own bot\n/mybots - List your cloned bots\n/protect - Protect channel link\n/myplinks - Manage protected links\n/font - Open font editor\n/addadmin - Add secondary admin\n/deladmin - Remove secondary admin</blockquote>",
                 "fonts": "<blockquote><b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\n/font - Open font editor\n\nChange your default font for captions and posts. Choose from over 10+ highly advanced stylish font designs.</blockquote>",
                 "admin": "<blockquote><b>ᴀᴅᴍɪɴ ᴛᴏᴏʟs</b>\n\n/admin - Admin Panel\n/setfs - Configure Force Sub\n/setwelcome - Set welcome msg\n/setlog - Set log channel\n/setchannel - Connect channel\n/setmode - Set join mode\n/broadcast - Send message to all\n/ban - Ban a user\n/unban - Unban a user\n/settimer - Auto-delete timer\n/setprice - Set premium price\n/setcontact - Set premium contact\n/setqr - Set premium QR code\n/givepremium - Give premium access\n/removepremium - Revoke premium access\n/shortener - Configure shortener\n/requests - Manage join requests\n/autoapprove - Toggle Auto-Approve\n/autocaption - Toggle Auto-Caption</blockquote>",
-                "supreme": "<blockquote><b>sᴜᴘʀᴇᴍᴇ ᴛᴏᴏʟs</b>\n\n/supreme - Supreme Panel\n/rebuild - Smart DB Rebuild\n/backup - Force manual backup\n/restart - System restart</blockquote>"
+                "supreme": "<blockquote><b>sᴜᴘʀᴇᴍᴇ ᴛᴏᴏʟs</b>\n\n/supreme - Supreme Panel\n/restart - System restart</blockquote>"
             }
 
             buttons = []
@@ -5083,8 +4446,7 @@ def register_handlers(app: Client):
                                InlineKeyboardButton(stylish("sʏsᴛᴇᴍ sᴛᴀᴛs"), callback_data="system_stats")])
                 buttons.append([InlineKeyboardButton(stylish("ʙᴏᴛ ɴᴇᴛᴡᴏʀᴋ"), callback_data="all_bots_list"),
                                InlineKeyboardButton(stylish("ᴀᴅᴍɪɴ ᴍᴀɴᴀɢᴇʀ"), callback_data="manage_admins")])
-                buttons.append([InlineKeyboardButton(stylish("ᴄᴜsᴛᴏᴍɪᴢᴇ"), callback_data="supreme_customize"),
-                               InlineKeyboardButton(stylish("ғᴜʟʟ ʙᴀᴄᴋᴜᴘ"), callback_data="manual_backup")])
+                buttons.append([InlineKeyboardButton(stylish("ᴄᴜsᴛᴏᴍɪᴢᴇ"), callback_data="supreme_customize")])
             elif cat == "fonts":
                 buttons.append([InlineKeyboardButton(stylish("ᴏᴘᴇɴ ғᴏɴᴛ ᴇᴅɪᴛᴏʀ"), callback_data="font_editor")])
             elif cat == "files":
@@ -5573,9 +4935,8 @@ def register_handlers(app: Client):
 
         elif data == "supreme_panel":
             if uid != MAIN_ADMIN: return await cb.answer(" Supreme only!", show_alert=True)
-            sess = "" if SESSION_STRING else ""
             await cb.message.edit(
-                f" **Supreme Panel v7.0**\n Session: {sess}",
+                f" **Supreme Panel v7.0**",
                 reply_markup=kb_supreme()
             )
             await cb.answer()
@@ -5638,8 +4999,7 @@ def register_handlers(app: Client):
                     ("btn_sgbr", "Global Broadcast"), ("btn_ssys", "System Analytics"),
                     ("btn_snet", "Bot Network"), ("btn_sadm", "Admin Manager"),
                     ("btn_smsg", "System Msg"), ("btn_smnt", "Maint: ON/OFF"),
-                    ("btn_sbak", "Full Backup"), ("btn_spur", "Purge Cache"),
-                    ("btn_srbd", "Smart Rebuild"), ("btn_scus", "Customize Buttons"),
+                    ("btn_spur", "Purge Cache"), ("btn_scus", "Customize Buttons"),
                     ("btn_srst", "System Restart")
                 ]
             else: # other
@@ -5701,7 +5061,7 @@ def register_handlers(app: Client):
             if key == "msg_welcome": placeholders = "\n\nAvailable: `{name}`, `{username}`"
             elif key == "msg_premium": placeholders = "\n\nAvailable: `{status}`, `{price}`, `{contact}`"
             elif key == "msg_referral": placeholders = "\n\nAvailable: `{ref_count}`, `{ref_rewards}`, `{bot_username}`, `{uid}`"
-            elif key == "msg_supreme": placeholders = "\n\nAvailable: `{bots}`, `{users}`, `{files}`, `{duals}`, `{sess}`"
+            elif key == "msg_supreme": placeholders = "\n\nAvailable: `{bots}`, `{users}`, `{files}`, `{duals}`"
 
             await cb.message.edit(
                 f" **Edit Panel Message**\n\nKey: `{key}`{placeholders}\n\nSend the **new text** for this message.\nUse `-clear` to reset to default.\n`/cancel` to abort.",
@@ -5745,7 +5105,6 @@ def register_handlers(app: Client):
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             t, u, f = shutil.disk_usage("/")
             pend    = sum(len(v) for v in _PENDING.values())
-            sess    = " ACTIVATED" if SESSION_STRING else " NOT SET (Data at risk!)"
             active_tokens = sum(1 for v in SHORTENER_TOKENS.values()
                                 if not v["used"] and time.time() < v["expires_at"])
             dp_count = len(load_db(DUAL_POST_DB))
@@ -5761,8 +5120,7 @@ def register_handlers(app: Client):
                 f" └ Dual Posts: `{dp_count}`\n\n"
                 f" **SYSTEM CORE**\n"
                 f" ├ Pending Requests: `{pend}`\n"
-                f" ├ Active Tokens: `{active_tokens}`\n"
-                f" └ Session String: `{sess}`\n\n"
+                f" └ Active Tokens: `{active_tokens}`\n\n"
                 f" **SERVER STORAGE**\n"
                 f" ├ Used Space: `{u//(2**30)} GB`\n"
                 f" ├ Total Space: `{t//(2**30)} GB`\n"
@@ -5817,10 +5175,6 @@ def register_handlers(app: Client):
             )
             await cb.answer()
 
-        elif data == "manual_backup":
-            if uid != MAIN_ADMIN: return await cb.answer()
-            await cb.answer(" Backing up...", show_alert=True)
-            asyncio.create_task(do_backup())
 
         elif data == "manual_clean_cache":
             if uid != MAIN_ADMIN: return await cb.answer()
@@ -5833,52 +5187,6 @@ def register_handlers(app: Client):
             await cb.answer(" Restarting...", show_alert=True)
             os.execl(sys.executable, sys.executable, *sys.argv)
 
-        elif data.startswith("confirm_import_"):
-            if uid != MAIN_ADMIN: return await cb.answer(" Only Supreme Admin!", show_alert=True)
-            fname = data[15:]
-            if fname not in BACKUP_FILES: return await cb.answer("Invalid file!", show_alert=True)
-
-            # Find the message with the document
-            msg = cb.message.reply_to_message
-            if not msg:
-                # Attempt to fetch it manually if it's not cached in the callback object
-                try:
-                    msg = await client.get_messages(cb.message.chat.id, cb.message.reply_to_message_id)
-                except Exception:
-                    msg = None
-
-            if not msg or not msg.document or msg.document.file_name != fname:
-                return await cb.message.edit(" **Error:** Original file message not found. Please send the file again.")
-
-            await cb.answer(f" Restoring {fname}...", show_alert=True)
-            await cb.message.edit(f" **Restoring `{fname}`... Please wait.**")
-
-            try:
-                path = await msg.download(file_name=f"{DB_FOLDER}/{fname}.new")
-                if path:
-                    # Validate JSON
-                    with open(path, "r") as f:
-                        json.load(f)
-
-                    # Replace old file
-                    old_path = f"{DB_FOLDER}/{fname}"
-                    if os.path.exists(old_path):
-                        os.replace(path, old_path)
-                    else:
-                        os.rename(path, old_path)
-
-                    invalidate_cache(old_path)
-                    await cb.message.edit(f" **Database Restored!**\n\nFile `{fname}` has been successfully updated.\n\nRestarting system to apply changes...")
-                    await asyncio.sleep(2)
-                    os.execl(sys.executable, sys.executable, *sys.argv)
-                else:
-                    await cb.message.edit(" **Download failed!**")
-            except Exception as e:
-                await cb.message.edit(f" **Restore Error:**\n`{e}`")
-
-        elif data == "cancel_import":
-            await cb.message.edit(" Import cancelled.")
-            await cb.answer()
 
         elif data.startswith("req_"):
             parts = data.split("_")
@@ -5970,7 +5278,6 @@ async def background_tasks():
             if n: logger.info(f" Cleaned {n} cache entries")
             t = clean_expired_tokens()
             if t: logger.info(f" Cleaned {t} expired tokens")
-            await do_backup()
             if cycle % 6 == 0:
                 now = datetime.now()
                 for cid in list(_PENDING):
@@ -6017,24 +5324,8 @@ async def main():
 
     _load_pending()
     logger.info(f" Loaded pending requests for {len(_PENDING)} channels")
-    logger.info(f" SESSION_STRING: {' Set' if SESSION_STRING else ' Not set'}")
 
     await start_web_server()
-
-    if SESSION_STRING:
-        try:
-            global GLOBAL_USERBOT
-            GLOBAL_USERBOT = Client(
-                "global_userbot", api_id=API_ID, api_hash=API_HASH,
-                session_string=SESSION_STRING, in_memory=True
-            )
-            await GLOBAL_USERBOT.start()
-            logger.info(" Persistent Userbot Started!")
-            chat = await resolve_db_channel(GLOBAL_USERBOT, DB_CHANNEL)
-            if chat:
-                logger.info(f" Userbot resolved DB_CHANNEL: {chat.title} ({DB_CHANNEL})")
-        except Exception as e:
-            logger.error(f" Userbot failed to start: {e}")
 
     logger.info(" Starting Main Bot...")
     main_app = await start_bot(MAIN_BOT_TOKEN)
@@ -6052,30 +5343,6 @@ async def main():
     if not get_bot_info(me_main.id):
         save_bot_info(MAIN_BOT_TOKEN, me_main.id, me_main.username, MAIN_ADMIN, "Supreme Admin")
 
-    # Check if databases exist and have data, if not, try to rebuild
-    critical_dbs = [BOTS_DB, FILES_DB, USERS_DB]
-    needs_restore = False
-    for db_path in critical_dbs:
-        if not os.path.exists(db_path) or os.path.getsize(db_path) < 5:
-            needs_restore = True
-            break
-
-    if needs_restore:
-        logger.warning(" Critical database missing or empty! Attempting auto-restore...")
-        if SESSION_STRING:
-            try:
-                # Wait a bit for everything to stabilize
-                await asyncio.sleep(2)
-                stats = await smart_rebuild()
-                logger.info(f" Auto-restore complete! Restored {stats['phase1_restored']} files and {stats['phase2_files']} metadata entries.")
-
-                # After successful auto-restore, we MUST restart to initialize all bots properly
-                logger.info(" Restarting to apply restored data...")
-                os.execl(sys.executable, sys.executable, *sys.argv)
-            except Exception as e:
-                logger.error(f" Auto-restore failed: {e}")
-        else:
-            logger.warning(" SESSION_STRING missing! Cannot auto-restore from channel.")
 
     all_bots = get_all_bots()
     if all_bots:
@@ -6096,7 +5363,6 @@ async def main():
     print(f" Admin   : {MAIN_ADMIN}")
     print(f" Bots    : {len(ACTIVE_CLIENTS)}")
     print(f" Port    : {PORT}")
-    print(f" Session : {' Set' if SESSION_STRING else ' Not Set'}")
     print(f" Started : {START_TIME:%Y-%m-%d %H:%M:%S}")
     print()
 
