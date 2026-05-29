@@ -33,17 +33,6 @@ from typing import Optional
 from aiohttp import web
 from datetime import datetime, timedelta
 
-# Monkey-patching Pyrogram's get_peer_type to fix PeerIdInvalid for some channel IDs
-# This must be done as early as possible before Client or any pyrogram methods are imported.
-import pyrogram.utils
-def get_peer_type_new(peer_id: int) -> str:
-    peer_id_str = str(peer_id)
-    if not peer_id_str.startswith("-"):
-        return "user"
-    return "channel" if peer_id_str.startswith("-100") else "chat"
-
-pyrogram.utils.get_peer_type = get_peer_type_new
-
 try:
     import sqlite3
 except ImportError:
@@ -51,6 +40,19 @@ except ImportError:
     mock_sqlite3 = MagicMock()
     sys.modules["sqlite3"] = mock_sqlite3
     sys.modules["_sqlite3"] = mock_sqlite3
+
+# Monkey-patching Pyrogram's get_peer_type to fix PeerIdInvalid for some channel IDs
+# This must be done as early as possible before Client or any pyrogram methods are imported.
+try:
+    import pyrogram.utils
+    def get_peer_type_new(peer_id: int) -> str:
+        peer_id_str = str(peer_id)
+        if not peer_id_str.startswith("-"):
+            return "user"
+        return "channel" if peer_id_str.startswith("-100") else "chat"
+    pyrogram.utils.get_peer_type = get_peer_type_new
+except (ImportError, ModuleNotFoundError):
+    pass
 
 from pyrogram import Client, filters, idle, utils
 from pyrogram.storage import MemoryStorage
