@@ -25,6 +25,3 @@ services:
 
       - key: PORT
         value: "8080"
-
-      - key: SESSION_STRING
-        value: "BQFrBMwAbPf0LHGBjtPeCC_QZO1IWxG6EXgd_9Yv"
