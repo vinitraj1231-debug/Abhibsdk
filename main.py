@@ -36,26 +36,26 @@ from datetime import datetime, timedelta
 try:
     import sqlite3
 except ImportError:
-    import sys
     from unittest.mock import MagicMock
     mock_sqlite3 = MagicMock()
     sys.modules["sqlite3"] = mock_sqlite3
     sys.modules["_sqlite3"] = mock_sqlite3
 
+# Monkey-patching Pyrogram's get_peer_type to fix PeerIdInvalid for some channel IDs
+# This must be done as early as possible before Client or any pyrogram methods are imported.
+try:
+    import pyrogram.utils
+    def get_peer_type_new(peer_id: int) -> str:
+        peer_id_str = str(peer_id)
+        if not peer_id_str.startswith("-"):
+            return "user"
+        return "channel" if peer_id_str.startswith("-100") else "chat"
+    pyrogram.utils.get_peer_type = get_peer_type_new
+except (ImportError, ModuleNotFoundError):
+    pass
+
 from pyrogram import Client, filters, idle, utils
 from pyrogram.storage import MemoryStorage
-
-# Monkey-patching Pyrogram's get_peer_type to fix PeerIdInvalid for some channel IDs
-def get_peer_type_new(peer_id: int) -> str:
-    peer_id_str = str(peer_id)
-    if not peer_id_str.startswith("-"):
-        return "user"
-    elif peer_id_str.startswith("-100"):
-        return "channel"
-    else:
-        return "chat"
-
-utils.get_peer_type = get_peer_type_new
 from pyrogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, WebAppInfo,
     InlineQueryResultArticle, InputTextMessageContent
@@ -5995,8 +5995,14 @@ async def resolve_db_channel(client, channel_id):
             chat = await client.get_chat(channel_id)
             return chat
         except Exception as e:
+            msg = str(e)
+            if "Peer id invalid" in msg:
+                logger.warning(f" [Attempt {i+1}] Invalid Peer ID {channel_id}. Patching should fix this, but ensure the ID is correct.")
+            elif "403" in msg:
+                logger.warning(f" [Attempt {i+1}] Bot is not a member or admin in {channel_id}.")
+
             if i == 2:
-                logger.warning(f" Could not resolve DB_CHANNEL {channel_id} after 3 attempts: {e}")
+                logger.error(f" Final Failure: Could not resolve DB_CHANNEL {channel_id}: {e}")
                 break
             await asyncio.sleep(2)
     return None
