@@ -778,15 +778,39 @@ async def deliver_file(client, chat_id: int, file_data: dict):
                 message_id=db_msg_id, caption=caption, reply_markup=reply_markup
             )
         except Exception:
-            # Fallback 1: Use Main Bot if current bot is not in channel
+            # Fallback 1: Use Main Bot to proxy the file if current bot is not in channel
+            # This ensures the user receives the file FROM the clone bot.
             main_client = next((d["app"] for d in ACTIVE_CLIENTS.values() if d.get("is_main")), None)
             if main_client and main_client != client:
                 try:
-                    return await main_client.copy_message(
-                        chat_id=chat_id, from_chat_id=DB_CHANNEL,
-                        message_id=db_msg_id, caption=caption, reply_markup=reply_markup
-                    )
-                except Exception: pass
+                    if media_type == "message":
+                        return await client.send_message(chat_id, text=caption, reply_markup=reply_markup)
+
+                    # Try to get the message from DB_CHANNEL using Main Bot
+                    db_msg = await main_client.get_messages(DB_CHANNEL, db_msg_id)
+                    if not db_msg or db_msg.empty:
+                        # Fallback to file_id if message not found
+                        path = await main_client.download_media(file_id)
+                    else:
+                        path = await db_msg.download()
+
+                    if path:
+                        # Upload via Clone Bot
+                        if media_type == "photo":
+                            sent = await client.send_photo(chat_id, photo=path, caption=caption, reply_markup=reply_markup)
+                        elif media_type == "video":
+                            sent = await client.send_video(chat_id, video=path, caption=caption, reply_markup=reply_markup)
+                        elif media_type == "audio":
+                            sent = await client.send_audio(chat_id, audio=path, caption=caption, reply_markup=reply_markup)
+                        elif media_type == "animation":
+                            sent = await client.send_animation(chat_id, animation=path, caption=caption, reply_markup=reply_markup)
+                        else:
+                            sent = await client.send_document(chat_id, document=path, caption=caption, reply_markup=reply_markup)
+
+                        if os.path.exists(path): os.remove(path)
+                        return sent
+                except Exception as e:
+                    logger.warning(f"Proxy delivery failed: {e}")
 
 
     # Fallback 3: Cache from other bots
@@ -1299,6 +1323,7 @@ def kb_file_edit(uid: str):
          InlineKeyboardButton(stylish("Thumbnail"), callback_data=f"edit_thumb_{uid}")],
         [InlineKeyboardButton(stylish("Quick Rename"), callback_data=f"qrename_{uid}"),
          InlineKeyboardButton(stylish("Hard Rename"),  callback_data=f"rename_file_{uid}")],
+        [InlineKeyboardButton(stylish("Inline Buttons"), callback_data=f"edit_btns_{uid}")],
         [InlineKeyboardButton(stylish("Get File"), callback_data=f"get_file_{uid}"),
          InlineKeyboardButton(stylish("Delete"),    callback_data=f"del_file_{uid}")],
         [InlineKeyboardButton(stylish(" Password"), callback_data=f"set_pass_{uid}"),
@@ -1903,6 +1928,11 @@ def register_handlers(app: Client):
             if not fdata:
                 return await message.reply(" **File not found!**")
 
+            if fdata.get("bot_id") != bot_id:
+                origin_bot = get_bot_info(fdata.get("bot_id"))
+                bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
+                return await message.reply(f" **Access Denied!**\n\nThis file was uploaded on {bot_name}. Please use that bot to access this file.")
+
             # Check if password protected
             if fdata.get("password") and not is_admin(uid, bot_id):
                 TEMP_EDIT[uid] = {"mode": "verify_password", "uid": fuid, "password": fdata["password"], "fdata": fdata}
@@ -1937,6 +1967,11 @@ def register_handlers(app: Client):
             fdata = files.get(fuid)
             if not fdata:
                 return await message.reply(" **File not found!**")
+
+            if fdata.get("bot_id") != bot_id:
+                origin_bot = get_bot_info(fdata.get("bot_id"))
+                bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
+                return await message.reply(f" **Access Denied!**\n\nThis file was uploaded on {bot_name}. Please use that bot to access this file.")
 
             # Check if password protected
             if fdata.get("password") and not is_admin(uid, bot_id):
@@ -2071,6 +2106,11 @@ def register_handlers(app: Client):
                     " **Dual Post not found!**\n\n"
                     "This post may have been deleted."
                 )
+
+            if post.get("bot_id") != bot_id:
+                origin_bot = get_bot_info(post.get("bot_id"))
+                bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
+                return await message.reply(f" **Access Denied!**\n\nThis dual post was created on {bot_name}. Please use that bot to access it.")
 
             title      = post.get("title", "Dual Post")
             desc_free  = post.get("description_free", "Free content")
@@ -3206,23 +3246,37 @@ def register_handlers(app: Client):
             # Fallback: Re-upload using main bot if clone is not in channel
             try:
                 sm = await message.reply(" **Forwarding to DB via Main Bot...**")
-                # Since bots have different file_ids, we download and upload.
-                path = await message.download()
-                if path:
-                    uploader = main_client
-                    if uploader:
+                uploader = main_client
+                if not uploader: return await sm.edit(" Main Bot not found!")
+
+                # Check if it's media or just text
+                if message.photo or message.video or message.audio or message.document or message.sticker or message.animation or message.voice or message.video_note:
+                    path = await message.download()
+                    if path:
                         if message.photo:
                             db_msg = await uploader.send_photo(DB_CHANNEL, photo=path, caption=message.caption)
                         elif message.video:
                             db_msg = await uploader.send_video(DB_CHANNEL, video=path, caption=message.caption)
                         elif message.audio:
                             db_msg = await uploader.send_audio(DB_CHANNEL, audio=path, caption=message.caption)
+                        elif message.voice:
+                            db_msg = await uploader.send_voice(DB_CHANNEL, voice=path, caption=message.caption)
+                        elif message.video_note:
+                            db_msg = await uploader.send_video_note(DB_CHANNEL, video_note=path)
+                        elif message.sticker:
+                            db_msg = await uploader.send_sticker(DB_CHANNEL, sticker=path)
+                        elif message.animation:
+                            db_msg = await uploader.send_animation(DB_CHANNEL, animation=path, caption=message.caption)
                         else:
                             db_msg = await uploader.send_document(DB_CHANNEL, document=path, caption=message.caption)
-                    os.remove(path)
-                    await sm.delete()
+                        os.remove(path)
+                    else:
+                        return await sm.edit(" Failed to download file for re-upload.")
                 else:
-                    return await message.reply(" Failed to process file for DB.")
+                    # Pure text message
+                    db_msg = await uploader.send_message(DB_CHANNEL, text=message.text or message.caption)
+
+                await sm.delete()
             except Exception as e:
                 return await message.reply(f" DB Channel error (Main Bot fallback): \n`{e}`")
 
@@ -3264,9 +3318,9 @@ def register_handlers(app: Client):
         reply_markup = None
         if message.reply_markup:
             try:
-                reply_markup = json.loads(str(message.reply_markup))
-            except Exception:
-                pass
+                reply_markup = json.loads(message.reply_markup.to_json())
+            except Exception as e:
+                logger.warning(f"Failed to parse reply_markup: {e}")
 
         fuid=unique_id(); files=load_db(FILES_DB)
         fdata={
@@ -3334,16 +3388,22 @@ def register_handlers(app: Client):
 
         # ── NORMAL UPLOAD ────────────────────────────────────────
         else:
-            if media_type == "message":
-                return
             direct_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+
+            if media_type == "message":
+                msg_text = f" **Post Saved!**\n\n `{fuid}`\n\n **Share Link:**\n`{direct_link}`"
+            else:
+                msg_text = (
+                    f" **File Saved!**\n\n"
+                    f"{file_icon(file_name)} `{file_name}`\n"
+                    f" {fmt_size(file_size)} |  `{fuid}`\n\n"
+                    f" **Share Link:**\n`{direct_link}`\n\n"
+                    + (f"_ Recipients go through shortener ads to get file._"
+                       if shortener_enabled_for_bot(bi) else "")
+                )
+
             await message.reply(
-                f" **File Saved!**\n\n"
-                f"{file_icon(file_name)} `{file_name}`\n"
-                f" {fmt_size(file_size)} |  `{fuid}`\n\n"
-                f" **Share Link:**\n`{direct_link}`\n\n"
-                + (f"_ Recipients go through shortener ads to get file._"
-                   if shortener_enabled_for_bot(bi) else ""),
+                msg_text,
                 reply_markup=InlineKeyboardMarkup([
                     [InlineKeyboardButton(" Share", url=f"https://t.me/share/url?url={direct_link}"),
                      InlineKeyboardButton(" Edit",  callback_data=f"edit_file_{fuid}")]
@@ -3406,8 +3466,6 @@ def register_handlers(app: Client):
                 if style in _FONTS:
                     text = stylish(text, style)
 
-                del TEMP_POST[uid]
-
                 await message.reply(stylish(" **Post Ready!** Here is a preview:"), reply_markup=markup)
 
                 # Send the actual post content
@@ -3420,14 +3478,52 @@ def register_handlers(app: Client):
                 else:
                     sent = await client.send_message(message.chat.id, text=text, reply_markup=markup)
 
+                del TEMP_POST[uid]
+
+                fuid = unique_id()
+                files = load_db(FILES_DB)
+
+                file_id = None
+                media_type = "message"
+                file_name = "Custom Post"
+                file_size = 0
+
+                if content.photo:
+                    file_id = content.photo.file_id; media_type = "photo"; file_name = f"photo_{content.photo.file_unique_id}.jpg"; file_size = content.photo.file_size
+                elif content.video:
+                    file_id = content.video.file_id; media_type = "video"; file_name = content.video.file_name or "video.mp4"; file_size = content.video.file_size
+                elif content.document:
+                    file_id = content.document.file_id; media_type = "document"; file_name = content.document.file_name or "file"; file_size = content.document.file_size
+
+                # Also store in DB_CHANNEL for persistence
+                try:
+                    db_msg = await sent.forward(DB_CHANNEL)
+                    db_msg_id = db_msg.id
+                except:
+                    db_msg_id = None
+
+                fdata = {
+                    "file_id": file_id, "file_name": file_name, "file_size": file_size,
+                    "caption": text, "user_id": uid, "bot_id": bot_id,
+                    "upload_date": str(datetime.now()), "db_msg_id": db_msg_id,
+                    "access_count": 0, "media_type": media_type, "custom_thumbnail": None,
+                    "reply_markup": json.loads(markup.to_json()) if markup else None
+                }
+                files[fuid] = fdata
+                save_db(FILES_DB, files)
+                update_user_stats(uid, bot_id, "files_uploaded")
+
+                direct_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
+
                 await message.reply(
-                    stylish(f" **Post Created!**\n\nYou can now forward the preview message above to any channel where this bot is an admin or use buttons below."),
+                    stylish(f" **Post Created!**\n\n **Share Link:**\n`{direct_link}`\n\nYou can now forward the preview message above to any channel where this bot is an admin or use buttons below."),
                     reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton(stylish(" Share Link"), url=f"https://t.me/share/url?url={direct_link}")],
                         [InlineKeyboardButton(stylish(" Send to Channel"), callback_data=f"psend_chan_{sent.id}")],
                         [InlineKeyboardButton(stylish(" Create Another"), callback_data="cb_create_post")]
                     ])
                 )
-            return
+                return
 
         if uid in TEMP_PROTECT:
             sess = TEMP_PROTECT[uid]; step = sess.get("step")
@@ -3541,6 +3637,28 @@ def register_handlers(app: Client):
                 if not message.text: return await message.reply(" Send a **new file name**.")
                 new_name = message.text.strip()
                 files[fuid]["file_name"] = new_name
+                save_db(FILES_DB, files)
+                del TEMP_EDIT[uid]
+                await message.reply(
+                    get_file_edit_text(client, files[fuid], fuid),
+                    reply_markup=kb_file_edit(fuid)
+                )
+
+            elif mode == "edit_btns":
+                txt = message.text or ""
+                if txt.strip() == "-clear":
+                    files[fuid]["reply_markup"] = None
+                else:
+                    rows = []
+                    for line in txt.split("\n"):
+                        if "|" in line:
+                            btn_text, btn_url = line.split("|", 1)
+                            rows.append([{"text": btn_text.strip(), "url": btn_url.strip()}])
+                    if rows:
+                        files[fuid]["reply_markup"] = {"inline_keyboard": rows}
+                    else:
+                        return await message.reply(stylish(" **Invalid format!**\nUse: `Text | Link`"))
+
                 save_db(FILES_DB, files)
                 del TEMP_EDIT[uid]
                 await message.reply(
@@ -3708,6 +3826,16 @@ def register_handlers(app: Client):
                 reply_markup=kb_file_edit(fuid)
             )
             await cb.answer()
+
+        elif data.startswith("edit_btns_"):
+            fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            if not fd: return await cb.answer(stylish(" Not found!"), show_alert=True)
+            TEMP_EDIT[uid] = {"mode": "edit_btns", "uid": fuid}
+            await cb.message.edit(
+                stylish(f" **Edit Inline Buttons**\n\nFile: `{fd.get('file_name','?')}`\n\nSend buttons in format:\n`Text | Link`\nOne per line.\n\nSend `-clear` to remove all buttons."),
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_edit")]])
+            )
+            await cb.answer("Send button text")
 
         elif data.startswith("edit_caption_"):
             fuid = data[13:]; files = load_db(FILES_DB)
