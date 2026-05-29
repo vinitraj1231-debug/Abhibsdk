@@ -370,7 +370,7 @@ def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_
         "owner_name": owner_name, "parent_bot_id": parent_bot_id,
         "created_on": str(datetime.now()), "is_active": True,
         "custom_welcome": None, "welcome_image": None,
-        "auto_delete_time": 600, "auto_approve": False,
+        "auto_delete_time": 300, "auto_approve": False,
         "premium_price": "500",
         "premium_contact": "zolvid",
         "premium_qr": None,
@@ -811,7 +811,7 @@ async def deliver_batch_files(client, chat_id: int, file_ids: list,
                                bot_id: int, is_premium: bool) -> tuple:
     files  = load_db(FILES_DB)
     bi     = get_bot_info(bot_id)
-    auto_del = bi.get("auto_delete_time", 600) if bi else 600
+    auto_del = bi.get("auto_delete_time", 300) if bi else 300
     total  = len(file_ids)
     sent_c = 0
 
@@ -1834,7 +1834,7 @@ def register_handlers(app: Client):
             )
 
         bi         = get_bot_info(bot_id)
-        auto_del   = bi.get("auto_delete_time", 600) if bi else 600
+        auto_del   = bi.get("auto_delete_time", 300) if bi else 300
         is_premium = user_data.get("is_premium", False)
 
         # ── Deep link: Protected Channel Link ───────────────────
@@ -1985,6 +1985,11 @@ def register_handlers(app: Client):
             token   = parts[1] if len(parts) > 1 else ""
             bdata   = load_db(BATCH_DB).get(bid_key)
             if not bdata: return await message.reply(" Batch not found.")
+            if bdata.get("bot_id") != bot_id:
+                origin_bot = get_bot_info(bdata.get("bot_id"))
+                bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
+                return await message.reply(f" **Access Denied!**\n\nThis batch was created on {bot_name}. Please use that bot to access these files.")
+
             td = validate_token(token, uid, bot_id)
             if not td or td.get("resource_id") != bid_key:
                 short_link = await make_shortener_link(client, bi, uid, bot_id, bid_key, "batch")
@@ -1997,7 +2002,12 @@ def register_handlers(app: Client):
             sc, tot = await deliver_batch_files(client, message.chat.id,
                                                  bdata["files"], bot_id, is_premium)
             await sm.delete()
-            await message.reply(f" Delivered **{sc}/{tot}** files!")
+            notice = await message.reply(
+                f" Delivered **{sc}/{tot}** files!" +
+                (f"\n\n**Your files will be deleted in {auto_del // 60} minutes.**" if not is_premium else "")
+            )
+            if not is_premium:
+                asyncio.create_task(_auto_delete(notice, auto_del))
             return
 
         # ── Deep link: batch without token ────────────────────────
@@ -2005,6 +2015,11 @@ def register_handlers(app: Client):
             bid_key = deep[2:]
             bdata   = load_db(BATCH_DB).get(bid_key)
             if not bdata: return await message.reply(" Batch not found.")
+            if bdata.get("bot_id") != bot_id:
+                origin_bot = get_bot_info(bdata.get("bot_id"))
+                bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
+                return await message.reply(f" **Access Denied!**\n\nThis batch was created on {bot_name}. Please use that bot to access these files.")
+
             total = len(bdata["files"])
 
             if is_premium:
@@ -2032,7 +2047,12 @@ def register_handlers(app: Client):
             sc, tot = await deliver_batch_files(client, message.chat.id,
                                                  bdata["files"], bot_id, is_premium)
             await sm.delete()
-            await message.reply(f" Delivered **{sc}/{tot}** files!")
+            notice = await message.reply(
+                f" Delivered **{sc}/{tot}** files!" +
+                (f"\n\n**Your files will be deleted in {auto_del // 60} minutes.**" if not is_premium else "")
+            )
+            if not is_premium:
+                asyncio.create_task(_auto_delete(notice, auto_del))
             return
 
         # ── Deep link: DUAL POST ──────────────────────────────────
@@ -2122,7 +2142,7 @@ def register_handlers(app: Client):
 
                     notice = await message.reply(
                         f" **{sc}/{tot}** files delivered!\n\n"
-                        f" _Files will auto-delete in `{auto_del // 60}` min(s). Save them!_\n\n"
+                        f" **Your files will be deleted in {auto_del // 60} minutes.**\n\n"
                         f" _Want premium content? Upgrade for full access!_",
                         reply_markup=InlineKeyboardMarkup([
                             [InlineKeyboardButton(" Upgrade to Premium", callback_data="premium_menu")]
@@ -2646,7 +2666,7 @@ def register_handlers(app: Client):
         uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(" Access Denied!")
         if len(message.command)<2:
-            curr=bi.get("auto_delete_time",600)
+            curr=bi.get("auto_delete_time",300)
             return await message.reply(f" Current: `{curr}s` ({curr//60}min)\n`/settimer SECONDS`")
         try:
             secs=int(message.command[1])
@@ -2900,7 +2920,7 @@ def register_handlers(app: Client):
                 f" {bi.get('owner_name','?')}\n"
                 f" Clones: `{len(get_child_bots(bot_id))}`\n"
                 f" Force Sub: `{len(bi.get('force_subs',[]))}` ch\n"
-                f" Timer: `{bi.get('auto_delete_time',600)}s` | "
+                f" Timer: `{bi.get('auto_delete_time',300)}s` | "
                 f"AA: `{'ON' if bi.get('auto_approve') else 'OFF'}`\n"
                 f" Dual Posts: `{dp_count}`"
             )
@@ -3593,7 +3613,7 @@ def register_handlers(app: Client):
                     bi = get_bot_info(bot_id); ud = get_user(uid, bot_id)
                     is_p = ud and ud.get("is_premium")
                     if sent and not is_p:
-                        auto_del = bi.get("auto_delete_time", 600) if bi else 600
+                        auto_del = bi.get("auto_delete_time", 300) if bi else 300
                         asyncio.create_task(_auto_delete(sent, auto_del))
                 else:
                     await message.reply(stylish(" Wrong Password! Try again or /cancel."))
@@ -3845,7 +3865,7 @@ def register_handlers(app: Client):
             try:
                 bi = get_bot_info(bot_id); ud = get_user(uid, bot_id)
                 is_prem = ud and ud.get("is_premium", False)
-                auto_del = bi.get("auto_delete_time", 600) if bi else 600
+                auto_del = bi.get("auto_delete_time", 300) if bi else 300
                 sent = await deliver_file(client, cb.message.chat.id, fd)
                 if sent and not is_prem:
                     asyncio.create_task(_auto_delete(sent, auto_del))
@@ -4738,7 +4758,7 @@ def register_handlers(app: Client):
         elif data == "bot_settings_admin":
             bi = get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
-            t = bi.get("auto_delete_time", 600)
+            t = bi.get("auto_delete_time", 300)
             await cb.message.edit(
                 f" **Bot Settings**\n\n"
                 f" Welcome: {'Custom ' if bi.get('custom_welcome') else 'Default'}\n"
@@ -4756,7 +4776,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "edit_timer":
-            bi = get_bot_info(bot_id); curr = bi.get("auto_delete_time", 600) if bi else 600
+            bi = get_bot_info(bot_id); curr = bi.get("auto_delete_time", 300) if bi else 300
             await cb.message.edit(
                 f" **Auto-Delete Timer**\n\nCurrent: `{curr}s` ({curr//60}min)\n\nChoose a preset or send a custom value:",
                 reply_markup=InlineKeyboardMarkup([
