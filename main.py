@@ -3480,6 +3480,7 @@ def register_handlers(app: Client):
 
                 del TEMP_POST[uid]
 
+                # Store as File Link
                 fuid = unique_id()
                 files = load_db(FILES_DB)
 
