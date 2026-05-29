@@ -59,7 +59,7 @@ API_ID         = int(os.environ.get("API_ID",         "22528639"))
 API_HASH       = os.environ.get("API_HASH",            "43df9dcf764afd03a1fd1dc3cec68bbd")
 MAIN_BOT_TOKEN = os.environ.get("MAIN_BOT_TOKEN",     "8235471153:AAEBfhiiUE-2977TqWEeI_cpCQeWJV9W9RY")
 MAIN_ADMIN     = int(os.environ.get("MAIN_ADMIN",     "8647666069"))
-DB_CHANNEL     = int(os.environ.get("DB_CHANNEL",     "-1003928301559"))
+DB_CHANNEL     = int(os.environ.get("DB_CHANNEL",     "-1003921125499"))
 PORT           = int(os.environ.get("PORT",            "8080"))
 WEBAPP_URL     = os.environ.get("WEBAPP_URL",          "")
 SESSION_STRING = os.environ.get("SESSION_STRING",     "BQCOaU4APHrjDwd6txw889cQKEdAniCXk_gneVAT07cv9DV8PkJvndwuzsoHD3ExNspAIPhYjyS4HplW0I-I2E4VvjInCFRrzC8Z8Q9_s-GHHRLg7eydiYjx_HHMUvputUOp8d6UBvff6Q63QDATRFYxzi7IGQCN9aM84h0jfaMFIg5Gh9KD85ZVFb8bY-cQbJtip_j7oLNpiHGZmxUoAcrnSagw8gchk3DLiiRnwwU7SfxcN6Kebn1g3W0_m9PQXS8_rOnETXfkC5Wc_e30FTizojiaZ2LaL5Qbx5Ojkic7k8g15yc4Le69Vsc823lkBqBCZpJrwGbfWUHHY8a5xXQBcl8VygAAAAFpYTzQAA")
@@ -3171,7 +3171,9 @@ def register_handlers(app: Client):
             await client.get_chat(chid)
             update_bot_info(bot_id,"connected_channel",chid)
             await message.reply(f" Channel connected successfully: `{chid}`")
-        except Exception as e: await message.reply(f" Error: Make sure bot is admin in channel!\n`{e}`")
+        except Exception as e:
+            err_msg = f" Error: `{e}`\n\n**Tip:** Make sure the bot is an **Admin** in the channel with all permissions. If you still get PeerIdInvalid, try sending a message in the channel and then try again."
+            await message.reply(err_msg)
 
     @app.on_message(filters.command("setmode") & filters.private, group=1)
     async def setmode_cmd(client, message):
@@ -3216,9 +3218,13 @@ def register_handlers(app: Client):
         if message.command[1].lower()=="off":
             update_bot_info(bot_id,"log_channel",None); return await message.reply(" Disabled!")
         try:
-            update_bot_info(bot_id,"log_channel",int(message.command[1]))
+            log_id = int(message.command[1])
+            await client.get_chat(log_id)
+            update_bot_info(bot_id,"log_channel",log_id)
             await message.reply(" Log channel set!")
-        except ValueError: await message.reply(" Invalid ID!")
+        except Exception as e:
+            err_msg = f" Error: `{e}`\n\n**Tip:** Ensure the bot is an **Admin** in the log channel. If you get PeerIdInvalid, send a message in that channel first."
+            await message.reply(err_msg)
 
     @app.on_message(filters.command("setverify") & filters.private, group=1)
     async def setverify_cmd(client, message):
@@ -3379,8 +3385,9 @@ def register_handlers(app: Client):
                         await main_client.get_chat(cid)
                     else:
                         raise
-            except Exception:
-                return await message.reply(stylish(" I don't have access to this channel! Make sure the main bot or this bot is an admin there."))
+            except Exception as e:
+                err_msg = f" I don't have access to this channel: `{e}`\n\n**Tip:** Ensure the bot is an **Admin** in the channel. If you get PeerIdInvalid, send a message in that channel and then try again."
+                return await message.reply(stylish(err_msg))
 
             if any((f["channel_id"] if isinstance(f, dict) else f) == cid for f in fs):
                 return await message.reply(stylish(" Channel already in Force Sub list!"))
@@ -4008,7 +4015,8 @@ def register_handlers(app: Client):
                         ])
                     )
                 except Exception as e:
-                    await message.reply(f" Invalid Channel ID or Bot is not admin there!\n`{e}`")
+                    err_msg = f" Error: `{e}`\n\n**Tip:** Ensure the bot is an **Admin** in the channel. If you get PeerIdInvalid, send a message in that channel first."
+                    await message.reply(err_msg)
             return
 
         if uid in TEMP_WELCOME:
@@ -5991,11 +5999,22 @@ async def main():
             )
             await GLOBAL_USERBOT.start()
             logger.info(" Persistent Userbot Started!")
+            try:
+                await GLOBAL_USERBOT.get_chat(DB_CHANNEL)
+                logger.info(f" Userbot resolved DB_CHANNEL: {DB_CHANNEL}")
+            except Exception as e:
+                logger.warning(f" Userbot could not resolve DB_CHANNEL {DB_CHANNEL}: {e}")
         except Exception as e:
             logger.error(f" Userbot failed to start: {e}")
 
     logger.info(" Starting Main Bot...")
     main_app = await start_bot(MAIN_BOT_TOKEN)
+    if main_app:
+        try:
+            await main_app.get_chat(DB_CHANNEL)
+            logger.info(f" Main Bot resolved DB_CHANNEL: {DB_CHANNEL}")
+        except Exception as e:
+            logger.warning(f" Main Bot could not resolve DB_CHANNEL {DB_CHANNEL}: {e}. Make sure the bot is an admin there.")
     if not main_app:
         logger.error(" Main bot failed!"); return
 
