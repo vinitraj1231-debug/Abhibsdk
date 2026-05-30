@@ -4,3 +4,6 @@ aiohttp
 yt-dlp
 pyaes
 hachoir
+sqlalchemy
+asyncpg
+aiosqlite
