@@ -31,6 +31,8 @@ from typing import Optional
 from aiohttp import web
 from datetime import datetime, timedelta
 
+import database as db
+
 try:
     import sqlite3
 except ImportError:
@@ -56,7 +58,7 @@ from pyrogram import Client, filters, idle, utils
 from pyrogram.storage import MemoryStorage
 from pyrogram.types import (
     InlineKeyboardMarkup, InlineKeyboardButton, BotCommand, WebAppInfo,
-    InlineQueryResultArticle, InputTextMessageContent
+    InlineQueryResultArticle, InputTextMessageContent, LoginUrl, CallbackGame
 )
 from pyrogram.errors import FloodWait, UserNotParticipant, SlowmodeWait
 from pyrogram.enums import ChatMemberStatus
@@ -168,91 +170,26 @@ os.makedirs(DB_FOLDER, exist_ok=True)
 _DB_CACHE:   dict = {}
 _GLOBAL_CFG: dict = {}
 
-def load_db(path: str) -> dict:
-    """Load JSON database with fallback to backup and cache."""
-    if path in _DB_CACHE:
-        return _DB_CACHE[path]
-
-    data = {}
-    bak_path = path + ".bak"
-
-    # Try primary
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-        except Exception as e:
-            logger.error(f"Failed to load primary DB {path}: {e}")
-            # Try backup if primary failed
-            if os.path.exists(bak_path):
-                try:
-                    with open(bak_path, "r", encoding="utf-8") as f:
-                        data = json.load(f)
-                    logger.info(f"Successfully restored {path} from backup.")
-                except Exception as be:
-                    logger.error(f"Failed to load backup DB {bak_path}: {be}")
-    elif os.path.exists(bak_path):
-        # Primary missing, try backup
-        try:
-            with open(bak_path, "r", encoding="utf-8") as f:
-                data = json.load(f)
-            logger.info(f"Restored {path} from backup (primary was missing).")
-        except Exception as be:
-            logger.error(f"Failed to load backup DB {bak_path}: {be}")
-
-    _DB_CACHE[path] = data
-    return data
-
-def save_db(path: str, data: dict) -> None:
-    """Save JSON database atomically with verification and backup."""
-    _DB_CACHE[path] = data
-    tmp = path + ".tmp"
-    bak = path + ".bak"
-
-    try:
-        # Write to temporary file
-        with open(tmp, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2, ensure_ascii=False)
-
-        # Verify written file is valid JSON
-        with open(tmp, "r", encoding="utf-8") as f:
-            json.load(f)
-
-        # If primary exists, move it to backup
-        if os.path.exists(path):
-            shutil.copy2(path, bak)
-
-        # Move temp to primary
-        os.replace(tmp, path)
-    except Exception as e:
-        logger.error(f"Critical error saving database {path}: {e}")
-        if os.path.exists(tmp):
-            try: os.remove(tmp)
-            except: pass
-
-def invalidate_cache(path: str) -> None:
-    _DB_CACHE.pop(path, None)
-
-def get_global_config() -> dict:
+async def get_global_config() -> dict:
     global _GLOBAL_CFG
     if not _GLOBAL_CFG:
-        _GLOBAL_CFG = load_db(CONFIG_DB)
+        _GLOBAL_CFG = await db.db_get_global_config()
     return _GLOBAL_CFG
 
-def update_global_config(key: str, value) -> None:
+async def update_global_config(key: str, value) -> None:
     global _GLOBAL_CFG
-    cfg = load_db(CONFIG_DB)
+    cfg = await db.db_get_global_config()
     cfg[key] = value
-    save_db(CONFIG_DB, cfg)
+    pass
     _GLOBAL_CFG = cfg
 
 # ─── PENDING JOIN REQUESTS ──────────────────────────────────────
 
 _PENDING: dict = {}
 
-def _load_pending():
+async def _load_pending():
     global _PENDING
-    raw = load_db(PENDING_REQ_DB)
+    raw = await db.db_get_all_pending_requests()
     now = datetime.now()
     result = {}
     for cid, users in raw.items():
@@ -269,7 +206,7 @@ def _load_pending():
 
 def _save_pending():
     data = {str(c): {str(u): ts for u, ts in users.items()} for c, users in _PENDING.items()}
-    save_db(PENDING_REQ_DB, data)
+    pass
 
 def mark_join_request(channel_id: int, user_id: int):
     _PENDING.setdefault(channel_id, {})[user_id] = datetime.now().isoformat()
@@ -289,81 +226,45 @@ def has_pending_request(channel_id: int, user_id: int) -> bool:
 
 # ─── USER FUNCTIONS ─────────────────────────────────────────────
 
-def add_user(user_id, bot_id, username=None, name=None):
-    users = load_db(USERS_DB)
-    key   = f"{bot_id}_{user_id}"
-    is_new = key not in users
-    if is_new:
-        users[key] = {
-            "user_id": user_id, "bot_id": bot_id,
-            "username": username, "name": name,
-            "join_date": str(datetime.now()),
-            "is_banned": False, "files_uploaded": 0,
-            "batches_created": 0, "bots_cloned": 0,
-            "is_premium": False,
-            "refer_count": 0, "refer_rewards": 0,
-            "last_active": str(datetime.now()),
-            "pref_font": "smallcaps"
-        }
-    else:
-        users[key]["last_active"] = str(datetime.now())
-        if "pref_font" not in users[key]:
-            users[key]["pref_font"] = "smallcaps"
-    save_db(USERS_DB, users)
-    return users[key], is_new
+async def add_user(user_id, bot_id, username=None, name=None):
+    return await db.db_add_user(user_id, bot_id, username, name)
 
-def get_user(user_id, bot_id):
-    return load_db(USERS_DB).get(f"{bot_id}_{user_id}")
+async def get_user(user_id, bot_id):
+    return await db.db_get_user(user_id, bot_id)
 
-def update_user_stats(user_id, bot_id, field, delta=1):
-    users = load_db(USERS_DB)
-    k = f"{bot_id}_{user_id}"
-    if k in users:
+async def update_user_stats(user_id, bot_id, field, delta=1):
+    await db.db_update_user_stats(user_id, bot_id, field, delta)
+    if False:
         users[k][field] = users[k].get(field, 0) + delta
-        save_db(USERS_DB, users)
+        pass
 
-def is_user_banned(user_id, bot_id) -> bool:
-    if user_id in get_global_config().get("global_bans", []):
+async def is_user_banned(user_id, bot_id) -> bool:
+    if user_id in (await get_global_config()).get("global_bans", []):
         return True
-    u = get_user(user_id, bot_id)
+    u = await get_user(user_id, bot_id)
     return bool(u and u.get("is_banned"))
 
-def ban_user(user_id, bot_id) -> bool:
-    users = load_db(USERS_DB)
-    k = f"{bot_id}_{user_id}"
-    if k in users:
-        users[k]["is_banned"] = True
-        save_db(USERS_DB, users)
-        return True
-    return False
+async def ban_user(user_id, bot_id) -> bool:
+    return await db.db_ban_user(user_id, bot_id, True)
 
-def unban_user(user_id, bot_id) -> bool:
-    users = load_db(USERS_DB)
-    k = f"{bot_id}_{user_id}"
-    if k in users:
-        users[k]["is_banned"] = False
-        save_db(USERS_DB, users)
-        return True
-    return False
+async def unban_user(user_id, bot_id) -> bool:
+    return await db.db_ban_user(user_id, bot_id, False)
 
-def get_all_users(bot_id=None):
-    users = load_db(USERS_DB)
-    if bot_id:
-        return [u for u in users.values() if u["bot_id"] == bot_id and not u.get("is_banned")]
-    return [u for u in users.values() if not u.get("is_banned")]
+async def get_all_users(bot_id=None):
+    return await db.db_get_all_users(bot_id)
 
-def is_admin(user_id, bot_id=None) -> bool:
+async def is_admin(user_id, bot_id=None) -> bool:
     if user_id == MAIN_ADMIN: return True
-    if str(user_id) in load_db(ADMINS_DB): return True
+    if await db.db_is_admin(user_id): return True
     if bot_id:
-        bi = get_bot_info(bot_id)
+        bi = await get_bot_info(bot_id)
         if bi and user_id in bi.get("secondary_admins", []): return True
     return False
 
 # ─── BOT INFO ───────────────────────────────────────────────────
 
-def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_id=None):
-    bots = load_db(BOTS_DB)
+async def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_id=None):
+    bots = await db.db_get_all_bots()
     data = {
         "token": token, "bot_id": bot_id,
         "bot_username": bot_username, "owner_id": owner_id,
@@ -386,79 +287,60 @@ def save_bot_info(token, bot_id, bot_username, owner_id, owner_name, parent_bot_
         "secondary_admins": []
     }
     bots[str(bot_id)] = data
-    save_db(BOTS_DB, bots)
+    pass
     if parent_bot_id:
         update_user_stats(owner_id, parent_bot_id, "bots_cloned")
 
-def get_bot_info(bot_id):
-    return load_db(BOTS_DB).get(str(bot_id))
+async def get_bot_info(bot_id):
+    return await db.db_get_bot_info(bot_id)
 
-def update_bot_info(bot_id, field, value) -> bool:
-    bots = load_db(BOTS_DB)
+async def update_bot_info(bot_id, field, value) -> bool:
+    bots = await db.db_get_all_bots()
     if str(bot_id) in bots:
         bots[str(bot_id)][field] = value
-        save_db(BOTS_DB, bots)
+        pass
         return True
     return False
 
-def get_all_bots(): return load_db(BOTS_DB)
+async def get_all_bots(): return await db.db_get_all_bots()
 
-def get_child_bots(parent_bot_id):
-    return [b for b in load_db(BOTS_DB).values()
+async def get_child_bots(parent_bot_id):
+    return [b for b in (await db.db_get_all_bots()).values()
             if isinstance(b, dict) and b.get("parent_bot_id") == parent_bot_id]
 
-def get_all_descendant_bots(parent_bot_id):
+async def get_all_descendant_bots(parent_bot_id):
     result = []
-    def recurse(bid):
-        for child in get_child_bots(bid):
+    async def recurse(bid):
+        children = await get_child_bots(bid)
+        for child in children:
             result.append(child)
-            recurse(child["bot_id"])
-    recurse(parent_bot_id)
+            await recurse(child["bot_id"])
+    await recurse(parent_bot_id)
     return result
 
-def cascade_force_subs(parent_bot_id, force_subs) -> int:
-    bots = load_db(BOTS_DB)
+async def cascade_force_subs(parent_bot_id, force_subs) -> int:
     count = 0
-    for bot in get_all_descendant_bots(parent_bot_id):
-        k = str(bot["bot_id"])
-        if k in bots:
-            bots[k]["force_subs"] = force_subs
-            count += 1
-    if count: save_db(BOTS_DB, bots)
+    descendants = await get_all_descendant_bots(parent_bot_id)
+    for bot in descendants:
+        await update_bot_info(bot["bot_id"], "force_subs", force_subs)
+        count += 1
     return count
 
 # ─── FILE CACHE ─────────────────────────────────────────────────
 
-def add_to_cache(file_id, message_id, chat_id, bot_id, caption=None):
-    cache = load_db(FILE_CACHE_DB)
-    cache[file_id] = {
+async def add_to_cache(file_id, message_id, chat_id, bot_id, caption=None):
+    data = {
         "message_id": message_id, "chat_id": chat_id,
         "bot_id": bot_id, "caption": caption,
         "expires_at": (datetime.now() + timedelta(seconds=FILE_CACHE_DURATION)).isoformat()
     }
-    save_db(FILE_CACHE_DB, cache)
+    await db.db_add_to_cache(file_id, data)
 
-def get_from_cache(file_id):
-    cache = load_db(FILE_CACHE_DB)
-    entry = cache.get(file_id)
-    if not entry: return None
-    try:
-        if datetime.now() > datetime.fromisoformat(entry["expires_at"]):
-            del cache[file_id]
-            save_db(FILE_CACHE_DB, cache)
-            return None
-    except Exception:
-        return None
-    return entry
+async def get_from_cache(file_id):
+    return await db.db_get_from_cache(file_id)
 
-def clean_expired_cache() -> int:
-    cache = load_db(FILE_CACHE_DB)
-    expired = [k for k, v in cache.items()
-               if datetime.now() > datetime.fromisoformat(v.get("expires_at", "2000-01-01"))]
-    for k in expired:
-        del cache[k]
-    if expired: save_db(FILE_CACHE_DB, cache)
-    return len(expired)
+async def clean_expired_cache() -> int:
+    return await db.db_clean_cache()
 
 # ─── UTILITIES ──────────────────────────────────────────────────
 
@@ -542,7 +424,7 @@ def fmt_size(size) -> str:
 def unique_id() -> str:
     return hashlib.md5(str(time.time() + random.random()).encode()).hexdigest()[:12]
 
-def get_reply_markup(data):
+def get_reply_markup(data, convert_callback_to_url=False, bot_username=None):
     if not data: return None
     if isinstance(data, str):
         try: data = json.loads(data)
@@ -554,12 +436,32 @@ def get_reply_markup(data):
     for row in data["inline_keyboard"]:
         btns = []
         for btn in row:
+            text = btn.get("text")
+            if not text: continue
+
             if "url" in btn:
-                btns.append(InlineKeyboardButton(btn["text"], url=btn["url"]))
+                btns.append(InlineKeyboardButton(text, url=btn["url"]))
             elif "callback_data" in btn:
-                btns.append(InlineKeyboardButton(btn["text"], callback_data=btn["callback_data"]))
+                if convert_callback_to_url and bot_username:
+                    url = f"https://t.me/{bot_username}?start=cb_{btn['callback_data']}"
+                    btns.append(InlineKeyboardButton(text, url=url))
+                else:
+                    btns.append(InlineKeyboardButton(text, callback_data=btn["callback_data"]))
             elif "web_app" in btn:
-                btns.append(InlineKeyboardButton(btn["text"], web_app=WebAppInfo(url=btn["web_app"]["url"])))
+                btns.append(InlineKeyboardButton(text, web_app=WebAppInfo(url=btn["web_app"]["url"])))
+            elif "login_url" in btn:
+                btns.append(InlineKeyboardButton(text, login_url=LoginUrl(
+                    url=btn["login_url"]["url"],
+                    forward_text=btn["login_url"].get("forward_text"),
+                    bot_username=btn["login_url"].get("bot_username"),
+                    request_write_access=btn["login_url"].get("request_write_access")
+                )))
+            elif "switch_inline_query" in btn:
+                btns.append(InlineKeyboardButton(text, switch_inline_query=btn["switch_inline_query"]))
+            elif "switch_inline_query_current_chat" in btn:
+                btns.append(InlineKeyboardButton(text, switch_inline_query_current_chat=btn["switch_inline_query_current_chat"]))
+            elif "callback_game" in btn:
+                btns.append(InlineKeyboardButton(text, callback_game=CallbackGame()))
         if btns:
             rows.append(btns)
     return InlineKeyboardMarkup(rows) if rows else None
@@ -636,14 +538,12 @@ class DualPostSession:
     def stage_display(self):
         return " FREE" if self.stage == "free" else " PREMIUM"
 
-
-def save_dual_post(post_id: str, session: DualPostSession) -> dict:
-    posts = load_db(DUAL_POST_DB)
+async def save_dual_post(post_id: str, session: DualPostSession) -> dict:
     data  = {
         "post_id":          post_id,
         "bot_id":           session.bot_id,
         "created_by":       session.created_by,
-        "created_at":       str(session.created_at),
+        "created_at":       session.created_at.isoformat(),
         "title":            session.title or "Dual Post",
         "free_files":       session.free_files,
         "pro_files":        session.pro_files,
@@ -654,38 +554,31 @@ def save_dual_post(post_id: str, session: DualPostSession) -> dict:
         "access_total":     0,
         "last_accessed":    None,
     }
-    posts[post_id] = data
-    save_db(DUAL_POST_DB, posts)
+    await db.db_save_dual_post(post_id, data)
     return data
 
-def get_dual_post(post_id: str):
-    return load_db(DUAL_POST_DB).get(post_id)
+async def get_dual_post(post_id: str):
+    return await db.db_get_dual_post(post_id)
 
-def del_dual_post(post_id: str) -> bool:
-    posts = load_db(DUAL_POST_DB)
-    if post_id in posts:
-        del posts[post_id]
-        save_db(DUAL_POST_DB, posts)
-        return True
-    return False
+async def del_dual_post(post_id: str) -> bool:
+    return await db.db_del_dual_post(post_id)
 
-def get_user_dual_posts(bot_id: int, user_id: int) -> list:
-    return [p for p in load_db(DUAL_POST_DB).values()
+async def get_user_dual_posts(bot_id: int, user_id: int) -> list:
+    return [p for p in (await db.db_get_all_dual_posts()).values()
             if p.get("bot_id") == bot_id and p.get("created_by") == user_id]
 
-def get_bot_dual_posts(bot_id: int) -> list:
-    return [p for p in load_db(DUAL_POST_DB).values()
+async def get_bot_dual_posts(bot_id: int) -> list:
+    return [p for p in (await db.db_get_all_dual_posts()).values()
             if p.get("bot_id") == bot_id]
 
-def bump_dual_access(post_id: str, tier: str):
-    posts = load_db(DUAL_POST_DB)
+async def bump_dual_access(post_id: str, tier: str):
+    posts = await db.db_get_all_dual_posts()
     if post_id not in posts: return
     p = posts[post_id]
     p[f"access_{tier}"] = p.get(f"access_{tier}", 0) + 1
     p["access_total"]   = p.get("access_total", 0) + 1
     p["last_accessed"]  = str(datetime.now())
-    save_db(DUAL_POST_DB, posts)
-
+    pass
 
 # ═══════════════════════════════════════════════════════════════
 #  SHORTENER TOKEN SYSTEM
@@ -749,40 +642,50 @@ async def make_shortener_link(client, bi: dict, uid: int, bot_id: int,
 
 async def deliver_file(client, chat_id: int, file_data: dict):
     # Track usage
-    fuid = None
-    for k, v in load_db(FILES_DB).items():
-        if v.get("file_id") == file_data.get("file_id"):
-            fuid = k
-            break
+    fuid = file_data.get("fuid")
+    if not fuid:
+        # Search for fuid if missing
+        f_search = await db.db_get_file_by_id(file_data.get("file_id"))
+        if f_search: fuid = f_search.get("fuid")
 
     if fuid:
-        files = load_db(FILES_DB)
-        files[fuid]["access_count"] = files[fuid].get("access_count", 0) + 1
-        save_db(FILES_DB, files)
+        await db.db_bump_file_access(fuid)
 
     caption    = file_data.get("caption") or None
     thumb_fid  = file_data.get("custom_thumbnail")
     media_type = file_data.get("media_type", "document")
     file_id    = file_data["file_id"]
     db_msg_id  = file_data.get("db_msg_id")
-    reply_markup = get_reply_markup(file_data.get("reply_markup"))
+
+    # Restore entities
+    entities = None
+    if file_data.get("entities"):
+        entities = [utils.dict_to_message_entity(e) for e in file_data["entities"]]
+    caption_entities = None
+    if file_data.get("caption_entities"):
+        caption_entities = [utils.dict_to_message_entity(e) for e in file_data["caption_entities"]]
+
+    # Restore reply_markup with possible conversion
+    bot_info = await get_bot_info(client.me.id)
+    bot_username = bot_info.get("bot_username") if bot_info else client.me.username
+
+    # Logic: convert callback buttons to URL (deep links) if delivered from a clone to non-owner
+    owner_id = bot_info.get("owner_id") if bot_info else None
+    convert = (chat_id != owner_id)
+    reply_markup = get_reply_markup(file_data.get("reply_markup"), convert_callback_to_url=convert, bot_username=bot_username)
 
     if thumb_fid and media_type in ("document", "video", "audio", "animation"):
         try:
             thumb_io = await client.download_media(thumb_fid, in_memory=True)
             thumb_io.seek(0)
             if media_type == "document":
-                return await client.send_document(chat_id, document=file_id,
-                                                  thumb=thumb_io, caption=caption, reply_markup=reply_markup)
+                return await client.send_document(chat_id, document=file_id, thumb=thumb_io, caption=caption, caption_entities=caption_entities, reply_markup=reply_markup)
             elif media_type == "video":
-                return await client.send_video(chat_id, video=file_id,
-                                               thumb=thumb_io, caption=caption, reply_markup=reply_markup)
+                return await client.send_video(chat_id, video=file_id, thumb=thumb_io, caption=caption, caption_entities=caption_entities, reply_markup=reply_markup)
             elif media_type == "audio":
-                return await client.send_audio(chat_id, audio=file_id,
-                                               thumb=thumb_io, caption=caption, reply_markup=reply_markup)
+                return await client.send_audio(chat_id, audio=file_id, thumb=thumb_io, caption=caption, caption_entities=caption_entities, reply_markup=reply_markup)
             elif media_type == "animation":
-                return await client.send_animation(chat_id, animation=file_id,
-                                                  thumb=thumb_io, caption=caption, reply_markup=reply_markup)
+                return await client.send_animation(chat_id, animation=file_id, thumb=thumb_io, caption=caption, caption_entities=caption_entities, reply_markup=reply_markup)
         except Exception as e:
             logger.warning(f"Thumb delivery: {e}")
 
@@ -791,7 +694,7 @@ async def deliver_file(client, chat_id: int, file_data: dict):
         try:
             return await client.copy_message(
                 chat_id=chat_id, from_chat_id=DB_CHANNEL,
-                message_id=db_msg_id, caption=caption, reply_markup=reply_markup
+                message_id=db_msg_id, caption=caption, caption_entities=caption_entities, reply_markup=reply_markup
             )
         except Exception:
             # Fallback 1: Use Main Bot to proxy the file if current bot is not in channel
@@ -800,7 +703,7 @@ async def deliver_file(client, chat_id: int, file_data: dict):
             if main_client and main_client != client:
                 try:
                     if media_type == "message":
-                        return await client.send_message(chat_id, text=caption, reply_markup=reply_markup)
+                        return await client.send_message(chat_id, text=caption, entities=entities, reply_markup=reply_markup)
 
                     # Try to get the message from DB_CHANNEL using Main Bot
                     db_msg = await main_client.get_messages(DB_CHANNEL, db_msg_id)
@@ -828,7 +731,6 @@ async def deliver_file(client, chat_id: int, file_data: dict):
                 except Exception as e:
                     logger.warning(f"Proxy delivery failed: {e}")
 
-
     # Fallback 3: Cache from other bots
     cached = get_from_cache(file_id)
     if cached and cached["bot_id"] in ACTIVE_CLIENTS:
@@ -840,17 +742,13 @@ async def deliver_file(client, chat_id: int, file_data: dict):
             logger.warning(f"Cache delivery: {e}")
 
     if file_id:
-        return await client.send_cached_media(
-            chat_id=chat_id, file_id=file_id,
-            caption=caption or f" {file_data.get('file_name', 'File')}",
-            reply_markup=reply_markup
-        )
+        return await client.send_cached_media(chat_id=chat_id, file_id=file_id, caption=caption or f" {file_data.get('file_name', 'File')}", caption_entities=caption_entities, reply_markup=reply_markup)
     return None
 
 async def deliver_batch_files(client, chat_id: int, file_ids: list,
                                bot_id: int, is_premium: bool) -> tuple:
-    files  = load_db(FILES_DB)
-    bi     = get_bot_info(bot_id)
+    files  = await db.db_get_all_files()
+    bi     = await get_bot_info(bot_id)
     auto_del = bi.get("auto_delete_time", 300) if bi else 300
     total  = len(file_ids)
     sent_c = 0
@@ -889,7 +787,7 @@ async def do_broadcast(bot_ids: list, bc_msg_id: int, status_msg=None, reply_mar
         if bot_id not in ACTIVE_CLIENTS: continue
         app   = ACTIVE_CLIENTS[bot_id]["app"]
         uname = ACTIVE_CLIENTS[bot_id]["username"]
-        users = get_all_users(bot_id)
+        users = await get_all_users(bot_id)
         for u_idx, user in enumerate(users, 1):
             uid = user["user_id"]
             try:
@@ -921,7 +819,7 @@ async def do_broadcast(bot_ids: list, bc_msg_id: int, status_msg=None, reply_mar
             if status_msg and done % 30 == 0:
                 try:
                     elapsed = (datetime.now() - t0).seconds
-                    all_cnt = sum(len(get_all_users(bid)) for bid in bot_ids)
+                    all_cnt = sum(len(await get_all_users(bid)) for bid in bot_ids)
                     pct = int((done / max(all_cnt, 1)) * 100)
                     bar = "█" * (pct // 10) + "░" * (10 - pct // 10)
                     await status_msg.edit(
@@ -962,7 +860,7 @@ async def api_files_handler(request):
     bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
     if not bot_id: return web.json_response({"files": []})
 
-    files = load_db(FILES_DB)
+    pass
     results = []
 
     for k, f in files.items():
@@ -994,19 +892,19 @@ async def api_user_handler(request):
         return web.json_response({"error": "missing info"}, status=400)
 
     uid = int(uid_str)
-    u = get_user(uid, bot_id)
-    bi = get_bot_info(bot_id)
+    u = await get_user(uid, bot_id)
+    bi = await get_bot_info(bot_id)
 
     is_owner = bi and bi.get("owner_id") == uid
-    is_adm = is_admin(uid) or is_owner
+    is_adm = await is_admin(uid) or is_owner
     is_supreme = uid == MAIN_ADMIN
 
     # Count dual posts
-    all_duals = load_db(DUAL_POST_DB)
+    all_duals = await db.db_get_all_dual_posts()
     user_duals = [d for d in all_duals.values() if d.get("bot_id") == bot_id and d.get("created_by") == uid]
 
     # Count bots
-    all_bots = get_all_bots()
+    all_bots = await get_all_bots()
     user_bots = [b for b in all_bots.values() if isinstance(b, dict) and b.get("owner_id") == uid]
 
     data = {
@@ -1017,7 +915,7 @@ async def api_user_handler(request):
         "is_premium": u.get("is_premium", False) if u else False,
         "refer_count": u.get("refer_count", 0) if u else 0,
         "refer_rewards": u.get("refer_rewards", 0) if u else 0,
-        "is_admin": is_adm,
+        "is_admin": await is_admin(uid, bot_id),
         "is_supreme": is_supreme,
         "name": u.get("name", "User") if u else "User",
         "username": u.get("username", "") if u else "",
@@ -1033,17 +931,17 @@ async def api_admin_stats_handler(request):
 
     if not uid_str or not bot_id: return web.json_response({"error": "missing info"}, status=400)
     uid = int(uid_str)
-    bi = get_bot_info(bot_id)
-    if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+    bi = await get_bot_info(bot_id)
+    if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)):
         return web.json_response({"error": "unauthorized"}, status=403)
 
     if uid == MAIN_ADMIN:
-        users_c, files_c, bots_c, duals_c = len(load_db(USERS_DB)), len(load_db(FILES_DB)), len(get_all_bots()), len(load_db(DUAL_POST_DB))
+        users_c, files_c, bots_c, duals_c = len(await db.db_get_all_users()), len(await db.db_get_all_files()), len(await get_all_bots()), len(await db.db_get_all_dual_posts())
     else:
-        users_c = len([u for u in load_db(USERS_DB).values() if u.get("bot_id") == bot_id])
-        files_c = len([f for f in load_db(FILES_DB).values() if f.get("bot_id") == bot_id])
-        bots_c = len(get_child_bots(bot_id))
-        duals_c = len(get_bot_dual_posts(bot_id))
+        users_c = len([u for u in (await db.db_get_all_users()) if u.get("bot_id") == bot_id])
+        files_c = len(await db.db_get_all_files(bot_id=bot_id))
+        bots_c = len(await get_child_bots(bot_id))
+        duals_c = len(await get_bot_dual_posts(bot_id))
 
     return web.json_response({
         "users": users_c, "files": files_c, "bots": bots_c, "duals": duals_c,
@@ -1055,7 +953,7 @@ async def api_batches_handler(request):
     req_bot_id = request.query.get("bot_id")
     bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
 
-    batches = load_db(BATCH_DB)
+    batches = await db.db_get_all_batches()
     results = []
     for k, b in batches.items():
         if bot_id and b.get("bot_id") != bot_id: continue
@@ -1068,7 +966,7 @@ async def api_duals_handler(request):
     req_bot_id = request.query.get("bot_id")
     bot_id = int(req_bot_id) if req_bot_id and req_bot_id.isdigit() else (next(iter(ACTIVE_CLIENTS.keys())) if ACTIVE_CLIENTS else None)
 
-    duals = load_db(DUAL_POST_DB)
+    duals = await db.db_get_all_dual_posts()
     results = []
     for k, d in duals.items():
         if bot_id and d.get("bot_id") != bot_id: continue
@@ -1179,7 +1077,7 @@ async def setup_commands(app):
     except Exception as e: logger.warning(f"Commands: {e}")
 
 async def check_force_sub(client, user_id: int):
-    bi = get_bot_info(client.me.id)
+    bi = await get_bot_info(client.me.id)
     if not bi: return True, []
     force_subs = bi.get("force_subs", [])
     if not force_subs: return True, []
@@ -1254,18 +1152,18 @@ async def start_bot(token: str, parent_bot_id=None):
 #  KEYBOARDS
 # ═══════════════════════════════════════════════════════════════
 
-def get_btn_name(key: str, default: str) -> str:
-    btns = get_global_config().get("custom_buttons", {})
+async def get_btn_name(key: str, default: str) -> str:
+    btns = (await get_global_config()).get("custom_buttons", {})
     return stylish(btns.get(key, default))
 
-def get_msg_text(key: str, default: str) -> str:
-    msgs = get_global_config().get("custom_messages", {})
+async def get_msg_text(key: str, default: str) -> str:
+    msgs = (await get_global_config()).get("custom_messages", {})
     return stylish(msgs.get(key, default))
 
 class SafeDict(dict):
     def __missing__(self, key): return '{' + key + '}'
 
-def kb_start(bot_id, user_id):
+async def kb_start(bot_id, user_id):
     rows = [
         [InlineKeyboardButton(stylish("BATCH"), callback_data="start_batch"),
          InlineKeyboardButton(stylish("ABOUT"), callback_data="about_bot")],
@@ -1273,7 +1171,7 @@ def kb_start(bot_id, user_id):
     ]
     return InlineKeyboardMarkup(rows)
 
-def kb_admin():
+async def kb_admin():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(get_btn_name("btn_abrd", " BROADCAST"),   callback_data="broadcast_menu"),
          InlineKeyboardButton(get_btn_name("btn_asta", " ANALYTICS"),   callback_data="admin_stats")],
@@ -1294,8 +1192,8 @@ def kb_admin():
         [InlineKeyboardButton(get_btn_name("btn_back", " BACK TO HOME"), callback_data="back_to_start")],
     ])
 
-def kb_supreme():
-    maint = get_global_config().get("maintenance", False)
+async def kb_supreme():
+    maint = (await get_global_config()).get("maintenance", False)
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(get_btn_name("btn_sgbr", " GLOBAL BROADCAST"), callback_data="global_broadcast")],
         [InlineKeyboardButton(get_btn_name("btn_ssys", " SYSTEM STATS"),    callback_data="system_stats"),
@@ -1440,7 +1338,7 @@ def register_handlers(app: Client):
 
     @app.on_chat_join_request()
     async def on_join_request(client, req):
-        bi  = get_bot_info(client.me.id)
+        bi  = await get_bot_info(client.me.id)
         uid = req.from_user.id
         ch  = req.chat.id
 
@@ -1485,7 +1383,7 @@ def register_handlers(app: Client):
             f" `{ms}ms`\n"
             f" Uptime: `{str(datetime.now() - START_TIME).split('.')[0]}`\n"
             f" Bots: `{len(ACTIVE_CLIENTS)}`\n"
-            f" Dual Posts: `{len(load_db(DUAL_POST_DB))}`\n"
+            f" Dual Posts: `{len(await db.db_get_all_dual_posts())}`\n"
             f" Active tokens: `{active_tokens}`"
         )
 
@@ -1495,8 +1393,6 @@ def register_handlers(app: Client):
         await message.reply(" Restarting...")
         os.execl(sys.executable, sys.executable, *sys.argv)
 
-
-
     # ═══════════════════════════════════════════════════════════
     #  DUAL POST COMMANDS
     # ═══════════════════════════════════════════════════════════
@@ -1505,9 +1401,9 @@ def register_handlers(app: Client):
     async def dualpost_cmd(client, message):
         uid    = message.from_user.id
         bot_id = client.me.id
-        bi     = get_bot_info(bot_id)
+        bi     = await get_bot_info(bot_id)
 
-        can_create = (uid == MAIN_ADMIN or is_admin(uid) or
+        can_create = (uid == MAIN_ADMIN or await is_admin(uid) or
                       (bi and bi.get("owner_id") == uid))
         if not can_create:
             return await message.reply(
@@ -1587,7 +1483,7 @@ def register_handlers(app: Client):
     async def dpdone_cmd(client, message):
         uid    = message.from_user.id
         bot_id = client.me.id
-        bi     = get_bot_info(bot_id)
+        bi     = await get_bot_info(bot_id)
 
         if uid not in TEMP_DUAL:
             return await message.reply(" No active session. Use `/dualpost` to start.")
@@ -1602,7 +1498,6 @@ def register_handlers(app: Client):
         post_data = save_dual_post(post_id, sess)
         del TEMP_DUAL[uid]
 
-
         base_link = f"https://t.me/{client.me.username}?start=dp_{post_id}"
         free_c    = len(sess.free_files)
         pro_c     = len(sess.pro_files)
@@ -1614,7 +1509,7 @@ def register_handlers(app: Client):
             else " _Free tier → Direct delivery_"
         )
 
-        files_db = load_db(FILES_DB)
+        files_db = await db.db_get_all_files()
         free_links = ""
         for i, fuid in enumerate(sess.free_files[:10], 1):
             fd = files_db.get(fuid)
@@ -1670,14 +1565,14 @@ def register_handlers(app: Client):
     async def myduals_cmd(client, message):
         uid    = message.from_user.id
         bot_id = client.me.id
-        bi     = get_bot_info(bot_id)
-        is_sup = (uid == MAIN_ADMIN or is_admin(uid) or
+        bi     = await get_bot_info(bot_id)
+        is_sup = (uid == MAIN_ADMIN or await is_admin(uid) or
                   (bi and bi.get("owner_id") == uid))
 
         if is_sup:
-            all_posts = get_bot_dual_posts(bot_id)
+            all_posts = await get_bot_dual_posts(bot_id)
         else:
-            all_posts = get_user_dual_posts(bot_id, uid)
+            all_posts = await get_user_dual_posts(bot_id, uid)
 
         if not all_posts:
             return await message.reply(
@@ -1728,14 +1623,14 @@ def register_handlers(app: Client):
     async def deldual_cmd(client, message):
         uid    = message.from_user.id
         bot_id = client.me.id
-        bi     = get_bot_info(bot_id)
+        bi     = await get_bot_info(bot_id)
         if len(message.command) < 2:
             return await message.reply("Usage: `/deldual POST_ID`\nFind IDs via `/myduals`")
         pid  = message.command[1]
         post = get_dual_post(pid)
         if not post:
             return await message.reply(" Post not found!")
-        can = (uid == MAIN_ADMIN or is_admin(uid) or
+        can = (uid == MAIN_ADMIN or await is_admin(uid) or
                (bi and bi.get("owner_id") == uid) or post.get("created_by") == uid)
         if not can:
             return await message.reply(" Not your post!")
@@ -1750,18 +1645,18 @@ def register_handlers(app: Client):
     async def dpstats_cmd(client, message):
         uid    = message.from_user.id
         bot_id = client.me.id
-        bi     = get_bot_info(bot_id)
-        is_sup = (uid == MAIN_ADMIN or is_admin(uid) or
+        bi     = await get_bot_info(bot_id)
+        is_sup = (uid == MAIN_ADMIN or await is_admin(uid) or
                   (bi and bi.get("owner_id") == uid))
 
-        posts = get_bot_dual_posts(bot_id) if is_sup else get_user_dual_posts(bot_id, uid)
+        posts = await get_bot_dual_posts(bot_id) if is_sup else await get_user_dual_posts(bot_id, uid)
 
         if len(message.command) > 1:
             pid  = message.command[1]
             post = get_dual_post(pid)
             if not post:
                 return await message.reply(" Post not found!")
-            can = (uid == MAIN_ADMIN or is_admin(uid) or
+            can = (uid == MAIN_ADMIN or await is_admin(uid) or
                    (bi and bi.get("owner_id") == uid) or post.get("created_by") == uid)
             if not can:
                 return await message.reply(" Not your post!")
@@ -1807,8 +1702,8 @@ def register_handlers(app: Client):
     async def start_handler(client, message):
         uid    = message.from_user.id
         bot_id = client.me.id
-        cfg    = get_global_config()
-        bi     = get_bot_info(bot_id)
+        cfg    = await get_global_config()
+        bi     = await get_bot_info(bot_id)
 
         if cfg.get("maintenance") and uid != MAIN_ADMIN:
             return await message.reply(" **Maintenance Mode** — Bot is temporarily down.")
@@ -1824,7 +1719,7 @@ def register_handlers(app: Client):
                 user_data, is_new = add_user(uid, bot_id, message.from_user.username, message.from_user.first_name)
                 if is_new:
                     # Reward referrer
-                    users = load_db(USERS_DB)
+                    users = await db.db_get_all_users()
                     ref_key = f"{bot_id}_{ref_id}"
                     if ref_key in users:
                         users[ref_key]["refer_count"] = users[ref_key].get("refer_count", 0) + 1
@@ -1836,13 +1731,13 @@ def register_handlers(app: Client):
                             # In a real system, you'd handle premium expiry date here.
                             # For now, let's just mark them premium.
 
-                        save_db(USERS_DB, users)
+                        pass
                         try:
                             await client.send_message(ref_id, f" **New Referral!**\n\nUser `{uid}` joined via your link.\nTotal refers: `{users[ref_key]['refer_count']}`")
                         except: pass
 
         # Verification System
-        if bi and bi.get("verify_link") and not is_admin(uid) and uid != bi.get("owner_id"):
+        if bi and bi.get("verify_link") and not await is_admin(uid) and uid != bi.get("owner_id"):
             if not deep.startswith("verify_"):
                 v_link = bi.get("verify_link")
                 u_link = bi.get("update_channel")
@@ -1874,14 +1769,25 @@ def register_handlers(app: Client):
                 reply_markup=InlineKeyboardMarkup(btns)
             )
 
-        bi         = get_bot_info(bot_id)
+        bi         = await get_bot_info(bot_id)
         auto_del   = bi.get("auto_delete_time", 300) if bi else 300
         is_premium = user_data.get("is_premium", False)
 
         # ── Deep link: Protected Channel Link ───────────────────
+        if deep.startswith("cb_"):
+            cb_data = deep[3:]
+            # Simulate a callback query
+            class FakeCB:
+                def __init__(self, from_user, message, data):
+                    self.from_user = from_user
+                    self.message = message
+                    self.data = data
+                async def answer(self, *a, **k): pass
+            return await cb_handler(client, FakeCB(message.from_user, message, cb_data))
+
         if deep.startswith("lp_") or deep == "join":
             lpid = deep[3:] if deep.startswith("lp_") else "default"
-            plinks = load_db(PLINKS_DB)
+            plinks = (await db.db_get_all_plinks())
 
             if deep == "join":
                 chid = bi.get("connected_channel") if bi else None
@@ -1890,7 +1796,7 @@ def register_handlers(app: Client):
                 mode = bi.get("join_method", "direct")
                 pdata = {"channel_id": chid, "mode": mode, "title": "Main Channel"}
             else:
-                pdata = plinks.get(lpid)
+                pdata = await db.db_get_plink(lpid)
                 if not pdata or pdata.get("bot_id") != bot_id:
                     return await message.reply(" Protected link not found or expired!")
                 chid = pdata["channel_id"]
@@ -1899,7 +1805,7 @@ def register_handlers(app: Client):
             req_approval = (mode in ("approval", "requested"))
 
             # Check if user already got a link in last 5 mins
-            user_links = load_db(f"{DB_FOLDER}/user_links.json")
+            user_links = {}
             ukey = f"{uid}_{lpid}"
             now_ts = time.time()
 
@@ -1922,7 +1828,7 @@ def register_handlers(app: Client):
 
                 # Save to user_links
                 user_links[ukey] = [now_ts, invite.invite_link]
-                save_db(f"{DB_FOLDER}/user_links.json", user_links)
+                pass
 
                 await message.reply(
                     stylish(" **Here is your link**"),
@@ -1939,18 +1845,18 @@ def register_handlers(app: Client):
             parts = deep[2:].split("_t_", 1)
             fuid  = parts[0]
             token = parts[1] if len(parts) > 1 else ""
-            files = load_db(FILES_DB)
+            pass
             fdata = files.get(fuid)
             if not fdata:
                 return await message.reply(" **File not found!**")
 
             if fdata.get("bot_id") != bot_id:
-                origin_bot = get_bot_info(fdata.get("bot_id"))
+                origin_bot = await get_bot_info(fdata.get("bot_id"))
                 bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
                 return await message.reply(f" **Access Denied!**\n\nThis file was uploaded on {bot_name}. Please use that bot to access this file.")
 
             # Check if password protected
-            if fdata.get("password") and not is_admin(uid, bot_id):
+            if fdata.get("password") and not await is_admin(uid, bot_id):
                 TEMP_EDIT[uid] = {"mode": "verify_password", "uid": fuid, "password": fdata["password"], "fdata": fdata}
                 return await message.reply(stylish(" **This file is password protected!**\n\nPlease send the password to access the file."))
             td = validate_token(token, uid, bot_id)
@@ -1979,18 +1885,18 @@ def register_handlers(app: Client):
         # ── Deep link: file without token ─────────────────────────
         elif deep.startswith("f_") and "_t_" not in deep:
             fuid  = deep[2:]
-            files = load_db(FILES_DB)
+            pass
             fdata = files.get(fuid)
             if not fdata:
                 return await message.reply(" **File not found!**")
 
             if fdata.get("bot_id") != bot_id:
-                origin_bot = get_bot_info(fdata.get("bot_id"))
+                origin_bot = await get_bot_info(fdata.get("bot_id"))
                 bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
                 return await message.reply(f" **Access Denied!**\n\nThis file was uploaded on {bot_name}. Please use that bot to access this file.")
 
             # Check if password protected
-            if fdata.get("password") and not is_admin(uid, bot_id):
+            if fdata.get("password") and not await is_admin(uid, bot_id):
                 TEMP_EDIT[uid] = {"mode": "verify_password", "uid": fuid, "password": fdata["password"], "fdata": fdata}
                 return await message.reply(stylish(" **This file is password protected!**\n\nPlease send the password to access the file."))
 
@@ -2034,10 +1940,10 @@ def register_handlers(app: Client):
             parts   = deep[2:].split("_t_", 1)
             bid_key = parts[0]
             token   = parts[1] if len(parts) > 1 else ""
-            bdata   = load_db(BATCH_DB).get(bid_key)
+            bdata   = await db.db_get_batch(bid_key)
             if not bdata: return await message.reply(" Batch not found.")
             if bdata.get("bot_id") != bot_id:
-                origin_bot = get_bot_info(bdata.get("bot_id"))
+                origin_bot = await get_bot_info(bdata.get("bot_id"))
                 bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
                 return await message.reply(f" **Access Denied!**\n\nThis batch was created on {bot_name}. Please use that bot to access these files.")
 
@@ -2064,10 +1970,10 @@ def register_handlers(app: Client):
         # ── Deep link: batch without token ────────────────────────
         elif deep.startswith("b_") and "_t_" not in deep:
             bid_key = deep[2:]
-            bdata   = load_db(BATCH_DB).get(bid_key)
+            bdata   = await db.db_get_batch(bid_key)
             if not bdata: return await message.reply(" Batch not found.")
             if bdata.get("bot_id") != bot_id:
-                origin_bot = get_bot_info(bdata.get("bot_id"))
+                origin_bot = await get_bot_info(bdata.get("bot_id"))
                 bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
                 return await message.reply(f" **Access Denied!**\n\nThis batch was created on {bot_name}. Please use that bot to access these files.")
 
@@ -2124,7 +2030,7 @@ def register_handlers(app: Client):
                 )
 
             if post.get("bot_id") != bot_id:
-                origin_bot = get_bot_info(post.get("bot_id"))
+                origin_bot = await get_bot_info(post.get("bot_id"))
                 bot_name = f"@{origin_bot['bot_username']}" if origin_bot else "the original bot"
                 return await message.reply(f" **Access Denied!**\n\nThis dual post was created on {bot_name}. Please use that bot to access it.")
 
@@ -2283,8 +2189,8 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("admin") & filters.private, group=1)
     async def admin_cmd(client, message):
         uid = message.from_user.id
-        bi  = get_bot_info(client.me.id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
+        bi  = await get_bot_info(client.me.id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
         text = get_msg_text("msg_admin", " **Admin Panel**")
         await message.reply(text, reply_markup=kb_admin())
 
@@ -2299,9 +2205,9 @@ def register_handlers(app: Client):
         )
         text = get_msg_text("msg_supreme", default_supreme).format_map(SafeDict(
             bots=len(ACTIVE_CLIENTS),
-            users=len(load_db(USERS_DB)),
-            files=len(load_db(FILES_DB)),
-            duals=len(load_db(DUAL_POST_DB))
+            users=len(await db.db_get_all_users()),
+            files=len(await db.db_get_all_files()),
+            duals=len(await db.db_get_all_dual_posts())
         ))
         await message.reply(text, reply_markup=kb_supreme())
 
@@ -2310,20 +2216,20 @@ def register_handlers(app: Client):
     async def stats_cmd(client, message):
         uid = message.from_user.id; bot_id = client.me.id
         if uid == MAIN_ADMIN:
-            dual_posts = load_db(DUAL_POST_DB)
+            dual_posts = await db.db_get_all_dual_posts()
             total_dp_views = sum(p.get("access_total", 0) for p in dual_posts.values())
             await message.reply(
                 f" **Global Analytics**\n━━━━━━━━━━━━━━━━━━━━\n"
-                f" Bots: `{len(get_all_bots())}` |  Online: `{len(ACTIVE_CLIENTS)}`\n"
-                f" Users: `{len(load_db(USERS_DB))}`\n"
-                f" Files: `{len(load_db(FILES_DB))}`\n"
+                f" Bots: `{len(await get_all_bots())}` |  Online: `{len(ACTIVE_CLIENTS)}`\n"
+                f" Users: `{len(await db.db_get_all_users())}`\n"
+                f" Files: `{len(await db.db_get_all_files())}`\n"
                 f" Dual Posts: `{len(dual_posts)}` |  `{total_dp_views}` views\n"
                 f" Uptime: `{str(datetime.now() - START_TIME).split('.')[0]}`"
             )
         else:
-            ud   = get_user(uid, bot_id)
-            ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
-            dps  = get_user_dual_posts(bot_id, uid)
+            ud   = await get_user(uid, bot_id)
+            ubts = [b for b in await get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
+            dps  = await get_user_dual_posts(bot_id, uid)
             await message.reply(
                 f" **Dashboard**\n━━━━━━━━━━━━━━━━━━━━\n"
                 f" `{ud.get('files_uploaded',0) if ud else 0}` uploads | "
@@ -2336,7 +2242,7 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("setwelcome") & filters.private, group=1)
     async def setwelcome_cmd(client, message):
         uid = message.from_user.id; bot_id = client.me.id
-        bi  = get_bot_info(bot_id)
+        bi  = await get_bot_info(bot_id)
         if not bi or (bi.get("owner_id") != uid and uid != MAIN_ADMIN):
             return await message.reply(" Only bot owner!")
         TEMP_WELCOME[uid] = {"bot_id": bot_id, "step": "text"}
@@ -2354,7 +2260,7 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("broadcast") & filters.private, group=1)
     async def broadcast_cmd(client, message):
         uid = message.from_user.id; bot_id = client.me.id
-        bi  = get_bot_info(bot_id)
+        bi  = await get_bot_info(bot_id)
         can_bc = target_bots = None
         if uid == MAIN_ADMIN:
             can_bc, target_bots = True, list(ACTIVE_CLIENTS.keys())
@@ -2365,7 +2271,7 @@ def register_handlers(app: Client):
         if not can_bc: return await message.reply(stylish(" No permission!"))
 
         if not message.reply_to_message:
-            total = sum(len(get_all_users(bid)) for bid in target_bots)
+            total = sum(len(await get_all_users(bid)) for bid in target_bots)
             return await message.reply(
                 f" **ULTRA BROADCAST SYSTEM**\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n"
@@ -2392,7 +2298,7 @@ def register_handlers(app: Client):
             except: pass
 
         TEMP_BROADCAST[uid] = {"bc_msg_id": bc_msg_id, "bot_ids": target_bots, "markup": btn_markup}
-        total = sum(len(get_all_users(bid)) for bid in target_bots)
+        total = sum(len(await get_all_users(bid)) for bid in target_bots)
         await sm.edit(
             f" **READY FOR BROADCAST?**\n\n"
             f" Bots: `{len(target_bots)}` bots\n"
@@ -2416,7 +2322,7 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("createpost") & filters.private, group=1)
     async def createpost_cmd(client, message):
-        uid = message.from_user.id; bot_id = client.me.id; bi = get_bot_info(bot_id)
+        uid = message.from_user.id; bot_id = client.me.id; bi = await get_bot_info(bot_id)
 
         TEMP_POST[uid] = {"bot_id": bot_id, "step": "content"}
         text = " **Post Creator — Step 1/3**\n\nSend the message you want to create (Text, Photo, Video, etc.).\n\nYou can use stylish fonts by selecting text and choosing a style (if supported)."
@@ -2424,7 +2330,7 @@ def register_handlers(app: Client):
         btns = [[InlineKeyboardButton(stylish(" Cancel"), callback_data="cancel_post")]]
 
         # Encourage cloning if not bot owner/admin
-        is_adm = is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)
+        is_adm = await is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)
         if not is_adm:
             text = "<b>WANT TO BECOME AN ADMIN?</b>\n\nCreate your own bot clone to get full admin features including post management and more!\n\n" + text
             btns.insert(0, [InlineKeyboardButton(stylish(" ᴄʟᴏɴᴇ ᴛʜɪs ʙᴏᴛ "), callback_data="clone_menu")])
@@ -2437,19 +2343,19 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("done") & filters.private, group=1)
     async def batch_done(client, message):
         uid = message.from_user.id; bot_id = client.me.id
-        bi  = get_bot_info(bot_id)
+        bi  = await get_bot_info(bot_id)
         if uid not in TEMP_BATCH or not TEMP_BATCH[uid]:
             return await message.reply(" No files in batch!")
         fids = TEMP_BATCH.pop(uid)
         bid  = unique_id()
-        batches = load_db(BATCH_DB)
+        batches = await db.db_get_all_batches()
         batches[bid] = {"files": fids, "created_by": uid, "bot_id": bot_id, "date": str(datetime.now())}
-        save_db(BATCH_DB, batches)
+        pass
         update_user_stats(uid, bot_id, "batches_created")
         link  = f"https://t.me/{client.me.username}?start=b_{bid}"
         short = await get_short_link(bi, link)
 
-        files_db = load_db(FILES_DB)
+        files_db = await db.db_get_all_files()
         file_links = ""
         for i, fuid in enumerate(fids, 1):
             fd = files_db.get(fuid)
@@ -2492,8 +2398,8 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("protect") & filters.private, group=1)
     async def protect_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
 
         TEMP_PROTECT[uid] = {"bot_id": bot_id, "step": "channel"}
         await message.reply(
@@ -2504,11 +2410,11 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("myplinks") & filters.private, group=1)
     async def myplinks_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
 
-        plinks = load_db(PLINKS_DB)
-        my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id and (v.get("created_by") == uid or is_admin(uid))]
+        plinks = (await db.db_get_all_plinks())
+        my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id and (v.get("created_by") == uid or await is_admin(uid))]
 
         if not my_links:
             return await message.reply(" **No protected links found!**\nUse `/protect` to create one.")
@@ -2534,10 +2440,10 @@ def register_handlers(app: Client):
         if len(message.command) < 2:
             return await message.reply("Usage: `/editfile FILE_ID`")
         fuid  = message.command[1]
-        files = load_db(FILES_DB); fd = files.get(fuid)
+        fd = await db.db_get_file(fuid)
         if not fd: return await message.reply(" File not found!")
-        bi  = get_bot_info(bot_id)
-        can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
+        bi  = await get_bot_info(bot_id)
+        can = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
         if not can: return await message.reply(" Not your file!")
         await message.reply(
             get_file_edit_text(client, fd, fuid),
@@ -2548,19 +2454,19 @@ def register_handlers(app: Client):
     async def delfile_cmd(client, message):
         uid = message.from_user.id; bot_id = client.me.id
         if len(message.command) < 2: return await message.reply("Usage: `/delfile FILE_ID`")
-        fuid  = message.command[1]; files = load_db(FILES_DB); fd = files.get(fuid)
+        fuid  = message.command[1]; fd = await db.db_get_file(fuid)
         if not fd: return await message.reply(" Not found!")
-        bi  = get_bot_info(bot_id)
-        can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
+        bi  = await get_bot_info(bot_id)
+        can = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
         if not can: return await message.reply(" Not your file!")
-        del files[fuid]; save_db(FILES_DB, files)
+        del files[fuid]; pass
         await message.reply(f" **Deleted:** `{fd.get('file_name','?')}`")
 
     @app.on_message(filters.command("listfiles") & filters.private, group=1)
     async def listfiles_cmd(client, message):
         uid = message.from_user.id; bot_id = client.me.id
-        files = load_db(FILES_DB); bi = get_bot_info(bot_id)
-        is_sup = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid)
+        pass; bi = await get_bot_info(bot_id)
+        is_sup = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid)
         all_f = [(k,f) for k,f in files.items()
                  if f.get("bot_id")==bot_id and (is_sup or f.get("user_id")==uid)]
         if not all_f: return await message.reply(" No files found!")
@@ -2581,7 +2487,7 @@ def register_handlers(app: Client):
     @app.on_message(filters.command("mybots") & filters.private, group=1)
     async def mybots_cmd(client, message):
         uid  = message.from_user.id
-        ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
+        ubts = [b for b in await get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
         if not ubts: return await message.reply(" No bots yet! `/clone TOKEN`")
         text = f" **Your Bots ({len(ubts)})**\n\n"
         for i, b in enumerate(ubts[:10],1):
@@ -2590,8 +2496,8 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command(["ban","unban","info","givepremium","removepremium","gban","ungban"]) & filters.private, group=1)
     async def admin_utils(client, message):
-        uid = message.from_user.id; bot_id = client.me.id; bi = get_bot_info(bot_id)
-        if not (uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid)): return
+        uid = message.from_user.id; bot_id = client.me.id; bi = await get_bot_info(bot_id)
+        if not (uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid)): return
         if len(message.command)<2: return await message.reply(f"Usage: `/{message.command[0]} USER_ID`")
         try: target = int(message.command[1])
         except ValueError: return await message.reply(" Invalid ID!")
@@ -2601,31 +2507,31 @@ def register_handlers(app: Client):
         elif cmd == "unban":
             await message.reply(" Unbanned!" if unban_user(target,bot_id) else " Not found.")
         elif cmd == "givepremium":
-            users = load_db(USERS_DB); k = f"{bot_id}_{target}"
-            if k in users:
-                users[k]["is_premium"] = True; save_db(USERS_DB,users)
+            u = await get_user(target, bot_id)
+            if u:
+                await db.db_update_user(target, bot_id, {"is_premium": True})
                 await message.reply(f" `{target}` is now Premium!")
             else: await message.reply(" Not found.")
         elif cmd == "removepremium":
-            users = load_db(USERS_DB); k = f"{bot_id}_{target}"
-            if k in users:
-                users[k]["is_premium"] = False; save_db(USERS_DB,users)
+            u = await get_user(target, bot_id)
+            if u:
+                await db.db_update_user(target, bot_id, {"is_premium": False})
                 await message.reply(f" Premium removed from `{target}`!")
             else: await message.reply(" Not found.")
         elif cmd == "gban":
             if uid!=MAIN_ADMIN: return
-            cfg=get_global_config(); gb=cfg.get("global_bans",[])
+            cfg=await get_global_config(); gb=cfg.get("global_bans",[])
             if target not in gb:
-                gb.append(target); update_global_config("global_bans",gb)
+                gb.append(target); await update_global_config("global_bans",gb)
                 await message.reply(f" Globally banned `{target}`!")
         elif cmd == "ungban":
             if uid!=MAIN_ADMIN: return
-            cfg=get_global_config(); gb=cfg.get("global_bans",[])
+            cfg=await get_global_config(); gb=cfg.get("global_bans",[])
             if target in gb:
-                gb.remove(target); update_global_config("global_bans",gb)
+                gb.remove(target); await update_global_config("global_bans",gb)
                 await message.reply(f" Globally unbanned `{target}`!")
         elif cmd == "info":
-            u = get_user(target, bot_id)
+            u = await get_user(target, bot_id)
             if not u: return await message.reply(" Not found.")
             await message.reply(
                 f" **User Info**\n"
@@ -2637,45 +2543,45 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("setprice") & filters.private, group=1)
     async def setprice_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             curr=bi.get("premium_price","500")
             return await message.reply(f" Current Price: `{curr}`\n`/setprice AMOUNT` (e.g. 500 or 5$)")
         price = message.text.split(None, 1)[1].strip()
-        update_bot_info(bot_id, "premium_price", price)
+        await update_bot_info(bot_id, "premium_price", price)
         await message.reply(f" Premium price set to: `{price}`")
 
     @app.on_message(filters.command("setcontact") & filters.private, group=1)
     async def setcontact_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             curr=bi.get("premium_contact","zolvid")
             return await message.reply(f" Current Contact: `@{curr}`\n`/setcontact USERNAME` (without @)")
         contact = message.command[1].replace("@", "").strip()
-        update_bot_info(bot_id, "premium_contact", contact)
+        await update_bot_info(bot_id, "premium_contact", contact)
         await message.reply(f" Premium contact set to: `@{contact}`")
 
     @app.on_message(filters.command("setqr") & filters.private, group=1)
     async def setqr_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if not message.reply_to_message or not message.reply_to_message.photo:
             return await message.reply(" Reply to a QR code image with `/setqr` to set it.\nUse `/setqr off` to remove.")
 
         if len(message.command) > 1 and message.command[1].lower() == "off":
-            update_bot_info(bot_id, "premium_qr", None)
+            await update_bot_info(bot_id, "premium_qr", None)
             return await message.reply(" Premium QR code removed!")
 
         qr_id = message.reply_to_message.photo.file_id
-        update_bot_info(bot_id, "premium_qr", qr_id)
+        await update_bot_info(bot_id, "premium_qr", qr_id)
         await message.reply(" Premium QR code updated successfully!")
 
     @app.on_message(filters.command("setchannel") & filters.private, group=1)
     async def setchannel_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             return await message.reply(
                 f" **Channel Connection**\n\n"
@@ -2686,11 +2592,11 @@ def register_handlers(app: Client):
                 f"Note: Users can use `/start join` to get an expiring link to this channel."
             )
         if message.command[1].lower()=="off":
-            update_bot_info(bot_id,"connected_channel",None); return await message.reply(" Disabled!")
+            await update_bot_info(bot_id,"connected_channel",None); return await message.reply(" Disabled!")
         try:
             chid = int(message.command[1])
             await client.get_chat(chid)
-            update_bot_info(bot_id,"connected_channel",chid)
+            await update_bot_info(bot_id,"connected_channel",chid)
             await message.reply(f" Channel connected successfully: `{chid}`")
         except Exception as e:
             err_msg = f" Error: `{e}`\n\n**Tip:** Make sure the bot is an **Admin** in the channel with all permissions. If you still get PeerIdInvalid, try sending a message in the channel and then try again."
@@ -2698,8 +2604,8 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("setmode") & filters.private, group=1)
     async def setmode_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         modes = ["direct", "requested", "approval"]
         if len(message.command)<2:
             return await message.reply(
@@ -2714,12 +2620,12 @@ def register_handlers(app: Client):
         mode = message.command[1].lower()
         if mode not in modes:
             return await message.reply(f" Invalid mode! Use: {', '.join(modes)}")
-        update_bot_info(bot_id, "join_method", mode)
+        await update_bot_info(bot_id, "join_method", mode)
         await message.reply(f" Join mode set to: `{mode.upper()}`")
 
     @app.on_message(filters.command("settimer") & filters.private, group=1)
     async def settimer_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             curr=bi.get("auto_delete_time",300)
@@ -2727,21 +2633,21 @@ def register_handlers(app: Client):
         try:
             secs=int(message.command[1])
             if secs<60: return await message.reply(" Min 60s!")
-            update_bot_info(bot_id,"auto_delete_time",secs)
+            await update_bot_info(bot_id,"auto_delete_time",secs)
             await message.reply(f" Set to `{secs}s` ({secs//60}min).")
         except ValueError: await message.reply(" Invalid!")
 
     @app.on_message(filters.command("setlog") & filters.private, group=1)
     async def setlog_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2: return await message.reply(f" Log: `{bi.get('log_channel') or 'None'}`\n`/setlog ID` or off")
         if message.command[1].lower()=="off":
-            update_bot_info(bot_id,"log_channel",None); return await message.reply(" Disabled!")
+            await update_bot_info(bot_id,"log_channel",None); return await message.reply(" Disabled!")
         try:
             log_id = int(message.command[1])
             await client.get_chat(log_id)
-            update_bot_info(bot_id,"log_channel",log_id)
+            await update_bot_info(bot_id,"log_channel",log_id)
             await message.reply(" Log channel set!")
         except Exception as e:
             err_msg = f" Error: `{e}`\n\n**Tip:** Ensure the bot is an **Admin** in the log channel. If you get PeerIdInvalid, send a message in that channel first."
@@ -2749,8 +2655,8 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("setverify") & filters.private, group=1)
     async def setverify_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             return await message.reply(
                 f" **Verification System**\n\n"
@@ -2763,29 +2669,29 @@ def register_handlers(app: Client):
             )
         val = message.command[1]
         if val.lower() == "off":
-            update_bot_info(bot_id, "verify_link", None)
+            await update_bot_info(bot_id, "verify_link", None)
             return await message.reply(" Verification disabled!")
 
-        update_bot_info(bot_id, "verify_link", val)
+        await update_bot_info(bot_id, "verify_link", val)
         await message.reply(f" Verification link set to: `{val}`")
 
     @app.on_message(filters.command("setupdates") & filters.private, group=1)
     async def setupdates_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
-        if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
+        if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             return await message.reply(f" Update Channel: `{bi.get('update_channel') or 'None'}`\n`/setupdates LINK` or off")
         val = message.command[1]
         if val.lower() == "off":
-            update_bot_info(bot_id, "update_channel", None)
+            await update_bot_info(bot_id, "update_channel", None)
             return await message.reply(" Update channel disabled!")
 
-        update_bot_info(bot_id, "update_channel", val)
+        await update_bot_info(bot_id, "update_channel", val)
         await message.reply(f" Update channel link set to: `{val}`")
 
     @app.on_message(filters.command("shortener") & filters.private, group=1)
     async def shortener_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(" Access Denied!")
         if len(message.command)<2:
             st=" ON" if bi.get("is_shortener_enabled") else " OFF"
@@ -2793,13 +2699,13 @@ def register_handlers(app: Client):
         cmd=message.command[1].lower()
         if cmd=="on":
             if not bi.get("shortener_url"): return await message.reply(" Set URL first!")
-            update_bot_info(bot_id,"is_shortener_enabled",True); await message.reply(" Enabled!")
+            await update_bot_info(bot_id,"is_shortener_enabled",True); await message.reply(" Enabled!")
         elif cmd=="off":
-            update_bot_info(bot_id,"is_shortener_enabled",False); await message.reply(" Disabled!")
+            await update_bot_info(bot_id,"is_shortener_enabled",False); await message.reply(" Disabled!")
         elif cmd=="set":
             if len(message.command)<4: return await message.reply("Usage: `/shortener set URL APIKEY`")
-            update_bot_info(bot_id,"shortener_url",message.command[2])
-            update_bot_info(bot_id,"shortener_api",message.command[3])
+            await update_bot_info(bot_id,"shortener_url",message.command[2])
+            await update_bot_info(bot_id,"shortener_api",message.command[3])
             await message.reply(f" Configured: `{message.command[2]}`")
 
     @app.on_message(filters.command("clone") & filters.private, group=1)
@@ -2829,7 +2735,7 @@ def register_handlers(app: Client):
                 logger.error(f"Clone check critical error: {e}")
 
         if len(message.command)<2:
-            ubts=[b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
+            ubts=[b for b in await get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             return await message.reply(
                 f" **Bot Cloning System** \n\n"
                 f"Create your own version of this bot in seconds!\n\n"
@@ -2839,7 +2745,7 @@ def register_handlers(app: Client):
                 f" Your bots: `{len(ubts)}`",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" BotFather",url="https://t.me/BotFather")]]))
         token=message.command[1]
-        for b in get_all_bots().values():
+        for b in await get_all_bots().values():
             if isinstance(b,dict) and b.get("token")==token: return await message.reply(" Already registered!")
         sm=await message.reply(" **Establishing connection to Telegram...**")
         try:
@@ -2863,7 +2769,7 @@ def register_handlers(app: Client):
 
     @app.on_message(filters.command("setfs") & filters.private, group=1)
     async def setfs_cmd(client, message):
-        uid=message.from_user.id; bot_id=client.me.id; bi=get_bot_info(bot_id)
+        uid=message.from_user.id; bot_id=client.me.id; bi=await get_bot_info(bot_id)
         if not bi or (bi.get("owner_id")!=uid and uid!=MAIN_ADMIN): return await message.reply(stylish(" Only owner!"))
         fs=bi.get("force_subs",[])
         if len(message.command)<2:
@@ -2877,7 +2783,7 @@ def register_handlers(app: Client):
             return await message.reply(text, disable_web_page_preview=True)
         cmd=message.command[1].lower()
         if cmd in ("clear","off"):
-            update_bot_info(bot_id,"force_subs",[]); n=cascade_force_subs(bot_id,[])
+            await update_bot_info(bot_id,"force_subs",[]); n=await cascade_force_subs(bot_id,[])
             return await message.reply(f" Cleared! ({n} clones updated)")
         if cmd=="add":
             if len(fs)>=MAX_FORCE_SUB_CHANNELS: return await message.reply(stylish(f" Max {MAX_FORCE_SUB_CHANNELS}!"))
@@ -2914,8 +2820,8 @@ def register_handlers(app: Client):
                 return await message.reply(stylish(" Channel already in Force Sub list!"))
 
             fs.append({"channel_id": cid, "invite_link": lnk})
-            update_bot_info(bot_id, "force_subs", fs)
-            n = cascade_force_subs(bot_id, fs)
+            await update_bot_info(bot_id, "force_subs", fs)
+            n = await cascade_force_subs(bot_id, fs)
             return await message.reply(stylish(f" Added! ({n} clones updated)"))
         if cmd=="del":
             if len(message.command)<3: return await message.reply("Usage: `/setfs del -100xxx`")
@@ -2923,7 +2829,7 @@ def register_handlers(app: Client):
             except ValueError: return await message.reply(" Invalid ID!")
             new_fs=[f for f in fs if (f["channel_id"] if isinstance(f,dict) else f)!=cid]
             if len(new_fs)==len(fs): return await message.reply(" Not in list!")
-            update_bot_info(bot_id,"force_subs",new_fs); n=cascade_force_subs(bot_id,new_fs)
+            await update_bot_info(bot_id,"force_subs",new_fs); n=await cascade_force_subs(bot_id,new_fs)
             return await message.reply(f" Removed! ({n} clones updated)")
 
     @app.on_message(filters.command(["premium","botinfo","help", "about", "refer", "rename", "setcaption", "setthumb", "autoapprove", "autocaption",
@@ -2931,8 +2837,8 @@ def register_handlers(app: Client):
     async def misc_commands(client, message):
         uid=message.from_user.id; bot_id=client.me.id; cmd=message.command[0]
         if cmd == "premium":
-            ud=get_user(uid,bot_id); is_p=ud.get("is_premium",False) if ud else False
-            bi=get_bot_info(bot_id); price = bi.get("premium_price", "500") if bi else "500"
+            ud=await get_user(uid,bot_id); is_p=ud.get("is_premium",False) if ud else False
+            bi=await get_bot_info(bot_id); price = bi.get("premium_price", "500") if bi else "500"
             contact = bi.get("premium_contact", "zolvid") if bi else "zolvid"
             qr_id = bi.get("premium_qr") if bi else None
 
@@ -2968,13 +2874,13 @@ def register_handlers(app: Client):
             else:
                 await message.reply(text, reply_markup=InlineKeyboardMarkup(kb))
         elif cmd == "botinfo":
-            bi=get_bot_info(bot_id)
+            bi=await get_bot_info(bot_id)
             if not bi: return await message.reply("Not in DB.")
-            dp_count = len(get_bot_dual_posts(bot_id))
+            dp_count = len(await get_bot_dual_posts(bot_id))
             await message.reply(
                 f" @{client.me.username}\n"
                 f" {bi.get('owner_name','?')}\n"
-                f" Clones: `{len(get_child_bots(bot_id))}`\n"
+                f" Clones: `{len(await get_child_bots(bot_id))}`\n"
                 f" Force Sub: `{len(bi.get('force_subs',[]))}` ch\n"
                 f" Timer: `{bi.get('auto_delete_time',300)}s` | "
                 f"AA: `{'ON' if bi.get('auto_approve') else 'OFF'}`\n"
@@ -3004,7 +2910,7 @@ def register_handlers(app: Client):
             )
             await message.reply(stylish(text), reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(stylish("BACK"), callback_data="back_to_start")]]))
         elif cmd == "refer":
-            ud = get_user(uid, bot_id)
+            ud = await get_user(uid, bot_id)
             if not ud: ud = add_user(uid, bot_id, message.from_user.username, message.from_user.first_name)[0]
             ref_link = f"https://t.me/{client.me.username}?start=ref_{uid}"
             default_ref = (
@@ -3030,11 +2936,11 @@ def register_handlers(app: Client):
             if len(message.command) < 2:
                 return await message.reply(f"Usage: `/{cmd} FILE_ID`\nFind IDs via /listfiles")
             fuid = message.command[1]
-            files = load_db(FILES_DB)
+            pass
             fd = files.get(fuid)
             if not fd: return await message.reply(" File not found!")
-            bi = get_bot_info(bot_id)
-            can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
+            bi = await get_bot_info(bot_id)
+            can = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
             if not can: return await message.reply(" Not your file!")
 
             if cmd == "rename":
@@ -3047,22 +2953,22 @@ def register_handlers(app: Client):
                 TEMP_EDIT[uid] = {"mode": "thumbnail", "uid": fuid}
                 await message.reply(f" **Set Thumbnail**\n\nFile: `{fd.get('file_name')}`\n\nSend a **photo** as thumbnail.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="cancel_edit")]]))
         elif cmd == "autoapprove":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
             curr = bi.get("auto_approve", False)
-            update_bot_info(bot_id, "auto_approve", not curr)
+            await update_bot_info(bot_id, "auto_approve", not curr)
             await message.reply(stylish(f"ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ: {'ᴏɴ' if not curr else 'ᴏғғ'}"))
         elif cmd == "autocaption":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)): return
             curr = bi.get("auto_caption", True)
-            update_bot_info(bot_id, "auto_caption", not curr)
+            await update_bot_info(bot_id, "auto_caption", not curr)
             await message.reply(stylish(f"ᴀᴜᴛᴏ ᴄᴀᴘᴛɪᴏɴ: {'ᴏɴ' if not curr else 'ᴏғғ'}"))
         elif cmd == "setglobal":
             if uid!=MAIN_ADMIN: return
             if len(message.command)<2: return await message.reply("Usage: `/setglobal MSG` or off")
             txt=message.text.split(None,1)[1]
-            update_global_config("global_msg","" if txt.lower()=="off" else txt)
+            await update_global_config("global_msg","" if txt.lower()=="off" else txt)
             await message.reply(" Updated!")
         elif cmd == "addadmin":
             if len(message.command) < 2: return await message.reply(stylish("Usage: /addadmin USER_ID"))
@@ -3070,17 +2976,16 @@ def register_handlers(app: Client):
             except: return await message.reply(stylish(" Invalid ID!"))
 
             if uid == MAIN_ADMIN:
-                admins = load_db(ADMINS_DB)
+                admins = await db.db_get_all_admins()
                 admins[str(target)] = str(datetime.now())
-                save_db(ADMINS_DB, admins)
-
+                pass
 
                 await message.reply(stylish(f" `{target}` added as Global Admin."))
             elif bi and bi.get("owner_id") == uid:
                 sec_admins = bi.get("secondary_admins", [])
                 if target not in sec_admins:
                     sec_admins.append(target)
-                    update_bot_info(bot_id, "secondary_admins", sec_admins)
+                    await update_bot_info(bot_id, "secondary_admins", sec_admins)
                     await message.reply(stylish(f" `{target}` added as Bot Admin."))
                 else:
                     await message.reply(stylish(" User is already an admin of this bot."))
@@ -3093,11 +2998,10 @@ def register_handlers(app: Client):
             except: return await message.reply(stylish(" Invalid ID!"))
 
             if uid == MAIN_ADMIN:
-                admins = load_db(ADMINS_DB)
+                admins = await db.db_get_all_admins()
                 if str(target) in admins:
                     del admins[str(target)]
-                    save_db(ADMINS_DB, admins)
-
+                    pass
 
                     await message.reply(stylish(f" `{target}` removed from Global Admins."))
                 else:
@@ -3106,7 +3010,7 @@ def register_handlers(app: Client):
                 sec_admins = bi.get("secondary_admins", [])
                 if target in sec_admins:
                     sec_admins.remove(target)
-                    update_bot_info(bot_id, "secondary_admins", sec_admins)
+                    await update_bot_info(bot_id, "secondary_admins", sec_admins)
                     await message.reply(stylish(f" `{target}` removed from Bot Admins."))
                 else:
                     await message.reply(stylish(" User is not an admin of this bot."))
@@ -3115,7 +3019,7 @@ def register_handlers(app: Client):
         elif cmd == "search":
             if is_user_banned(uid,bot_id): return await message.reply(" Banned!")
             if len(message.command)<2: return await message.reply(" Usage: `/search FILENAME`")
-            q=message.text.split(None,1)[1].lower(); files=load_db(FILES_DB)
+            q=message.text.split(None,1)[1].lower(); files=await db.db_get_all_files()
             results=[(k,f) for k,f in files.items()
                      if f.get("bot_id")==bot_id and q in f.get("file_name","").lower()][:10]
             if not results: return await message.reply(f" No files for `{q}`")
@@ -3128,8 +3032,8 @@ def register_handlers(app: Client):
             await message.reply(text,reply_markup=InlineKeyboardMarkup(btns))
         elif cmd == "mybatches":
             if is_user_banned(uid, bot_id): return await message.reply(" Banned!")
-            batches = load_db(BATCH_DB); bi = get_bot_info(bot_id)
-            is_sup = uid == MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id") == uid)
+            batches = await db.db_get_all_batches(); bi = await get_bot_info(bot_id)
+            is_sup = uid == MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id") == uid)
             my_b = []
             for bid, b in batches.items():
                 if b.get("bot_id") == bot_id and (is_sup or b.get("created_by") == uid):
@@ -3139,7 +3043,7 @@ def register_handlers(app: Client):
             recent = sorted(my_b, key=lambda x: x[1].get("date", ""), reverse=True)[:10]
             text = f" **{'All' if is_sup else 'Your'} Batches ({len(my_b)} total)**\n\n"
             btns = []
-            files_db = load_db(FILES_DB)
+            files_db = await db.db_get_all_files()
             for bid, b in recent:
                 fids = b.get("files", [])
                 count = len(fids)
@@ -3163,7 +3067,7 @@ def register_handlers(app: Client):
                 btns.append([InlineKeyboardButton(f" Share {bid[:8]}", url=f"https://t.me/share/url?url={link}")])
             await message.reply(text, reply_markup=InlineKeyboardMarkup(btns) if btns else None)
         elif cmd == "font":
-            user = get_user(uid, bot_id)
+            user = await get_user(uid, bot_id)
             curr = user.get("pref_font", "smallcaps")
             text = stylish(f"<b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\nᴄᴜʀʀᴇɴᴛ ғᴏɴᴛ: <code>{curr}</code>\n\nsᴇʟᴇᴄᴛ ᴀ ɴᴇᴡ ғᴏɴᴛ sᴛʏʟᴇ ʙᴇʟᴏᴡ. ᴛʜɪs sᴛʏʟᴇ ᴡɪʟʟ ʙᴇ ᴀᴘᴘʟɪᴇᴅ ᴛᴏ ᴀʟʟ ʏᴏᴜʀ ᴄᴀᴘᴛɪᴏɴs ᴀɴᴅ ᴘᴏsᴛs.")
             btns = []
@@ -3176,8 +3080,8 @@ def register_handlers(app: Client):
             btns.append([InlineKeyboardButton(stylish("ʙᴀᴄᴋ"), callback_data="help_cat_fonts")])
             await message.reply(text, reply_markup=InlineKeyboardMarkup(btns))
         elif cmd == "requests":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
                 return await message.reply(stylish(" Access Denied! Only bot admins can manage requests."))
 
             pending = []
@@ -3210,7 +3114,7 @@ def register_handlers(app: Client):
     async def inline_search(client, query):
         q=query.query.strip().lower()
         if not q: return await query.answer([],cache_time=1)
-        bot_id=client.me.id; files=load_db(FILES_DB); results=[]
+        bot_id=client.me.id; files=await db.db_get_all_files(); results=[]
         for k,f in files.items():
             if f.get("bot_id")==bot_id and q in f.get("file_name","").lower():
                 icon=file_icon(f.get("file_name","")); link=f"https://t.me/{client.me.username}?start=f_{k}"
@@ -3231,7 +3135,6 @@ def register_handlers(app: Client):
     async def advanced_handler(client, message):
         uid=message.from_user.id; bot_id=client.me.id
         if is_user_banned(uid,bot_id): return
-
 
         # Skip if FSM is waiting for input (handled by group 2)
         if uid in TEMP_EDIT or uid in TEMP_WELCOME or uid in TEMP_POST or uid in TEMP_PROTECT:
@@ -3270,34 +3173,34 @@ def register_handlers(app: Client):
                     path = await message.download()
                     if path:
                         if message.photo:
-                            db_msg = await uploader.send_photo(DB_CHANNEL, photo=path, caption=message.caption, reply_markup=message.reply_markup)
+                            db_msg = await uploader.send_photo(DB_CHANNEL, photo=path, caption=message.caption, caption_entities=message.caption_entities, reply_markup=message.reply_markup)
                         elif message.video:
-                            db_msg = await uploader.send_video(DB_CHANNEL, video=path, caption=message.caption, reply_markup=message.reply_markup)
+                            db_msg = await uploader.send_video(DB_CHANNEL, video=path, caption=message.caption, caption_entities=message.caption_entities, reply_markup=message.reply_markup)
                         elif message.audio:
-                            db_msg = await uploader.send_audio(DB_CHANNEL, audio=path, caption=message.caption, reply_markup=message.reply_markup)
+                            db_msg = await uploader.send_audio(DB_CHANNEL, audio=path, caption=message.caption, caption_entities=message.caption_entities, reply_markup=message.reply_markup)
                         elif message.voice:
-                            db_msg = await uploader.send_voice(DB_CHANNEL, voice=path, caption=message.caption, reply_markup=message.reply_markup)
+                            db_msg = await uploader.send_voice(DB_CHANNEL, voice=path, caption=message.caption, caption_entities=message.caption_entities, reply_markup=message.reply_markup)
                         elif message.video_note:
                             db_msg = await uploader.send_video_note(DB_CHANNEL, video_note=path, reply_markup=message.reply_markup)
                         elif message.sticker:
                             db_msg = await uploader.send_sticker(DB_CHANNEL, sticker=path, reply_markup=message.reply_markup)
                         elif message.animation:
-                            db_msg = await uploader.send_animation(DB_CHANNEL, animation=path, caption=message.caption, reply_markup=message.reply_markup)
+                            db_msg = await uploader.send_animation(DB_CHANNEL, animation=path, caption=message.caption, caption_entities=message.caption_entities, reply_markup=message.reply_markup)
                         else:
-                            db_msg = await uploader.send_document(DB_CHANNEL, document=path, caption=message.caption, reply_markup=message.reply_markup)
+                            db_msg = await uploader.send_document(DB_CHANNEL, document=path, caption=message.caption, caption_entities=message.caption_entities, reply_markup=message.reply_markup)
                         os.remove(path)
                     else:
                         return await sm.edit(" Failed to download file for re-upload.")
                 else:
                     # Pure text message
-                    db_msg = await uploader.send_message(DB_CHANNEL, text=message.text or message.caption, reply_markup=message.reply_markup)
+                    db_msg = await uploader.send_message(DB_CHANNEL, text=message.text or message.caption, entities=message.entities, reply_markup=message.reply_markup)
 
                 await sm.delete()
             except Exception as e:
                 return await message.reply(f" DB Channel error (Main Bot fallback): \n`{e}`")
 
-        bi = get_bot_info(bot_id)
-        user_data_f = get_user(uid, bot_id)
+        bi = await get_bot_info(bot_id)
+        user_data_f = await get_user(uid, bot_id)
         user_font = user_data_f.get("pref_font", "smallcaps") if user_data_f else "smallcaps"
 
         original_caption = message.caption or message.text
@@ -3338,19 +3241,24 @@ def register_handlers(app: Client):
             except Exception as e:
                 logger.warning(f"Failed to parse reply_markup: {e}")
 
-        fuid=unique_id(); files=load_db(FILES_DB)
+        fuid=unique_id()
+        entities = [json.loads(str(e)) for e in message.entities] if message.entities else None
+        caption_entities = [json.loads(str(e)) for e in message.caption_entities] if message.caption_entities else None
+
         fdata={
             "file_id":file_id,"file_name":file_name,"file_size":file_size,
             "caption":original_caption,"user_id":uid,"bot_id":bot_id,
-            "upload_date":str(datetime.now()),"db_msg_id":db_msg.id,
+            "upload_date":datetime.now().isoformat(),"db_msg_id":db_msg.id,
             "access_count":0,"media_type":media_type,"custom_thumbnail":None,
-            "reply_markup": reply_markup
+            "reply_markup": reply_markup,
+            "entities": entities,
+            "caption_entities": caption_entities
         }
-        files[fuid]=fdata; save_db(FILES_DB,files)
+        await db.db_save_file(fuid, fdata)
         add_to_cache(file_id,db_msg.id,DB_CHANNEL,bot_id,original_caption)
         update_user_stats(uid,bot_id,"files_uploaded")
 
-        bi=get_bot_info(bot_id)
+        bi=await get_bot_info(bot_id)
         if bi and bi.get("log_channel"):
             log_text = f" Upload | {file_icon(file_name)} `{file_name}`\n {fmt_size(file_size)} |  `{uid}` |  `{fuid}`"
             try:
@@ -3484,20 +3392,24 @@ def register_handlers(app: Client):
 
                 await message.reply(stylish(" **Post Ready!** Here is a preview:"), reply_markup=markup)
 
+                # Extract entities for preservation
+                entities = content.entities
+                caption_entities = content.caption_entities
+
                 # Send the actual post content
                 if content.photo:
-                    sent = await client.send_photo(message.chat.id, photo=content.photo.file_id, caption=text, reply_markup=markup)
+                    sent = await client.send_photo(message.chat.id, photo=content.photo.file_id, caption=text, caption_entities=caption_entities, reply_markup=markup)
                 elif content.video:
-                    sent = await client.send_video(message.chat.id, video=content.video.file_id, caption=text, reply_markup=markup)
+                    sent = await client.send_video(message.chat.id, video=content.video.file_id, caption=text, caption_entities=caption_entities, reply_markup=markup)
                 elif content.document:
-                    sent = await client.send_document(message.chat.id, document=content.document.file_id, caption=text, reply_markup=markup)
+                    sent = await client.send_document(message.chat.id, document=content.document.file_id, caption=text, caption_entities=caption_entities, reply_markup=markup)
                 else:
-                    sent = await client.send_message(message.chat.id, text=text, reply_markup=markup)
+                    sent = await client.send_message(message.chat.id, text=text, entities=entities, reply_markup=markup)
 
                 del TEMP_POST[uid]
 
                 fuid = unique_id()
-                files = load_db(FILES_DB)
+                pass
 
                 file_id = None
                 media_type = "message"
@@ -3521,12 +3433,13 @@ def register_handlers(app: Client):
                 fdata = {
                     "file_id": file_id, "file_name": file_name, "file_size": file_size,
                     "caption": text, "user_id": uid, "bot_id": bot_id,
-                    "upload_date": str(datetime.now()), "db_msg_id": db_msg_id,
+                    "upload_date": datetime.now().isoformat(), "db_msg_id": db_msg_id,
                     "access_count": 0, "media_type": media_type, "custom_thumbnail": None,
-                    "reply_markup": json.loads(markup.to_json()) if markup else None
+                    "reply_markup": json.loads(markup.to_json()) if markup else None,
+                    "entities": [json.loads(str(e)) for e in entities] if entities else None,
+                    "caption_entities": [json.loads(str(e)) for e in caption_entities] if caption_entities else None
                 }
-                files[fuid] = fdata
-                save_db(FILES_DB, files)
+                await db.db_save_file(fuid, fdata)
                 update_user_stats(uid, bot_id, "files_uploaded")
 
                 direct_link = f"https://t.me/{client.me.username}?start=f_{fuid}"
@@ -3574,9 +3487,9 @@ def register_handlers(app: Client):
                 if not message.text: return await message.reply(" Send text or `-skip`.")
                 txt = message.text.strip()
                 if txt not in ("-skip", "-clear"):
-                    update_bot_info(bot_id, "custom_welcome", txt)
+                    await update_bot_info(bot_id, "custom_welcome", txt)
                 elif txt == "-clear":
-                    update_bot_info(bot_id, "custom_welcome", None)
+                    await update_bot_info(bot_id, "custom_welcome", None)
                 sess["step"] = "image"
                 await message.reply(
                     f" {'Updated!' if txt not in ('-skip','-clear') else 'Unchanged!' if txt=='-skip' else 'Reset!'}\n\n"
@@ -3585,7 +3498,7 @@ def register_handlers(app: Client):
                 )
             elif step == "image":
                 if message.photo:
-                    update_bot_info(bot_id, "welcome_image", message.photo.file_id)
+                    await update_bot_info(bot_id, "welcome_image", message.photo.file_id)
                     del TEMP_WELCOME[uid]
                     await message.reply(
                         " **Welcome fully updated!**",
@@ -3600,7 +3513,7 @@ def register_handlers(app: Client):
                         del TEMP_WELCOME[uid]
                         await message.reply(" Image unchanged.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Admin",callback_data="admin_panel")]]))
                     elif txt == "-clear":
-                        update_bot_info(bot_id, "welcome_image", None)
+                        await update_bot_info(bot_id, "welcome_image", None)
                         del TEMP_WELCOME[uid]
                         await message.reply(" Image removed.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Admin",callback_data="admin_panel")]]))
                     else: await message.reply(" Send a **photo**, `-skip`, or `-clear`.")
@@ -3608,7 +3521,7 @@ def register_handlers(app: Client):
 
         if uid in TEMP_EDIT:
             sess = TEMP_EDIT[uid]; mode = sess["mode"]; fuid = sess["uid"]
-            files = load_db(FILES_DB)
+            pass
             if fuid not in files:
                 del TEMP_EDIT[uid]; return await message.reply(" File no longer exists.")
             if mode == "caption":
@@ -3616,7 +3529,7 @@ def register_handlers(app: Client):
                 txt = message.text.strip()
                 if txt == "-clear":
                     files[fuid]["caption"] = None
-                    save_db(FILES_DB, files)
+                    pass
                     del TEMP_EDIT[uid]
                     return await message.reply(
                         get_file_edit_text(client, files[fuid], fuid),
@@ -3643,7 +3556,7 @@ def register_handlers(app: Client):
             elif mode == "thumbnail":
                 if not message.photo: return await message.reply(" Send a **photo** as thumbnail.")
                 files[fuid]["custom_thumbnail"] = message.photo.file_id
-                save_db(FILES_DB, files)
+                pass
                 del TEMP_EDIT[uid]
                 await message.reply(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -3653,7 +3566,7 @@ def register_handlers(app: Client):
                 if not message.text: return await message.reply(" Send a **new file name**.")
                 new_name = message.text.strip()
                 files[fuid]["file_name"] = new_name
-                save_db(FILES_DB, files)
+                pass
                 del TEMP_EDIT[uid]
                 await message.reply(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -3675,7 +3588,7 @@ def register_handlers(app: Client):
                     else:
                         return await message.reply(stylish(" **Invalid format!**\nUse: `Text | Link`"))
 
-                save_db(FILES_DB, files)
+                pass
                 del TEMP_EDIT[uid]
                 await message.reply(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -3683,13 +3596,13 @@ def register_handlers(app: Client):
                 )
 
             elif mode == "set_price":
-                update_bot_info(bot_id, "premium_price", message.text.strip())
+                await update_bot_info(bot_id, "premium_price", message.text.strip())
                 del TEMP_EDIT[uid]
                 await message.reply(f" Premium price set to: `{message.text.strip()}`", reply_markup=kb_admin())
 
             elif mode == "set_contact":
                 contact = message.text.replace("@", "").strip()
-                update_bot_info(bot_id, "premium_contact", contact)
+                await update_bot_info(bot_id, "premium_contact", contact)
                 del TEMP_EDIT[uid]
                 await message.reply(f" Premium contact set to: `@{contact}`", reply_markup=kb_admin())
 
@@ -3697,7 +3610,7 @@ def register_handlers(app: Client):
                 try:
                     secs = int(message.text)
                     if secs < 30: return await message.reply(" Min 30s!")
-                    update_bot_info(bot_id, "auto_delete_time", secs)
+                    await update_bot_info(bot_id, "auto_delete_time", secs)
                     del TEMP_EDIT[uid]
                     await message.reply(f" Timer set to `{secs}s`!", reply_markup=kb_admin())
                 except: await message.reply(" Send a valid number of seconds.")
@@ -3706,9 +3619,9 @@ def register_handlers(app: Client):
                 if not message.text: return await message.reply(" Send a **name**.")
                 new_name = message.text.strip()
                 key = sess["key"]
-                btns = get_global_config().get("custom_buttons", {})
+                btns = (await get_global_config()).get("custom_buttons", {})
                 btns[key] = new_name
-                update_global_config("custom_buttons", btns)
+                await update_global_config("custom_buttons", btns)
                 del TEMP_EDIT[uid]
                 await message.reply(f" Button `{key}` updated to: `{new_name}`", reply_markup=kb_supreme())
 
@@ -3716,12 +3629,12 @@ def register_handlers(app: Client):
                 if not message.text: return await message.reply(" Send **text**.")
                 txt = message.text.strip()
                 key = sess["key"]
-                msgs = get_global_config().get("custom_messages", {})
+                msgs = (await get_global_config()).get("custom_messages", {})
                 if txt == "-clear":
                     msgs.pop(key, None)
                 else:
                     msgs[key] = txt
-                update_global_config("custom_messages", msgs)
+                await update_global_config("custom_messages", msgs)
                 del TEMP_EDIT[uid]
                 await message.reply(f" Message `{key}` updated!", reply_markup=kb_supreme())
 
@@ -3729,7 +3642,7 @@ def register_handlers(app: Client):
                 if not message.text: return await message.reply(stylish(" Send a password."))
                 pw = message.text.strip()
                 files[fuid]["password"] = None if pw == "-clear" else pw
-                save_db(FILES_DB, files)
+                pass
                 del TEMP_EDIT[uid]
                 await message.reply(
                     get_file_edit_text(client, files[fuid], fuid),
@@ -3744,7 +3657,7 @@ def register_handlers(app: Client):
                     del TEMP_EDIT[uid]
                     await message.reply(stylish(" Correct Password! Sending file..."))
                     sent = await deliver_file(client, message.chat.id, fdata)
-                    bi = get_bot_info(bot_id); ud = get_user(uid, bot_id)
+                    bi = await get_bot_info(bot_id); ud = await get_user(uid, bot_id)
                     is_p = ud and ud.get("is_premium")
                     if sent and not is_p:
                         auto_del = bi.get("auto_delete_time", 300) if bi else 300
@@ -3793,25 +3706,25 @@ def register_handlers(app: Client):
                         if thumb:
                             thumb_path = await client.download_media(thumb)
 
+                        # Restore entities for re-upload
+                        caption_entities = [utils.dict_to_message_entity(e) for e in fd.get("caption_entities", [])]
+
                         # Always use send_document to preserve original quality and size
                         rm = get_reply_markup(fd.get("reply_markup"))
-                        new_db_msg = await client.send_document(DB_CHANNEL, document=new_path, thumb=thumb_path, caption=fd.get('caption'), progress=up_progress, reply_markup=rm)
+                        new_db_msg = await client.send_document(DB_CHANNEL, document=new_path, thumb=thumb_path, caption=fd.get('caption'), caption_entities=caption_entities, progress=up_progress, reply_markup=rm)
 
                         if new_db_msg:
                             media = new_db_msg.document or new_db_msg.video or new_db_msg.audio or new_db_msg.animation or new_db_msg.sticker
-
-                            # Invalidate old cache
-                            load_db(FILE_CACHE_DB).pop(fd['file_id'], None)
 
                             # Update database
                             fd['file_id'] = media.file_id
                             fd['file_name'] = new_name
                             fd['file_size'] = media.file_size
                             fd['db_msg_id'] = new_db_msg.id
-                            save_db(FILES_DB, files)
+                            await db.db_save_file(fuid, fd)
 
                             # Update cache
-                            add_to_cache(media.file_id, new_db_msg.id, DB_CHANNEL, bot_id, fd.get('caption'))
+                            await add_to_cache(media.file_id, new_db_msg.id, DB_CHANNEL, bot_id, fd.get('caption'))
 
                             await sm.edit(
                                 get_file_edit_text(client, fd, fuid),
@@ -3833,10 +3746,10 @@ def register_handlers(app: Client):
         if is_user_banned(uid, bot_id): return await cb.answer(" Banned!", show_alert=True)
 
         if data.startswith("edit_file_"):
-            fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[10:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(" Not found!", show_alert=True)
-            bi = get_bot_info(bot_id)
-            can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
+            bi = await get_bot_info(bot_id)
+            can = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
             if not can: return await cb.answer(" Not your file!", show_alert=True)
             await cb.message.edit(
                 get_file_edit_text(client, fd, fuid),
@@ -3845,7 +3758,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data.startswith("edit_btns_"):
-            fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[10:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(stylish(" Not found!"), show_alert=True)
             TEMP_EDIT[uid] = {"mode": "edit_btns", "uid": fuid}
             await cb.message.edit(
@@ -3855,7 +3768,7 @@ def register_handlers(app: Client):
             await cb.answer("Send button text")
 
         elif data.startswith("edit_caption_"):
-            fuid = data[13:]; files = load_db(FILES_DB)
+            fuid = data[13:]; pass
             if fuid not in files: return await cb.answer(stylish(" Not found!"), show_alert=True)
             TEMP_EDIT[uid] = {"mode": "caption", "uid": fuid}
             await cb.message.edit(
@@ -3878,20 +3791,25 @@ def register_handlers(app: Client):
             if style in _FONTS:
                 txt = stylish(txt, style)
 
-            files = load_db(FILES_DB)
-            if fuid in files:
-                files[fuid]["caption"] = txt
-                save_db(FILES_DB, files)
+            pass
+            fd = await db.db_get_file(fuid)
+            if fd:
+                fd["caption"] = txt
+                # When updating caption via UI, we lose entities unless we re-parse or use simple text.
+                # Usually stylish() output is plain text for the DB.
+                fd["entities"] = None
+                fd["caption_entities"] = None
+                await db.db_save_file(fuid, fd)
 
             del TEMP_EDIT[uid]
             await cb.message.edit(
-                get_file_edit_text(client, files[fuid], fuid),
+                get_file_edit_text(client, fd, fuid),
                 reply_markup=kb_file_edit(fuid)
             )
             await cb.answer("Caption updated!")
 
         elif data.startswith("set_pass_"):
-            fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[9:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(stylish(" Not found!"), show_alert=True)
             TEMP_EDIT[uid] = {"mode": "set_password", "uid": fuid}
             curr_pw = fd.get("password", "None")
@@ -3902,7 +3820,7 @@ def register_handlers(app: Client):
             await cb.answer("Send password")
 
         elif data.startswith("edit_thumb_"):
-            fuid = data[11:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[11:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(" Not found!", show_alert=True)
             if fd.get("media_type") == "photo":
                 return await cb.answer(" Photos can't have thumbnails!", show_alert=True)
@@ -3918,7 +3836,7 @@ def register_handlers(app: Client):
             await cb.answer("Send a photo")
 
         elif data.startswith("fix_thumb_"):
-            fuid = data[10:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[10:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(" Not found!", show_alert=True)
             if not fd.get("custom_thumbnail"):
                 return await cb.answer(" Set a thumbnail first!", show_alert=True)
@@ -3931,15 +3849,18 @@ def register_handlers(app: Client):
                 path = await client.download_media(fd['file_id'])
                 thumb_path = await client.download_media(fd['custom_thumbnail'])
 
+                # Restore entities for re-upload
+                caption_entities = [utils.dict_to_message_entity(e) for e in fd.get("caption_entities", [])]
+
                 # Always use send_document to preserve original quality and size
                 rm = get_reply_markup(fd.get("reply_markup"))
-                new_db_msg = await client.send_document(DB_CHANNEL, document=path, thumb=thumb_path, caption=fd.get('caption'), reply_markup=rm)
+                new_db_msg = await client.send_document(DB_CHANNEL, document=path, thumb=thumb_path, caption=fd.get('caption'), caption_entities=caption_entities, reply_markup=rm)
 
                 if new_db_msg:
                     media = new_db_msg.document or new_db_msg.video or new_db_msg.audio or new_db_msg.animation or new_db_msg.sticker
                     fd['file_id'] = media.file_id
                     fd['db_msg_id'] = new_db_msg.id
-                    save_db(FILES_DB, files)
+                    await db.db_save_file(fuid, fd)
 
                     await sm.edit(
                         get_file_edit_text(client, fd, fuid),
@@ -3954,7 +3875,7 @@ def register_handlers(app: Client):
                 await sm.edit(f" **Fix Error:** `{e}`")
 
         elif data.startswith("qrename_"):
-            fuid = data[8:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[8:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(" Not found!", show_alert=True)
             TEMP_EDIT[uid] = {"mode": "qrename", "uid": fuid}
             await cb.message.edit(
@@ -3964,7 +3885,7 @@ def register_handlers(app: Client):
             await cb.answer("Send new name")
 
         elif data.startswith("rename_file_"):
-            fuid = data[12:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[12:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(" Not found!", show_alert=True)
             TEMP_EDIT[uid] = {"mode": "rename", "uid": fuid}
             await cb.message.edit(
@@ -3974,9 +3895,9 @@ def register_handlers(app: Client):
             await cb.answer("Send new name")
 
         elif data.startswith("remove_thumb_"):
-            fuid = data[13:]; files = load_db(FILES_DB)
+            fuid = data[13:]; pass
             if fuid in files:
-                files[fuid]["custom_thumbnail"] = None; save_db(FILES_DB, files)
+                files[fuid]["custom_thumbnail"] = None; pass
                 TEMP_EDIT.pop(uid, None)
                 await cb.answer(" Thumbnail removed!", show_alert=True)
                 await cb.message.edit(
@@ -3985,31 +3906,31 @@ def register_handlers(app: Client):
                 )
 
         elif data.startswith("del_file_"):
-            fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[9:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer("Already deleted!", show_alert=True)
-            bi = get_bot_info(bot_id)
-            can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
+            bi = await get_bot_info(bot_id)
+            can = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid) or fd.get("user_id")==uid
             if not can: return await cb.answer(" Not your file!", show_alert=True)
-            del files[fuid]; save_db(FILES_DB, files)
+            del files[fuid]; pass
             await cb.answer(" Deleted!", show_alert=True)
             await cb.message.edit(f" **Deleted:** `{fd.get('file_name','?')}`")
 
         elif data.startswith("del_plink_"):
-            lpid = data[10:]; plinks = load_db(PLINKS_DB); p = plinks.get(lpid)
+            lpid = data[10:]; p = await db.db_get_plink(lpid)
             if not p: return await cb.answer("Already deleted!", show_alert=True)
-            bi = get_bot_info(bot_id)
-            can = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid) or p.get("created_by")==uid
+            bi = await get_bot_info(bot_id)
+            can = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid) or p.get("created_by")==uid
             if not can: return await cb.answer(" Access denied!", show_alert=True)
-            del plinks[lpid]; save_db(PLINKS_DB, plinks)
+            del plinks[lpid]; pass
             await cb.answer(" Protected link deleted!", show_alert=True)
             await cb.message.edit(f" **Deleted Protected Link:** `{p.get('title','?')}`")
 
         elif data.startswith("get_file_"):
-            fuid = data[9:]; files = load_db(FILES_DB); fd = files.get(fuid)
+            fuid = data[9:]; fd = await db.db_get_file(fuid)
             if not fd: return await cb.answer(" Not found!", show_alert=True)
             await cb.answer(" Sending...")
             try:
-                bi = get_bot_info(bot_id); ud = get_user(uid, bot_id)
+                bi = await get_bot_info(bot_id); ud = await get_user(uid, bot_id)
                 is_prem = ud and ud.get("is_premium", False)
                 auto_del = bi.get("auto_delete_time", 300) if bi else 300
                 sent = await deliver_file(client, cb.message.chat.id, fd)
@@ -4128,7 +4049,7 @@ def register_handlers(app: Client):
 
         elif data.startswith("psend_chan_"):
             msg_id = int(data[11:])
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             chid = bi.get("connected_channel")
             if not chid:
                 return await cb.answer(" No channel connected! Use /setchannel first.", show_alert=True)
@@ -4144,7 +4065,7 @@ def register_handlers(app: Client):
             if uid not in TEMP_PROTECT: return await cb.answer("Session expired!", show_alert=True)
             sess = TEMP_PROTECT.pop(uid)
             lpid = unique_id()
-            plinks = load_db(PLINKS_DB)
+            plinks = (await db.db_get_all_plinks())
             plinks[lpid] = {
                 "lpid": lpid,
                 "bot_id": bot_id,
@@ -4154,7 +4075,7 @@ def register_handlers(app: Client):
                 "created_by": uid,
                 "created_at": time.time()
             }
-            save_db(PLINKS_DB, plinks)
+            pass
 
             link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
             await cb.message.edit(
@@ -4176,8 +4097,8 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "listfiles_cb":
-            files = load_db(FILES_DB); bi = get_bot_info(bot_id)
-            is_sup = uid==MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id")==uid)
+            pass; bi = await get_bot_info(bot_id)
+            is_sup = uid==MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id")==uid)
             all_f = [(k,f) for k,f in files.items()
                      if f.get("bot_id")==bot_id and (is_sup or f.get("user_id")==uid)]
             if not all_f: return await cb.answer(" No files found!", show_alert=True)
@@ -4198,10 +4119,10 @@ def register_handlers(app: Client):
 
         # ── Dual post callbacks ───────────────────────────────────
         elif data == "dual_post_menu":
-            bi = get_bot_info(bot_id)
-            can_create = (uid == MAIN_ADMIN or is_admin(uid) or
+            bi = await get_bot_info(bot_id)
+            can_create = (uid == MAIN_ADMIN or await is_admin(uid) or
                           (bi and bi.get("owner_id") == uid))
-            dps = get_user_dual_posts(bot_id, uid) if not can_create else get_bot_dual_posts(bot_id)
+            dps = await get_user_dual_posts(bot_id, uid) if not can_create else await get_bot_dual_posts(bot_id)
             total_views = sum(p.get("access_total", 0) for p in dps)
             active_sess = uid in TEMP_DUAL
             btns = []
@@ -4224,8 +4145,8 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "dual_post_start_new":
-            bi = get_bot_info(bot_id)
-            can_create = (uid == MAIN_ADMIN or is_admin(uid) or
+            bi = await get_bot_info(bot_id)
+            can_create = (uid == MAIN_ADMIN or await is_admin(uid) or
                           (bi and bi.get("owner_id") == uid))
             if not can_create:
                 return await cb.answer(" Only owner/admins can create Dual Posts!", show_alert=True)
@@ -4256,9 +4177,9 @@ def register_handlers(app: Client):
             await cb.answer(" FREE tier stage started! Send files.")
 
         elif data == "dual_post_list":
-            bi = get_bot_info(bot_id)
-            is_sup = (uid == MAIN_ADMIN or is_admin(uid) or (bi and bi.get("owner_id") == uid))
-            posts = get_bot_dual_posts(bot_id) if is_sup else get_user_dual_posts(bot_id, uid)
+            bi = await get_bot_info(bot_id)
+            is_sup = (uid == MAIN_ADMIN or await is_admin(uid) or (bi and bi.get("owner_id") == uid))
+            posts = await get_bot_dual_posts(bot_id) if is_sup else await get_user_dual_posts(bot_id, uid)
             if not posts:
                 await cb.answer("No dual posts yet!", show_alert=True)
                 return
@@ -4317,7 +4238,7 @@ def register_handlers(app: Client):
             save_dual_post(post_id, sess)
             del TEMP_DUAL[uid]
             base_link = f"https://t.me/{client.me.username}?start=dp_{post_id}"
-            bi2 = get_bot_info(bot_id)
+            bi2 = await get_bot_info(bot_id)
             await cb.message.edit(
                 f" **Dual Post Created!**\n\n"
                 f" **{sess.title or 'Dual Post'}**\n"
@@ -4343,7 +4264,7 @@ def register_handlers(app: Client):
             fids = post.get("free_files", [])
             if not fids: return await cb.answer("No free files!", show_alert=True)
             await cb.answer(" Sending free tier preview...")
-            files = load_db(FILES_DB)
+            pass
             for fuid in fids[:3]:
                 fd = files.get(fuid)
                 if not fd: continue
@@ -4360,7 +4281,7 @@ def register_handlers(app: Client):
             fids = post.get("pro_files", [])
             if not fids: return await cb.answer("No premium files in this post!", show_alert=True)
             await cb.answer(" Sending premium tier preview...")
-            files = load_db(FILES_DB)
+            pass
             for fuid in fids[:3]:
                 fd = files.get(fuid)
                 if not fd: continue
@@ -4374,8 +4295,8 @@ def register_handlers(app: Client):
             post_id = data[len("dp_analytics_"):]
             post    = get_dual_post(post_id)
             if not post: return await cb.answer("Post not found!", show_alert=True)
-            bi = get_bot_info(bot_id)
-            can = (uid == MAIN_ADMIN or is_admin(uid) or
+            bi = await get_bot_info(bot_id)
+            can = (uid == MAIN_ADMIN or await is_admin(uid) or
                    (bi and bi.get("owner_id") == uid) or post.get("created_by") == uid)
             if not can: return await cb.answer(" Not your post!", show_alert=True)
             fc   = len(post.get("free_files", []))
@@ -4428,8 +4349,8 @@ def register_handlers(app: Client):
             post_id = data[len("dp_delete_"):]
             post    = get_dual_post(post_id)
             if not post: return await cb.answer("Already deleted!", show_alert=True)
-            bi2 = get_bot_info(bot_id)
-            can = (uid == MAIN_ADMIN or is_admin(uid) or
+            bi2 = await get_bot_info(bot_id)
+            can = (uid == MAIN_ADMIN or await is_admin(uid) or
                    (bi2 and bi2.get("owner_id") == uid) or post.get("created_by") == uid)
             if not can: return await cb.answer(" Not your post!", show_alert=True)
             del_dual_post(post_id)
@@ -4442,10 +4363,10 @@ def register_handlers(app: Client):
 
         # ── Admin callbacks ───────────────────────────────────────
         elif data == "dual_posts_admin":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)):
                 return await cb.answer(" No access!", show_alert=True)
-            posts = get_bot_dual_posts(bot_id)
+            posts = await get_bot_dual_posts(bot_id)
             total_views = sum(p.get("access_total", 0) for p in posts)
             total_free  = sum(p.get("access_free", 0) for p in posts)
             total_pro   = sum(p.get("access_pro", 0) for p in posts)
@@ -4464,7 +4385,6 @@ def register_handlers(app: Client):
                 ])
             )
             await cb.answer()
-
 
         elif data == "start_batch":
             TEMP_BATCH[uid] = []
@@ -4493,7 +4413,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "clone_menu":
-            ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
+            ubts = [b for b in await get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             await cb.message.edit(
                 f" **Clone** — Your bots: `{len(ubts)}`\n\n1. @BotFather → /newbot\n2. `/clone TOKEN`",
                 reply_markup=InlineKeyboardMarkup([
@@ -4504,9 +4424,9 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "user_dashboard":
-            ud   = get_user(uid, bot_id)
-            ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
-            dps  = get_user_dual_posts(bot_id, uid)
+            ud   = await get_user(uid, bot_id)
+            ubts = [b for b in await get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
+            dps  = await get_user_dual_posts(bot_id, uid)
             await cb.message.edit(
                 f" **Dashboard**\n\n"
                 f" `{ud.get('files_uploaded',0) if ud else 0}` uploads | "
@@ -4518,7 +4438,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "my_bots_menu":
-            ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
+            ubts = [b for b in await get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             text = f" **Your Bots ({len(ubts)})**\n\n"
             for i, b in enumerate(ubts[:10], 1):
                 text += f"{i}. {'' if b['bot_id'] in ACTIVE_CLIENTS else ''} @{b['bot_username']}\n"
@@ -4546,7 +4466,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "font_editor":
-            user = get_user(uid, bot_id)
+            user = await get_user(uid, bot_id)
             curr = user.get("pref_font", "smallcaps") if user else "smallcaps"
             text = stylish(f"<b>ғᴏɴᴛ ᴇᴅɪᴛᴏʀ</b>\n\nᴄᴜʀʀᴇɴᴛ ғᴏɴᴛ: <code>{curr}</code>\n\nsᴇʟᴇᴄᴛ ᴀ ɴᴇᴡ ғᴏɴᴛ sᴛʏʟᴇ ʙᴇʟᴏᴡ. ᴛʜɪs sᴛʏʟᴇ ᴡɪʟʟ ʙᴇ ᴀᴘᴘʟɪᴇᴅ ᴛᴏ ᴀʟʟ ʏᴏᴜʀ ᴄᴀᴘᴛɪᴏɴs ᴀɴᴅ ᴘᴏsᴛs.")
             btns = []
@@ -4562,11 +4482,11 @@ def register_handlers(app: Client):
 
         elif data.startswith("setfont_"):
             new_font = data[8:]
-            users = load_db(USERS_DB)
+            users = await db.db_get_all_users()
             ukey = f"{bot_id}_{uid}"
             if ukey in users:
                 users[ukey]["pref_font"] = new_font
-                save_db(USERS_DB, users)
+                pass
                 await cb.answer(f"Font updated to {new_font}!", show_alert=True)
                 # Refresh editor
                 await cb_handler(client, type('CB', (), {'from_user': cb.from_user, 'data': 'font_editor', 'message': cb.message, 'answer': lambda *a, **k: asyncio.sleep(0)})())
@@ -4637,7 +4557,7 @@ def register_handlers(app: Client):
             await cb.message.edit(text, reply_markup=InlineKeyboardMarkup(buttons))
             await cb.answer()
         elif data in ("cb_search", "premium_menu", "referral_menu"):
-            bi_cb = get_bot_info(bot_id)
+            bi_cb = await get_bot_info(bot_id)
             ud_cb = add_user(uid, bot_id, cb.from_user.username, cb.from_user.first_name)[0]
             is_p = (ud_cb or {}).get('is_premium')
             contact = bi_cb.get("premium_contact", "zolvid") if bi_cb else "zolvid"
@@ -4707,7 +4627,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "show_premium_qr":
-            bi_cb = get_bot_info(bot_id)
+            bi_cb = await get_bot_info(bot_id)
             qr_id = bi_cb.get("premium_qr") if bi_cb else None
             if not qr_id:
                 return await cb.answer(" QR code not available!", show_alert=True)
@@ -4716,27 +4636,27 @@ def register_handlers(app: Client):
             await cb.message.reply_photo(qr_id, caption=" **Scan this QR to pay for Premium** \n\nAfter payment, send screenshot to admin.")
 
         elif data == "admin_panel":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)):
                 return await cb.answer(" No access!", show_alert=True)
             await cb.message.edit(" **Admin Panel**", reply_markup=kb_admin())
             await cb.answer()
 
         elif data == "broadcast_menu":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid) or uid == MAIN_ADMIN or (bi and bi.get("owner_id") == uid)):
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid) or uid == MAIN_ADMIN or (bi and bi.get("owner_id") == uid)):
                 return await cb.answer(" No access!", show_alert=True)
             await cb.message.edit(
-                f" **Broadcast**\n\n `{len(get_all_users(bot_id))}`\n\nReply to a message with `/broadcast`",
+                f" **Broadcast**\n\n `{len(await get_all_users(bot_id))}`\n\nReply to a message with `/broadcast`",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="admin_panel")]])
             )
             await cb.answer()
 
         elif data == "plinks_admin":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)):
                 return await cb.answer(" No access!", show_alert=True)
-            plinks = load_db(PLINKS_DB)
+            plinks = (await db.db_get_all_plinks())
             my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id]
             await cb.message.edit(
                 f" **Protected Links Overview**\n\n"
@@ -4753,10 +4673,10 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "plinks_list_admin":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)):
                 return await cb.answer(" No access!", show_alert=True)
-            plinks = load_db(PLINKS_DB)
+            plinks = (await db.db_get_all_plinks())
             my_links = [v for v in plinks.values() if v.get("bot_id") == bot_id]
             if not my_links:
                 return await cb.answer("No protected links found!", show_alert=True)
@@ -4777,8 +4697,7 @@ def register_handlers(app: Client):
 
         elif data.startswith("show_plink_"):
             lpid = data[11:]
-            plinks = load_db(PLINKS_DB)
-            p = plinks.get(lpid)
+            p = await db.db_get_plink(lpid)
             if not p: return await cb.answer("Not found!", show_alert=True)
             link = f"https://t.me/{client.me.username}?start=lp_{lpid}"
             await cb.message.edit(
@@ -4797,7 +4716,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "verify_admin":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
             vl = bi.get("verify_link") or "None"
             uc = bi.get("update_channel") or "None"
@@ -4821,7 +4740,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "disable_verify":
-            update_bot_info(bot_id, "verify_link", None)
+            await update_bot_info(bot_id, "verify_link", None)
             await cb.answer(" Verification system disabled!", show_alert=True)
             await cb.message.edit(" **Admin Panel**", reply_markup=kb_admin())
 
@@ -4832,12 +4751,12 @@ def register_handlers(app: Client):
             await cb.answer("Use /setupdates [link] to set the channel.", show_alert=True)
 
         elif data == "admin_stats":
-            bot_files = [f for f in load_db(FILES_DB).values() if f.get("bot_id") == bot_id]
-            dp_count  = len(get_bot_dual_posts(bot_id))
-            dp_views  = sum(p.get("access_total", 0) for p in get_bot_dual_posts(bot_id))
+            bot_files = [f for f in (await db.db_get_all_files()).values() if f.get("bot_id") == bot_id]
+            dp_count  = len(await get_bot_dual_posts(bot_id))
+            dp_views  = sum(p.get("access_total", 0) for p in await get_bot_dual_posts(bot_id))
 
             # More advanced stats
-            users = [u for u in load_db(USERS_DB).values() if u.get("bot_id") == bot_id]
+            users = [u for u in (await db.db_get_all_users()) if u.get("bot_id") == bot_id]
             today = datetime.now().date()
             active_today = sum(1 for u in users if datetime.fromisoformat(u.get("last_active", "2000-01-01")).date() == today)
             premium_users = sum(1 for u in users if u.get("is_premium"))
@@ -4876,18 +4795,18 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "manage_users":
-            all_u = load_db(USERS_DB)
+            all_u = await db.db_get_all_users()
             banned = sum(1 for u in all_u.values()
                          if u.get("bot_id") == bot_id and u.get("is_banned"))
             await cb.message.edit(
-                f" **Users**\n\n Active: `{len(get_all_users(bot_id))}` |  Banned: `{banned}`\n\n"
+                f" **Users**\n\n Active: `{len(await get_all_users(bot_id))}` |  Banned: `{banned}`\n\n"
                 f"`/ban ID` `/unban ID` `/info ID` `/givepremium ID`",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="admin_panel")]])
             )
             await cb.answer()
 
         elif data == "my_bots_admin":
-            ubts = [b for b in get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
+            ubts = [b for b in await get_all_bots().values() if isinstance(b,dict) and b.get("owner_id")==uid]
             text = f" **Your Bots ({len(ubts)})**\n\n"
             for i, b in enumerate(ubts[:15], 1):
                 text += f"{i}. {'' if b['bot_id'] in ACTIVE_CLIENTS else ''} @{b['bot_username']}\n"
@@ -4902,7 +4821,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "bot_settings_admin":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
             t = bi.get("auto_delete_time", 300)
             await cb.message.edit(
@@ -4922,7 +4841,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "edit_timer":
-            bi = get_bot_info(bot_id); curr = bi.get("auto_delete_time", 300) if bi else 300
+            bi = await get_bot_info(bot_id); curr = bi.get("auto_delete_time", 300) if bi else 300
             await cb.message.edit(
                 f" **Auto-Delete Timer**\n\nCurrent: `{curr}s` ({curr//60}min)\n\nChoose a preset or send a custom value:",
                 reply_markup=InlineKeyboardMarkup([
@@ -4944,7 +4863,7 @@ def register_handlers(app: Client):
                 await cb.message.edit(" **Custom Timer**\n\nSend the auto-delete time in **seconds**.", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel", callback_data="edit_timer")]]))
             else:
                 secs = int(val)
-                update_bot_info(bot_id, "auto_delete_time", secs)
+                await update_bot_info(bot_id, "auto_delete_time", secs)
                 await cb.answer(f" Timer set to {secs}s", show_alert=True)
                 cb.data = "edit_timer"
                 await cb_handler(client, cb)
@@ -4957,7 +4876,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "forcesub_admin":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
             fs   = bi.get("force_subs", [])
             text = f" **Force Subscribe** ({len(fs)}/{MAX_FORCE_SUB_CHANNELS})\n━━━━━━━━━━━━━━━━━━━━\n"
@@ -4979,13 +4898,13 @@ def register_handlers(app: Client):
 
         elif data.startswith("rm_fs_"):
             cid_str = data[6:]
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             fs = bi.get("force_subs", [])
             try:
                 cid = int(cid_str)
                 new_fs = [f for f in fs if (f["channel_id"] if isinstance(f, dict) else f) != cid]
-                update_bot_info(bot_id, "force_subs", new_fs)
-                cascade_force_subs(bot_id, new_fs)
+                await update_bot_info(bot_id, "force_subs", new_fs)
+                await cascade_force_subs(bot_id, new_fs)
                 await cb.answer(" Channel removed!", show_alert=True)
                 # Re-render the menu
                 await cb.message.edit(" **Updating...**")
@@ -4998,20 +4917,20 @@ def register_handlers(app: Client):
             await cb.answer("Use /setfs add -100xxxx [link] to add.", show_alert=True)
 
         elif data == "toggle_auto_approve":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
-            if not (is_admin(uid) or (bi and bi.get("owner_id") == uid)):
+            if not (await is_admin(uid) or (bi and bi.get("owner_id") == uid)):
                 return await cb.answer(" Access Denied!", show_alert=True)
             curr = bi.get("auto_approve", False)
-            update_bot_info(bot_id, "auto_approve", not curr)
+            await update_bot_info(bot_id, "auto_approve", not curr)
             await cb.answer(f"ᴀᴜᴛᴏ ᴀᴘᴘʀᴏᴠᴇ: {'ᴏɴ' if not curr else 'ᴏғғ'}", show_alert=True)
             try:
                 await cb.message.edit(cb.message.text, reply_markup=kb_start(bot_id, uid) if "ʜᴇʟʟᴏ" in cb.message.text else kb_admin())
             except: pass
 
         elif data == "manage_requests":
-            bi = get_bot_info(bot_id)
-            if not (is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
+            bi = await get_bot_info(bot_id)
+            if not (await is_admin(uid, bot_id) or (bi and bi.get("owner_id") == uid)):
                 return await cb.answer(" Access Denied!", show_alert=True)
 
             pending = []
@@ -5046,15 +4965,15 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "toggle_auto_caption":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
             curr = bi.get("auto_caption", True)
-            update_bot_info(bot_id, "auto_caption", not curr)
+            await update_bot_info(bot_id, "auto_caption", not curr)
             await cb.answer(f"Auto Caption: {'ON ' if not curr else 'OFF '}", show_alert=True)
             await cb.message.edit(" **Admin Panel**", reply_markup=kb_admin())
 
         elif data == "shortener_admin":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi: return await cb.answer("Not found!", show_alert=True)
             st = " ON" if bi.get("is_shortener_enabled") else " OFF"
             active = sum(1 for v in SHORTENER_TOKENS.values()
@@ -5073,7 +4992,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "edit_welcome_msg":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi or (bi.get("owner_id") != uid and uid != MAIN_ADMIN):
                 return await cb.answer(" Only owner!", show_alert=True)
             TEMP_WELCOME[uid] = {"bot_id": bot_id, "step": "text"}
@@ -5087,7 +5006,7 @@ def register_handlers(app: Client):
             await cb.answer()
 
         elif data == "preview_welcome":
-            bi = get_bot_info(bot_id)
+            bi = await get_bot_info(bot_id)
             if not bi: return await cb.answer()
             text = bi.get("custom_welcome") or "_(Default)_"
             img  = bi.get("welcome_image")
@@ -5137,7 +5056,7 @@ def register_handlers(app: Client):
         elif data.startswith("cbtn_cat_"):
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             cat = data[9:]
-            btns_config = get_global_config().get("custom_buttons", {})
+            btns_config = (await get_global_config()).get("custom_buttons", {})
             keyboard = []
 
             if cat == "start":
@@ -5190,7 +5109,7 @@ def register_handlers(app: Client):
 
         elif data == "cust_msgs":
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
-            msgs_config = get_global_config().get("custom_messages", {})
+            msgs_config = (await get_global_config()).get("custom_messages", {})
             m_list = [
                 ("msg_welcome", "ᴡᴇʟᴄᴏᴍᴇ ᴍᴇssᴀɢᴇ"), ("msg_help", "ʜᴇʟᴘ ᴍᴇssᴀɢᴇ"),
                 ("msg_premium", "ᴘʀᴇᴍɪᴜᴍ ᴍᴇssᴀɢᴇ"), ("msg_referral", "ʀᴇғᴇʀʀᴀʟ ᴍᴇssᴀɢᴇ"),
@@ -5237,7 +5156,7 @@ def register_handlers(app: Client):
 
         elif data == "reset_messages":
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
-            update_global_config("custom_messages", {})
+            await update_global_config("custom_messages", {})
             await cb.answer(" All messages reset to default!", show_alert=True)
             cb.data = "cust_msgs"
             await cb_handler(client, cb)
@@ -5254,7 +5173,7 @@ def register_handlers(app: Client):
 
         elif data == "reset_buttons":
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
-            update_global_config("custom_buttons", {})
+            await update_global_config("custom_buttons", {})
             await cb.answer(" All buttons reset to default!", show_alert=True)
             cb.data = "cust_btns"
             await cb_handler(client, cb)
@@ -5262,7 +5181,7 @@ def register_handlers(app: Client):
         elif data == "global_broadcast":
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
             await cb.message.edit(
-                f" **Global Broadcast**\n\n `{len(get_all_users())}` |  `{len(ACTIVE_CLIENTS)}`\n\nReply to a message with `/broadcast`.",
+                f" **Global Broadcast**\n\n `{len(await get_all_users())}` |  `{len(ACTIVE_CLIENTS)}`\n\nReply to a message with `/broadcast`.",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(" Back", callback_data="supreme_panel")]])
             )
             await cb.answer()
@@ -5273,16 +5192,16 @@ def register_handlers(app: Client):
             pend    = sum(len(v) for v in _PENDING.values())
             active_tokens = sum(1 for v in SHORTENER_TOKENS.values()
                                 if not v["used"] and time.time() < v["expires_at"])
-            dp_count = len(load_db(DUAL_POST_DB))
+            dp_count = len(await db.db_get_all_dual_posts())
             await cb.message.edit(
                 f" **ELITE SUPREME SYSTEM METRICS**\n"
                 f"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
                 f" **NETWORK STATUS**\n"
-                f" ├ Registered Bots: `{len(get_all_bots())}`\n"
+                f" ├ Registered Bots: `{len(await get_all_bots())}`\n"
                 f" └ Active Instances: `{len(ACTIVE_CLIENTS)}` online\n\n"
                 f" **GLOBAL DATABASE**\n"
-                f" ├ Total Users: `{len(load_db(USERS_DB))}`\n"
-                f" ├ Total Files: `{len(load_db(FILES_DB))}`\n"
+                f" ├ Total Users: `{len(await db.db_get_all_users())}`\n"
+                f" ├ Total Files: `{len(await db.db_get_all_files())}`\n"
                 f" └ Dual Posts: `{dp_count}`\n\n"
                 f" **SYSTEM CORE**\n"
                 f" ├ Pending Requests: `{pend}`\n"
@@ -5302,7 +5221,7 @@ def register_handlers(app: Client):
 
         elif data == "all_bots_list":
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
-            ab = get_all_bots()
+            ab = await get_all_bots()
             text = f" **All Bots ({len(ab)})**\n\n"
             for i, (k, b) in enumerate(list(ab.items())[:20], 1):
                 if isinstance(b, dict):
@@ -5316,7 +5235,7 @@ def register_handlers(app: Client):
 
         elif data == "manage_admins":
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
-            admins = load_db(ADMINS_DB)
+            admins = await db.db_get_all_admins()
             text   = f" **Admins**\n\n Main: `{MAIN_ADMIN}`\n\nSecondary ({len(admins)}):\n"
             for aid in admins: text += f"• `{aid}`\n"
             text += "\n`/addadmin ID` `/deladmin ID`"
@@ -5328,8 +5247,8 @@ def register_handlers(app: Client):
 
         elif data == "toggle_maintenance":
             if uid != MAIN_ADMIN: return await cb.answer("", show_alert=True)
-            curr = get_global_config().get("maintenance", False)
-            update_global_config("maintenance", not curr)
+            curr = (await get_global_config()).get("maintenance", False)
+            await update_global_config("maintenance", not curr)
             await cb.answer(f"Maintenance: {'ON ' if not curr else 'OFF '}", show_alert=True)
             await cb.message.edit(" **Supreme Panel**", reply_markup=kb_supreme())
 
@@ -5341,7 +5260,6 @@ def register_handlers(app: Client):
             )
             await cb.answer()
 
-
         elif data == "manual_clean_cache":
             if uid != MAIN_ADMIN: return await cb.answer()
             count = clean_expired_cache()
@@ -5352,7 +5270,6 @@ def register_handlers(app: Client):
             if uid != MAIN_ADMIN: return await cb.answer()
             await cb.answer(" Restarting...", show_alert=True)
             os.execl(sys.executable, sys.executable, *sys.argv)
-
 
         elif data.startswith("req_"):
             parts = data.split("_")
@@ -5396,7 +5313,7 @@ def register_handlers(app: Client):
             await cb_handler(client, FakeCB(cb.from_user, cb.message))
 
         elif data == "back_to_start":
-            bi  = get_bot_info(bot_id)
+            bi  = await get_bot_info(bot_id)
             text = (bi.get("custom_welcome") if bi else None) or (
                 "<blockquote>"
                 f"ʜᴇʟʟᴏ {cb.from_user.first_name}\n\n"
@@ -5418,7 +5335,6 @@ def register_handlers(app: Client):
 
         else:
             await cb.answer()
-
 
 # ═══════════════════════════════════════════════════════════════
 #  HELPERS
@@ -5481,6 +5397,7 @@ async def resolve_db_channel(client, channel_id):
     return None
 
 async def main():
+    await db.init_db()
     print("╔═══════════════════════════════════════════════════════════╗")
     print("║   ULTRA FILESTORE BOT v7.0 — ELITE EDITION             ║")
     print("╚═══════════════════════════════════════════════════════════╝")
@@ -5488,7 +5405,7 @@ async def main():
     if DB_CHANNEL == -1000000000000:
         logger.error(" DB_CHANNEL not configured!"); return
 
-    _load_pending()
+    await _load_pending()
     logger.info(f" Loaded pending requests for {len(_PENDING)} channels")
 
     await start_web_server()
@@ -5506,11 +5423,10 @@ async def main():
 
     # Ensure main bot is in BOTS_DB
     me_main = await main_app.get_me()
-    if not get_bot_info(me_main.id):
-        save_bot_info(MAIN_BOT_TOKEN, me_main.id, me_main.username, MAIN_ADMIN, "Supreme Admin")
+    if not await get_bot_info(me_main.id):
+        await save_bot_info(MAIN_BOT_TOKEN, me_main.id, me_main.username, MAIN_ADMIN, "Supreme Admin")
 
-
-    all_bots = get_all_bots()
+    all_bots = await get_all_bots()
     if all_bots:
         tasks = [
             start_bot(b["token"], parent_bot_id=b.get("parent_bot_id"))
@@ -5542,7 +5458,6 @@ async def main():
         try: await cd["app"].stop()
         except Exception: pass
     logger.info(" Done!")
-
 
 if __name__ == "__main__":
     try:
