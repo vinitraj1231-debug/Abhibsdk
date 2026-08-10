@@ -4,3 +4,10 @@ __pycache__/
 *.tmp
 database/*.tmp
 *.zip
+
+# wrangler files
+.wrangler
+.dev.vars*
+!.dev.vars.example
+.env*
+!.env.example
